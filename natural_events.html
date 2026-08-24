@@ -3133,10 +3133,9 @@
 <script>
 /* ══════════════════════════════════════════════════════
    CORS PROXY
-   Paste your Cloudflare Worker URL below after deploying
    cors-proxy-worker.js.  Leave empty to disable proxied sources.
 ══════════════════════════════════════════════════════ */
-const PROXY_BASE = 'https://relay.advarium.workers.dev'; // e.g. 'https://natural-events-proxy.yourname.workers.dev'
+const PROXY_BASE = 'https://relay.advarium.workers.dev';
 
 /** Wrap a URL through the CORS proxy if PROXY_BASE is set, else return as-is */
 function proxyUrl(url) {
