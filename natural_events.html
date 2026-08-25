@@ -4412,6 +4412,17 @@ const EONET_CATS = {
   manmade:      { icon:'⚠️', color:'#e67e80', label:'Manmade'       },
 };
 
+/* EONET events normally carry a title. If one is ever missing, say so plainly
+   rather than falling back to the category name: that fallback made the ticker
+   print the category twice (once as the tag, once as the location) and read as
+   though the category were the event's actual name. The EONET id is appended
+   so an untitled event is still traceable back to the source. */
+function eonetTitle(event) {
+  const title = (event?.title || '').trim();
+  if (title) return title;
+  return `Untitled event${event?.id ? ` · ${event.id}` : ''}`;
+}
+
 function eonetCatInfo(event) {
   const catId = event.categories?.[0]?.id || 'manmade';
   return EONET_CATS[catId] || { icon:'🌐', color:'#859289', label: event.categories?.[0]?.title || 'Event' };
@@ -4463,7 +4474,7 @@ function renderEonet() {
     html += `<div class="hazard-item" onclick="flyToEonet('${event.id}')" title="Click to locate on map">
       <div class="hazard-top">
         <span style="font-size:13px">${cat.icon}</span>
-        <span class="hazard-title">${esc(event.title)}</span>
+        <span class="hazard-title">${esc(eonetTitle(event))}</span>
         <span class="hazard-cat" style="background:${cat.color}22;color:${cat.color}">${esc(cat.label)}</span>
       </div>
       <div class="hazard-meta">
@@ -4524,7 +4535,7 @@ function plotEonet() {
     marker._eonetId = event.id;
     marker.bindPopup(`
       <div class="popup-inner">
-        <div class="popup-title">${cat.icon} ${esc(event.title)}</div>
+        <div class="popup-title">${cat.icon} ${esc(eonetTitle(event))}</div>
         <div class="popup-sub" style="color:${cat.color}">${esc(cat.label)}</div>
         ${geo.magnitudeValue != null
           ? `<div class="popup-row"><span>Size</span><span>${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit||''}</span></div>`
@@ -6026,6 +6037,11 @@ function adbColorForItem(item) {
 
 // ── Aggregate the 5 most-recent items across all sources ──
 function adbGatherItems() {
+  // NB: no hard character truncation on `tag` or `short`. The panel rows are
+  // full-width with CSS `text-overflow: ellipsis`, which clips at the actual
+  // pixel boundary and shows a "…". Slicing here instead chopped mid-word with
+  // no ellipsis — "SPACE WEATHER MESSAGE" (21 chars) rendered as "MESSAG",
+  // which reads as a typo rather than as truncated text.
   const candidates = [];
 
   // USGS earthquakes
@@ -6085,7 +6101,7 @@ function adbGatherItems() {
     const catLbl = event.categories?.[0]?.title || 'Event';
     const issueTime = geo?.date ? fmtTime(geo.date) : '—';
     const parts = [];
-    parts.push(event.title || catLbl);
+    parts.push(eonetTitle(event));
     parts.push(`Category: ${catLbl}`);
     if (geo?.magnitudeValue != null) parts.push(`Size: ${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit || ''}`);
     if (event.sources?.[0]?.id) parts.push(`Source: ${event.sources[0].id}`);
@@ -6094,7 +6110,7 @@ function adbGatherItems() {
     candidates.push({
       src: 'eonet', ts: time,
       tag: catLbl.toUpperCase(), issueTime,
-      short: event.title || catLbl,
+      short: eonetTitle(event),
       detail: parts.join('   ·   '),
       _catId: catId,
       flyId: event.id
@@ -6108,9 +6124,12 @@ function adbGatherItems() {
     const msg       = (alert.message || '').replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim();
     const title     = parseProductTitle ? parseProductTitle(alert.message || '') : 'Space Weather';
     // issue time in label; message is the detail
+    // Tag carries the hazard class, location row carries the product title.
+    // Both used to be parseProductTitle(), so the panel printed the same string
+    // twice — masked previously only because the tag was hard-chopped at 20 chars.
     candidates.push({
       src: 'swpc', ts: time,
-      tag: title.toUpperCase().slice(0, 20), issueTime,
+      tag: parseSWCategory(alert.message || '').label.toUpperCase(), issueTime,
       short: title,
       detail: msg,
       _event: title
@@ -6153,7 +6172,7 @@ function adbGatherItems() {
         ts:        onsetTs,
         tag:       `${(srcStyle.label||alert.source.slice(0,4).toUpperCase())} · ${alert.severity.toUpperCase()}`,
         issueTime: alert.onset ? fmtTime(alert.onset) : '—',
-        short:     `${countryLbl}${alert.areaDesc ? ' — ' + alert.areaDesc.slice(0,38) : ''}`,
+        short:     `${countryLbl}${alert.areaDesc ? ' — ' + alert.areaDesc : ''}`,
         detail:    [alert.title, countryLbl, alert.areaDesc, alert.expires ? `Exp: ${fmtTime(alert.expires)}` : ''].filter(Boolean).join('   ·   '),
         _event:    alert.title,
         _color:    alert.color,
