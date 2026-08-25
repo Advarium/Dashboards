@@ -801,13 +801,22 @@
       gap: 5px;
     }
 
+    /* The dot is RED by default and only turns green once a data load has
+       actually succeeded. That means a visitor with JavaScript blocked sees
+       the red/Offline state for free — no script-detection needed, because
+       the code that would turn it green never runs. */
     .dot {
       width: 7px; height: 7px;
       border-radius: 50%;
-      background: var(--green);
-      animation: pulse 2s infinite;
-      box-shadow: 0 0 7px 1px rgba(0,255,120,0.45);
+      background: var(--danger);
+      box-shadow: 0 0 7px 1px rgba(230,126,128,0.45);
     }
+    .live-indicator.live .dot {
+      background: var(--green);
+      box-shadow: 0 0 7px 1px rgba(0,255,120,0.45);
+      animation: pulse 2s infinite;
+    }
+    .live-indicator.stale span { color: var(--danger); font-weight: 600; }
 
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
 
@@ -2220,9 +2229,9 @@
   </div>
 
   <div class="header-right">
-    <div class="live-indicator">
+    <div class="live-indicator stale" id="live-indicator" title="No data loaded yet">
       <div class="dot"></div>
-      <span>Live</span>
+      <span id="live-label">Offline</span>
     </div>
     <div class="clock" id="clock">--:--:--</div>
     <!-- Theme selector -->
@@ -3483,6 +3492,38 @@ function markUpdated(id) {
   });
   const el = document.getElementById(id);
   if (el) el.textContent = timestamp;
+  // Every loader calls this on a successful fetch, so it doubles as the
+  // heartbeat for the Live indicator.
+  noteDataLoaded();
+}
+
+/* ── Live / stale indicator ─────────────────────────────────────
+   Starts red in the markup and is promoted to green only after a real
+   load succeeds, then demoted again if nothing succeeds for a while. */
+const LIVE_STALE_MS = 10 * 60_000;   // 10 minutes with no successful load
+let _lastDataOk = 0;
+
+function noteDataLoaded() {
+  _lastDataOk = Date.now();
+  refreshLiveIndicator();
+}
+
+function refreshLiveIndicator() {
+  const wrap  = document.getElementById('live-indicator');
+  const label = document.getElementById('live-label');
+  if (!wrap || !label) return;
+  // navigator.onLine only reliably reports the DISCONNECTED case, so treat it
+  // as a fast hint and still fall back to the staleness clock.
+  const offline = navigator.onLine === false;
+  const stale   = !_lastDataOk || (Date.now() - _lastDataOk) >= LIVE_STALE_MS;
+  const isLive  = !offline && !stale;
+
+  wrap.classList.toggle('live',  isLive);
+  wrap.classList.toggle('stale', !isLive);
+  label.textContent = offline ? 'Offline' : isLive ? 'Live' : 'Stale';
+  wrap.title = _lastDataOk
+    ? `Last successful update ${relTime(_lastDataOk)}`
+    : 'No data loaded yet';
 }
 
 function showState(bodyId, icon, msg) {
@@ -6436,6 +6477,48 @@ const METEO_SEV_COLOR = {
 };
 const METEO_SEV_ORDER = { Minor: 0, Moderate: 1, Severe: 2, Extreme: 3 };
 
+/* ── MeteoAlarm awareness codes ──────────────────────────────────
+   Most national feeds put a human-readable description in the CAP
+   `event` field. Romania instead publishes the raw awareness codes
+   (verified: 66 of 66 of its alerts, and the only country of 39 doing
+   so), which surfaced in the panel as "awareness_type=5, awareness_level=2".
+   Code meanings come from MeteoAlarm's own EDR API metadata.
+   Type 11 is absent from their list; 12 and 13 are both flood variants,
+   so it is mapped defensively rather than left to fall through. */
+const METEO_AWARENESS_TYPE = {
+  1: 'Wind',            2: 'Snow/Ice',        3: 'Thunderstorm',
+  4: 'Fog',             5: 'High Temperature', 6: 'Low Temperature',
+  7: 'Coastal Event',   8: 'Forest Fire',     9: 'Avalanches',
+  10: 'Rain',           11: 'Flooding',       12: 'Flooding',
+  13: 'Rain/Flood',     14: 'Marine Hazard',  15: 'Drought',
+};
+
+/* Read the structured MeteoAlarm awareness codes out of a CAP info block.
+   Values look like "1; green; Minor" and "5; high-temperature". Every one of
+   the 39 feeds populates these, which makes them far more reliable than
+   parsing the free-text `event` field. */
+function meteoAwareness(info) {
+  let level = null, hazard = null;
+  for (const param of (info.parameter || [])) {
+    const name  = (param.valueName || '').toLowerCase();
+    const digit = /^\s*(\d+)/.exec(String(param.value ?? ''));
+    if (!digit) continue;
+    if      (name === 'awareness_level') level  = +digit[1];
+    else if (name === 'awareness_type')  hazard = METEO_AWARENESS_TYPE[+digit[1]] || null;
+  }
+  return { level, hazard };
+}
+
+// "awareness_type=5, awareness_level=2" → "High Temperature".
+// The level is deliberately dropped: it always matches the CAP severity
+// already shown on the badge beside this text, so repeating it just
+// duplicates. Any event string not in code form is returned untouched.
+function meteoDecodeEvent(event) {
+  const match = /awareness_type\s*=\s*(\d+)/i.exec(event || '');
+  if (!match) return event;
+  return METEO_AWARENESS_TYPE[+match[1]] || event;   // unknown code → leave raw
+}
+
 // Slugs must match live feeds at https://feeds.meteoalarm.org/
 // (Turkey was removed upstream — its feed now returns 404)
 const METEOALARM_COUNTRIES = [
@@ -6703,8 +6786,18 @@ function normalizeWMO(data) {
 }
 
 function normalizeGDACS(data) {
-  const sevRank = { Red: 3, Orange: 2, Green: 1 };
-  return data.map(event => ({
+  const sevRank = { Red: 3, Orange: 2 };
+  /* GDACS "Green" is its lowest tier: the event is tracked, but no significant
+     humanitarian impact is expected — the same semantic class as Meteoalarm's
+     green "no awareness required" entries. They are kept OUT of the AlertStore,
+     which feeds the country panels and the header counts. Measured before this
+     filter: 278 of 755 store entries were green, and 22 of 53 country panels
+     (DR Congo 75, Angola 48, Brazil 33, Zambia 24 …) contained nothing else.
+     They remain in full in the GDACS panel and on the map, since renderGDACS()
+     and plotGDACS() read gdacsData directly rather than the store. */
+  return data
+    .filter(event => event.level !== 'Green')
+    .map(event => ({
     id:       `gdacs-${event.guid}`,
     source:   'gdacs',
     country:  countryNameToSlug(event.country || ''),
@@ -6901,8 +6994,28 @@ async function loadMeteoalarm() {
       const alertObj = warning.alert || warning;
       const info = meteoInfoEN(alertObj.info);
       if (!info) return;
-      const sev    = info.severity || 'Minor';
-      const event  = info.event    || 'Warning';
+
+      const awareness = meteoAwareness(info);
+
+      // Drop green "no particular awareness required" entries. Many national
+      // feeds publish one per hazard type per region as a placeholder — across
+      // all 39 feeds they are ~44% of everything returned (the Netherlands
+      // sends 624 of 628, Ireland 21 of 21). CAP `severity` cannot distinguish
+      // them, because green is tagged "Minor", a level we legitimately show;
+      // only the awareness_level parameter separates them.
+      if (awareness.level === 1) return;
+
+      // Drop anything already expired — the panel and map layer read this array
+      // directly, so without this they keep showing lapsed warnings.
+      if (info.expires && new Date(info.expires).getTime() <= Date.now()) return;
+
+      const sev = info.severity || 'Minor';
+      // Keep each country's own description; only fall back to the structured
+      // hazard name when a feed publishes raw codes instead (Romania).
+      const rawEvent = (info.event || '').trim();
+      const event = (/awareness_type\s*=/i.test(rawEvent)
+                      ? (awareness.hazard || meteoDecodeEvent(rawEvent))
+                      : rawEvent) || 'Warning';
       // Collect polygons from all areas (some countries split into multiple area entries)
       const allAreas = Array.isArray(info.area) ? info.area : (info.area ? [info.area] : []);
       const area = allAreas[0] || {};
@@ -7322,6 +7435,13 @@ setInterval(loadMeteoalarm,   600_000);  // Meteoalarm Europe — 10 min refresh
 setInterval(loadWMO,          600_000);  // WMO SWIC global alerts — 10 min refresh
 setInterval(loadWind,         600_000);  // Surface wind barbs — 10 min (no-ops while layer is off)
 setInterval(refreshGibsDailyLayers, 3600_000);  // re-point daily GIBS layers after a UTC date rollover
+
+// Live indicator: re-evaluate on a timer so it goes stale on its own, and
+// react immediately to the browser's own connectivity events.
+setInterval(refreshLiveIndicator, 30_000);
+addEventListener('online',  refreshLiveIndicator);
+addEventListener('offline', refreshLiveIndicator);
+refreshLiveIndicator();
 
 // Re-sample wind whenever the view settles somewhere new (debounced so a drag
 // or a pinch-zoom fires one request, not one per animation frame)
