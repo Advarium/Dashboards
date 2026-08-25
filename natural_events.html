@@ -2560,7 +2560,7 @@
         <details class="mls-section">
           <summary><span>Meteoalarm — Europe</span><span class="mls-chevron">▾</span></summary>
           <div class="mls-content">
-            <div class="mls-desc">Active weather warnings for 33 European countries via Meteoalarm / EUMETNET. Polygon fill shown where country provides boundary geometry. Click a polygon or panel item to open warning details.</div>
+            <div class="mls-desc">Active weather warnings for 39 European countries via Meteoalarm / EUMETNET. Polygon fill shown where country provides boundary geometry. Click a polygon or panel item to open warning details.</div>
             <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#dbbc7f"></span> Minor — Low impact</div>
             <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#e69875"></span> Moderate — Moderate impact</div>
             <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#e67e80"></span> Severe — High impact</div>
@@ -2595,9 +2595,8 @@
         <details class="mls-section">
           <summary><span>Australia — BOM Flood Alerts</span><span class="mls-chevron">▾</span></summary>
           <div class="mls-content">
-            <div class="mls-desc">Bureau of Meteorology flood warning and watch catchment polygons via ArcGIS. Covers active flood events across all Australian states and territories. Click a polygon or panel item to see details.</div>
+            <div class="mls-desc">Bureau of Meteorology catchment polygons for currently active flood warnings via ArcGIS. Flood watches appear in the panel list only (no polygon geometry is published for them). Click a polygon or panel item to see details.</div>
             <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#e67e80"></span> Flood Warning — Flooding occurring or imminent</div>
-            <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#dbbc7f"></span> Flood Watch — Conditions favourable for flooding</div>
           </div>
         </details>
 
@@ -3173,9 +3172,9 @@ function toggleSatellite() {
 }
 
 function updateClock() {
-  const n = new Date();
-  const timeStr = n.toLocaleTimeString('en-US', { hour12: false, hourCycle: 'h23' });
-  const tzAbbr  = n.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop();
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hourCycle: 'h23' });
+  const tzAbbr  = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop();
   document.getElementById('clock').textContent = `${timeStr} ${tzAbbr}`;
 }
 setInterval(updateClock, 1000);
@@ -3218,8 +3217,8 @@ const THEMES = [
 
 function setTheme(themeId) {
   // Remove all theme classes from <html>
-  for (const t of THEMES) {
-    if (t.id) document.documentElement.classList.remove(t.id);
+  for (const theme of THEMES) {
+    if (theme.id) document.documentElement.classList.remove(theme.id);
   }
   // Apply new theme
   if (themeId) document.documentElement.classList.add(themeId);
@@ -3247,9 +3246,9 @@ function toggleGeoSection(name, headerEl) {
 }
 
 // Close theme menu on outside click
-document.addEventListener('click', e => {
-  const sel = document.getElementById('theme-selector');
-  if (sel && !sel.contains(e.target)) {
+document.addEventListener('click', event => {
+  const selector = document.getElementById('theme-selector');
+  if (selector && !selector.contains(event.target)) {
     document.getElementById('theme-menu')?.classList.remove('open');
   }
 });
@@ -3272,22 +3271,22 @@ document.addEventListener('click', e => {
 // Timezone abbreviation handled inline by toLocaleString({timeZoneName:'short'})
 
 // SWPC returns "YYYY-MM-DD HH:MM:SS" with no timezone — always UTC
-function swpcUTC(s) {
-  if (!s) return 0;
-  return new Date(String(s).trim().replace(' ', 'T') + 'Z').getTime();
+function swpcUTC(datetimeStr) {
+  if (!datetimeStr) return 0;
+  return new Date(String(datetimeStr).trim().replace(' ', 'T') + 'Z').getTime();
 }
 
 function fmtTime(iso) {
   if (!iso) return '—';
   // Normalize: if the string looks like a bare datetime with no timezone info, assume UTC
-  let s = String(iso).trim();
-  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s) && !/[Z+-]\d/.test(s)) {
-    s = s.replace(' ', 'T') + 'Z';
+  let normalized = String(iso).trim();
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(normalized) && !/[Z+-]\d/.test(normalized)) {
+    normalized = normalized.replace(' ', 'T') + 'Z';
   }
-  const d = new Date(s);
-  if (isNaN(d)) return iso;
+  const parsed = new Date(normalized);
+  if (isNaN(parsed)) return iso;
   // toLocaleString automatically converts to the browser's local timezone
-  return d.toLocaleString(undefined, {
+  return parsed.toLocaleString(undefined, {
     month:'short', day:'numeric',
     hour:'2-digit', minute:'2-digit',
     hour12: false, timeZoneName: 'short',
@@ -3295,12 +3294,12 @@ function fmtTime(iso) {
 }
 
 function markUpdated(id) {
-  const t = new Date().toLocaleTimeString(undefined, {
+  const timestamp = new Date().toLocaleTimeString(undefined, {
     hour:'2-digit', minute:'2-digit', second:'2-digit',
     hour12: false, timeZoneName: 'short',
   });
   const el = document.getElementById(id);
-  if (el) el.textContent = t;
+  if (el) el.textContent = timestamp;
 }
 
 function showState(bodyId, icon, msg) {
@@ -3313,18 +3312,18 @@ function showLoading(bodyId) {
   if (el) el.innerHTML = `<div class="state"><div class="spinner"></div></div>`;
 }
 
-function esc(s) {
-  return String(s)
+function esc(value) {
+  return String(value)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function relTime(ms) {
-  const d = (Date.now() - ms) / 1000;
-  if (d < 60)    return `${Math.round(d)}s ago`;
-  if (d < 3600)  return `${Math.floor(d/60)}m ago`;
-  if (d < 86400) return `${Math.floor(d/3600)}h ago`;
-  return `${Math.floor(d/86400)}d ago`;
+  const ageSeconds = (Date.now() - ms) / 1000;
+  if (ageSeconds < 60)    return `${Math.round(ageSeconds)}s ago`;
+  if (ageSeconds < 3600)  return `${Math.floor(ageSeconds/60)}m ago`;
+  if (ageSeconds < 86400) return `${Math.floor(ageSeconds/3600)}h ago`;
+  return `${Math.floor(ageSeconds/86400)}d ago`;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -3497,16 +3496,16 @@ function plotEarthquakes() {
   eqLayer.clearLayers();
   const minMag = parseFloat(document.getElementById('eq-minmag').value) || 0;
 
-  for (const f of eqData) {
-    const p = f.properties;
-    const mag = p.mag ?? 0;
+  for (const quake of eqData) {
+    const props = quake.properties;
+    const mag = props.mag ?? 0;
     if (mag < minMag) continue;
-    if (!f.geometry?.coordinates) continue;
+    if (!quake.geometry?.coordinates) continue;
 
-    const [lon, lat, depth] = f.geometry.coordinates;
+    const [lon, lat, depth] = quake.geometry.coordinates;
     const color  = magFillColor(mag);
     const radius = Math.max(4, mag * 3.8);
-    const isRecent = (Date.now() - (p.time || 0)) < 3600_000; // < 1 hour
+    const isRecent = (Date.now() - (props.time || 0)) < 3600_000; // < 1 hour
 
     const marker = L.circleMarker([lat, lon], {
       radius,
@@ -3519,17 +3518,17 @@ function plotEarthquakes() {
 
     marker.bindPopup(`
       <div class="popup-inner">
-        <div class="popup-title">M${mag.toFixed(1)} — ${esc(p.place || 'Unknown location')}</div>
-        <div class="popup-sub">${fmtTime(new Date(p.time).toISOString())} ${isRecent ? '· <b style="color:#50fa7b">Recent</b>' : ''}</div>
+        <div class="popup-title">M${mag.toFixed(1)} — ${esc(props.place || 'Unknown location')}</div>
+        <div class="popup-sub">${fmtTime(new Date(props.time).toISOString())} ${isRecent ? '· <b style="color:#50fa7b">Recent</b>' : ''}</div>
         <div class="popup-row"><span>Depth</span><span>${depth != null ? depth.toFixed(1)+' km' : '—'}</span></div>
         <div class="popup-row"><span>Scale</span><span>${magLabel(mag)}</span></div>
-        ${p.felt != null ? `<div class="popup-row"><span>Felt reports</span><span>${p.felt.toLocaleString()}</span></div>` : ''}
-        ${p.url ? `<a class="popup-link" href="${esc(p.url)}" target="_blank" rel="noopener">View on USGS ↗</a>` : ''}
+        ${props.felt != null ? `<div class="popup-row"><span>Felt reports</span><span>${props.felt.toLocaleString()}</span></div>` : ''}
+        ${props.url ? `<a class="popup-link" href="${esc(props.url)}" target="_blank" rel="noopener">View on USGS ↗</a>` : ''}
       </div>
     `);
 
     // Highlight matching row on click
-    marker.on('click', () => highlightEqRow(f.id));
+    marker.on('click', () => highlightEqRow(quake.id));
 
     eqLayer.addLayer(marker);
   }
@@ -3543,17 +3542,17 @@ function plotAlerts() {
 
   const sevColor = { Extreme:'#e67e80', Severe:'#e69875', Moderate:'#dbbc7f' };
 
-  for (const a of easData) {
-    if (!a.geometry) continue;
-    const p   = a.properties || a;
-    const ev  = (p.event || '').toLowerCase();
+  for (const alert of easData) {
+    if (!alert.geometry) continue;
+    const props     = alert.properties || alert;
+    const eventName = (props.event || '').toLowerCase();
     // Event-type overrides take priority over severity colour
     let color;
-    if (ev.includes('flood'))    color = '#a7c080'; // green — matches standard NWS flood colour
-    else                         color = sevColor[p.severity] || '#aaa';
+    if (eventName.includes('flood')) color = '#a7c080'; // green — matches standard NWS flood colour
+    else                             color = sevColor[props.severity] || '#aaa';
 
     try {
-      const layer = L.geoJSON(a.geometry, {
+      const layer = L.geoJSON(alert.geometry, {
         style: {
           color,
           weight:      1.5,
@@ -3562,16 +3561,16 @@ function plotAlerts() {
           fillOpacity: 0.12
         }
       });
-      layer._alertId = a.id;
+      layer._alertId = alert.id;
 
       layer.bindPopup(`
         <div class="popup-inner">
-          <div class="popup-title">${esc(p.event || 'Alert')}</div>
-          <div class="popup-sub" style="color:${color}">${esc(p.severity || '')} · ${esc(p.urgency || '')}</div>
-          <div class="popup-row"><span>Area</span><span style="max-width:140px;text-align:right;white-space:normal">${esc((p.areaDesc||'').substring(0,60))}${(p.areaDesc||'').length>60?'…':''}</span></div>
-          <div class="popup-row"><span>Issued</span><span>${fmtTime(p.sent||p.effective||'')}</span></div>
-          <div class="popup-row"><span>Expires</span><span>${fmtTime(p.expires||p.ends||'')}</span></div>
-          ${p['@id']||p.id ? `<a class="popup-link" href="${esc(p['@id']||p.id)}" target="_blank" rel="noopener">Bulletin ↗</a>` : ''}
+          <div class="popup-title">${esc(props.event || 'Alert')}</div>
+          <div class="popup-sub" style="color:${color}">${esc(props.severity || '')} · ${esc(props.urgency || '')}</div>
+          <div class="popup-row"><span>Area</span><span style="max-width:140px;text-align:right;white-space:normal">${esc((props.areaDesc||'').substring(0,60))}${(props.areaDesc||'').length>60?'…':''}</span></div>
+          <div class="popup-row"><span>Issued</span><span>${fmtTime(props.sent||props.effective||'')}</span></div>
+          <div class="popup-row"><span>Expires</span><span>${fmtTime(props.expires||props.ends||'')}</span></div>
+          ${props['@id']||props.id ? `<a class="popup-link" href="${esc(props['@id']||props.id)}" target="_blank" rel="noopener">Bulletin ↗</a>` : ''}
         </div>
       `);
 
@@ -3582,18 +3581,18 @@ function plotAlerts() {
 }
 
 function updateMapCount() {
-  let n = 0;
-  if (document.getElementById('toggle-eq')?.checked)    n += eqData.length;
-  if (document.getElementById('toggle-eas')?.checked)   n += easData.length;
-  if (document.getElementById('toggle-eonet')?.checked) n += eonetData.length;
-  document.getElementById('map-count').textContent = n;
+  let visibleCount = 0;
+  if (document.getElementById('toggle-eq')?.checked)    visibleCount += eqData.length;
+  if (document.getElementById('toggle-eas')?.checked)   visibleCount += easData.length;
+  if (document.getElementById('toggle-eonet')?.checked) visibleCount += eonetData.length;
+  document.getElementById('map-count').textContent = visibleCount;
 }
 
 // Ensure a map layer is visible before flying to it
 function ensureLayerOn(which) {
-  const cb = document.getElementById(`toggle-${which}`);
-  if (cb && !cb.checked) {
-    cb.checked = true;
+  const checkbox = document.getElementById(`toggle-${which}`);
+  if (checkbox && !checkbox.checked) {
+    checkbox.checked = true;
     toggleLayer(which);
   }
 }
@@ -3632,9 +3631,9 @@ const RealEarthTileLayer = L.TileLayer.extend({
 
 async function loadRealEarth() {
   try {
-    const r = await fetch('https://realearth.ssec.wisc.edu/api/products');
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const products = await r.json();
+    const response = await fetch('https://realearth.ssec.wisc.edu/api/products');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const products = await response.json();
 
     const configs = [
       {
@@ -3654,7 +3653,7 @@ async function loadRealEarth() {
     ];
 
     for (const cfg of configs) {
-      const product   = products.find(p => p.id === cfg.id);
+      const product   = products.find(entry => entry.id === cfg.id);
       const timestamp = product?.times?.slice(-1)[0];
       if (!timestamp) continue;
 
@@ -3677,8 +3676,8 @@ async function loadRealEarth() {
     // Sync module-level vars after window assignment
     meteosatLayer = window['meteosatLayer'];
     himawariLayer = window['himawariLayer'];
-  } catch(e) {
-    console.warn('RealEarth fetch failed:', e.message);
+  } catch (err) {
+    console.warn('RealEarth fetch failed:', err.message);
   }
 }
 
@@ -3687,13 +3686,13 @@ async function loadRealEarth() {
 ══════════════════════════════════════════════════════ */
 async function loadRainviewer() {
   try {
-    const r = await fetch('https://api.rainviewer.com/public/weather-maps.json');
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    const frames = j.radar?.past || [];
+    const response = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const frames = payload.radar?.past || [];
     if (!frames.length) return;
     const latest = frames[frames.length - 1];
-    const host   = j.host || 'https://tilecache.rainviewer.com';
+    const host   = payload.host || 'https://tilecache.rainviewer.com';
     const tileUrl = `${host}${latest.path}/256/{z}/{x}/{y}/6/1_1.png`;
 
     const wasOnMap = rainviewerLayer && map.hasLayer(rainviewerLayer);
@@ -3709,8 +3708,8 @@ async function loadRainviewer() {
     if (wasOnMap || document.getElementById('toggle-rainviewer')?.checked) {
       rainviewerLayer.addTo(map);
     }
-  } catch(e) {
-    console.warn('RainViewer fetch failed:', e.message);
+  } catch (err) {
+    console.warn('RainViewer fetch failed:', err.message);
   }
 }
 
@@ -3727,16 +3726,16 @@ function highlightEqRow(id) {
 // Pan map to earthquake when row is clicked
 function flyToEq(id) {
   ensureLayerOn('eq');
-  const f = eqData.find(x => x.id === id);
-  if (!f?.geometry?.coordinates) return;
-  const [lon, lat] = f.geometry.coordinates;
+  const quake = eqData.find(entry => entry.id === id);
+  if (!quake?.geometry?.coordinates) return;
+  const [lon, lat] = quake.geometry.coordinates;
   map.flyTo([lat, lon], Math.max(map.getZoom(), 5), { duration: 1 });
   // open its popup
-  eqLayer.eachLayer(m => {
-    if (m.getLatLng) {
-      const ll = m.getLatLng();
-      if (Math.abs(ll.lat - lat) < 0.001 && Math.abs(ll.lng - lon) < 0.001) {
-        m.openPopup();
+  eqLayer.eachLayer(marker => {
+    if (marker.getLatLng) {
+      const pos = marker.getLatLng();
+      if (Math.abs(pos.lat - lat) < 0.001 && Math.abs(pos.lng - lon) < 0.001) {
+        marker.openPopup();
       }
     }
   });
@@ -3745,14 +3744,14 @@ function flyToEq(id) {
 // Pan map to EONET event when sidebar row is clicked
 function flyToEonet(id) {
   ensureLayerOn('eonet');
-  const ev = eonetData.find(x => x.id === id);
-  if (!ev) return;
-  const geo = ev.geometry?.[ev.geometry.length - 1];
+  const event = eonetData.find(entry => entry.id === id);
+  if (!event) return;
+  const geo = event.geometry?.[event.geometry.length - 1];
   if (!geo?.coordinates) return;
   const [lon, lat] = geo.coordinates;
   map.flyTo([lat, lon], Math.max(map.getZoom(), 5), { duration: 1 });
-  eonetLayer.eachLayer(m => {
-    if (m._eonetId === id) m.openPopup();
+  eonetLayer.eachLayer(marker => {
+    if (marker._eonetId === id) marker.openPopup();
   });
 }
 
@@ -3761,10 +3760,10 @@ const _zoneCache = {};
 async function _fetchZoneGeom(url) {
   if (_zoneCache[url]) return _zoneCache[url];
   try {
-    const r = await fetch(url, { headers: { Accept: 'application/geo+json' }, signal: AbortSignal.timeout(6000) });
-    if (!r.ok) return null;
-    const j = await r.json();
-    _zoneCache[url] = j.geometry || null;
+    const response = await fetch(url, { headers: { Accept: 'application/geo+json' }, signal: AbortSignal.timeout(6000) });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    _zoneCache[url] = payload.geometry || null;
     return _zoneCache[url];
   } catch(_) { return null; }
 }
@@ -3772,42 +3771,42 @@ async function _fetchZoneGeom(url) {
 // Pan map to NWS alert when sidebar row is clicked
 async function flyToAlert(id) {
   ensureLayerOn('eas');
-  const a = easData.find(x => x.id === id);
-  if (!a) return;
+  const alert = easData.find(entry => entry.id === id);
+  if (!alert) return;
 
   // Case 1: alert has direct geometry already plotted — find its layer
   let found = false;
-  easLayer.eachLayer(l => {
-    if (l._alertId !== id) return;
+  easLayer.eachLayer(layer => {
+    if (layer._alertId !== id) return;
     try {
-      const bounds = l.getBounds();
+      const bounds = layer.getBounds();
       map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
-      l.openPopup();
+      layer.openPopup();
       found = true;
     } catch(_) {}
   });
   if (found) return;
 
   // Case 2: no direct geometry — fetch first affectedZone polygon on demand
-  const zones = a.properties?.affectedZones;
+  const zones = alert.properties?.affectedZones;
   if (!zones?.length) return;
   const geom = await _fetchZoneGeom(zones[0]);
   if (!geom) return;
   try {
     const bounds = L.geoJSON(geom).getBounds();
     map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
-    const p = a.properties || a;
-    const color = { Extreme:'#e67e80', Severe:'#e69875', Moderate:'#dbbc7f' }[p.severity] || '#aaa';
+    const props = alert.properties || alert;
+    const color = { Extreme:'#e67e80', Severe:'#e69875', Moderate:'#dbbc7f' }[props.severity] || '#aaa';
     L.popup()
       .setLatLng(bounds.getCenter())
       .setContent(`
         <div class="popup-inner">
-          <div class="popup-title">${esc(p.event || 'Alert')}</div>
-          <div class="popup-sub" style="color:${color}">${esc(p.severity||'')} · ${esc(p.urgency||'')}</div>
-          <div class="popup-row"><span>Area</span><span style="max-width:140px;text-align:right;white-space:normal">${esc((p.areaDesc||'').substring(0,60))}${(p.areaDesc||'').length>60?'…':''}</span></div>
-          <div class="popup-row"><span>Issued</span><span>${fmtTime(p.sent||p.effective||'')}</span></div>
-          <div class="popup-row"><span>Expires</span><span>${fmtTime(p.expires||p.ends||'')}</span></div>
-          ${p['@id']||p.id ? `<a class="popup-link" href="${esc(p['@id']||p.id)}" target="_blank" rel="noopener">Bulletin ↗</a>` : ''}
+          <div class="popup-title">${esc(props.event || 'Alert')}</div>
+          <div class="popup-sub" style="color:${color}">${esc(props.severity||'')} · ${esc(props.urgency||'')}</div>
+          <div class="popup-row"><span>Area</span><span style="max-width:140px;text-align:right;white-space:normal">${esc((props.areaDesc||'').substring(0,60))}${(props.areaDesc||'').length>60?'…':''}</span></div>
+          <div class="popup-row"><span>Issued</span><span>${fmtTime(props.sent||props.effective||'')}</span></div>
+          <div class="popup-row"><span>Expires</span><span>${fmtTime(props.expires||props.ends||'')}</span></div>
+          ${props['@id']||props.id ? `<a class="popup-link" href="${esc(props['@id']||props.id)}" target="_blank" rel="noopener">Bulletin ↗</a>` : ''}
         </div>
       `)
       .openOn(map);
@@ -3830,14 +3829,14 @@ async function loadEarthquakes() {
     } else {
       url = `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${feed}.geojson`;
     }
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    eqData = (j.features || []).sort((a,b) => b.properties.mag - a.properties.mag);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    eqData = (payload.features || []).sort((quakeA, quakeB) => quakeB.properties.mag - quakeA.properties.mag);
     markUpdated('eq-updated');
     renderEarthquakes();
-  } catch(e) {
-    showState('eq-body','⚠️', `Failed: ${e.message}`);
+  } catch (err) {
+    showState('eq-body','⚠️', `Failed: ${err.message}`);
   }
 }
 
@@ -3862,7 +3861,7 @@ function magLabel(m) {
 
 function renderEarthquakes() {
   const minMag   = parseFloat(document.getElementById('eq-minmag').value) || 0;
-  const filtered = eqData.filter(f => (f.properties.mag || 0) >= minMag);
+  const filtered = eqData.filter(quake => (quake.properties.mag || 0) >= minMag);
   document.getElementById('eq-count').textContent = filtered.length;
 
   if (!filtered.length) {
@@ -3876,22 +3875,22 @@ function renderEarthquakes() {
       <th>Mag</th><th>Location</th><th>Depth</th><th>Time (Local)</th>
     </tr></thead><tbody>`;
 
-  for (const f of filtered) {
-    const p   = f.properties;
-    const mag = p.mag != null ? p.mag.toFixed(1) : '?';
-    const dep = f.geometry?.coordinates?.[2];
-    const tStr = p.time ? fmtTime(new Date(p.time).toISOString()) : '—';
-    const cls  = magClass(parseFloat(mag));
-    const isRecent = (Date.now() - (p.time||0)) < 3600_000;
+  for (const quake of filtered) {
+    const props = quake.properties;
+    const mag   = props.mag != null ? props.mag.toFixed(1) : '?';
+    const depth = quake.geometry?.coordinates?.[2];
+    const timeStr = props.time ? fmtTime(new Date(props.time).toISOString()) : '—';
+    const cls   = magClass(parseFloat(mag));
+    const isRecent = (Date.now() - (props.time||0)) < 3600_000;
 
-    html += `<tr data-id="${esc(f.id)}" onclick="flyToEq('${esc(f.id)}')" title="Click to locate on map">
+    html += `<tr data-id="${esc(quake.id)}" onclick="flyToEq('${esc(quake.id)}')" title="Click to locate on map">
       <td><span class="mag ${cls}" data-tip="${magLabel(parseFloat(mag))}">${mag}</span></td>
       <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         ${isRecent ? '<span style="color:var(--green);font-weight:700;margin-right:3px">●</span>' : ''}
-        ${esc(p.place || 'Unknown')}
+        ${esc(props.place || 'Unknown')}
       </td>
-      <td style="white-space:nowrap;color:var(--muted)">${dep != null ? dep.toFixed(0)+' km' : '—'}</td>
-      <td style="white-space:nowrap;color:var(--muted);font-size:10px">${tStr}</td>
+      <td style="white-space:nowrap;color:var(--muted)">${depth != null ? depth.toFixed(0)+' km' : '—'}</td>
+      <td style="white-space:nowrap;color:var(--muted);font-size:10px">${timeStr}</td>
     </tr>`;
   }
 
@@ -3916,30 +3915,30 @@ async function loadAlerts() {
   const url  = region ? `${base}?${region}&${sevParam}` : `${base}?${sevParam}`;
 
   try {
-    const r = await fetch(url, { headers:{ 'Accept':'application/geo+json' } });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
+    const response = await fetch(url, { headers:{ 'Accept':'application/geo+json' } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
     const sevOrder = { Extreme:0, Severe:1, Moderate:2, Unknown:3 };
-    easData = (j.features || []).sort((a,b) => {
-      const pa = a.properties || a, pb = b.properties || b;
-      return (sevOrder[pa.severity]??4) - (sevOrder[pb.severity]??4);
+    easData = (payload.features || []).sort((alertA, alertB) => {
+      const propsA = alertA.properties || alertA, propsB = alertB.properties || alertB;
+      return (sevOrder[propsA.severity]??4) - (sevOrder[propsB.severity]??4);
     });
     markUpdated('eas-updated');
     renderAlerts();
-  } catch(e) {
-    showState('eas-body','⚠️',`Failed: ${e.message}`);
+  } catch (err) {
+    showState('eas-body','⚠️',`Failed: ${err.message}`);
   }
 }
 
-function sevClass(s) {
-  return { Extreme:'sev-extreme', Severe:'sev-severe', Moderate:'sev-moderate' }[s] || 'sev-unknown';
+function sevClass(severity) {
+  return { Extreme:'sev-extreme', Severe:'sev-severe', Moderate:'sev-moderate' }[severity] || 'sev-unknown';
 }
 
 function renderAlerts() {
   const sevFilter = document.getElementById('eas-sev').value;
-  const filtered  = easData.filter(a => {
-    const p = a.properties || a;
-    return sevFilter === 'all' || p.severity === sevFilter;
+  const filtered  = easData.filter(alert => {
+    const props = alert.properties || alert;
+    return sevFilter === 'all' || props.severity === sevFilter;
   });
 
   document.getElementById('eas-count').textContent = filtered.length;
@@ -3952,16 +3951,16 @@ function renderAlerts() {
   }
 
   let html = '<div class="alert-list">';
-  for (const a of filtered) {
-    const p   = a.properties || a;
-    const evt = p.event || 'Unknown Alert';
-    const sev = p.severity || 'Unknown';
-    const area= p.areaDesc || '';
-    const sent= p.sent || p.effective || '';
-    const exp = p.expires || p.ends || '';
-    const url = p['@id'] || p.id || '';
+  for (const alert of filtered) {
+    const props = alert.properties || alert;
+    const evt  = props.event || 'Unknown Alert';
+    const sev  = props.severity || 'Unknown';
+    const area = props.areaDesc || '';
+    const sent = props.sent || props.effective || '';
+    const exp  = props.expires || props.ends || '';
+    const url  = props['@id'] || props.id || '';
 
-    html += `<div class="alert-item" onclick="flyToAlert('${a.id}')" title="Click to locate on map">
+    html += `<div class="alert-item" onclick="flyToAlert('${alert.id}')" title="Click to locate on map">
       <div class="alert-top">
         <span class="alert-event">${esc(evt)}</span>
         <span class="sev-tag ${sevClass(sev)}">${esc(sev)}</span>
@@ -3991,33 +3990,33 @@ let kpCurrent = null;
 async function loadSpaceWeather() {
   showLoading('sw-body');
   try {
-    const [aRes, kRes] = await Promise.allSettled([
+    const [alertsRes, kpRes] = await Promise.allSettled([
       fetch('https://services.swpc.noaa.gov/products/alerts.json'),
       fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json')
     ]);
 
-    if (aRes.status === 'fulfilled' && aRes.value.ok) {
-      const raw = await aRes.value.json();
+    if (alertsRes.status === 'fulfilled' && alertsRes.value.ok) {
+      const raw = await alertsRes.value.json();
       const cutoff = Date.now() - 7*24*3600*1000;
       swAlerts = raw
-        .filter(a => a.message && swpcUTC(a.issue_datetime) >= cutoff)
-        .sort((a,b) => swpcUTC(b.issue_datetime) - swpcUTC(a.issue_datetime));
+        .filter(alert => alert.message && swpcUTC(alert.issue_datetime) >= cutoff)
+        .sort((alertA, alertB) => swpcUTC(alertB.issue_datetime) - swpcUTC(alertA.issue_datetime));
     }
 
-    if (kRes.status === 'fulfilled' && kRes.value.ok) {
-      const kd = await kRes.value.json();
+    if (kpRes.status === 'fulfilled' && kpRes.value.ok) {
+      const kpSeries = await kpRes.value.json();
       // Official 3-hour Kp product: array of objects { Kp, a_running, station_count, time_tag }
       // Find the last entry with a valid (non-null) Kp reading
-      if (kd?.length) {
-        const last = [...kd].reverse().find(e => e.Kp != null && e.Kp !== '');
-        if (last) kpCurrent = parseFloat(last.Kp);
+      if (kpSeries?.length) {
+        const latestReading = [...kpSeries].reverse().find(entry => entry.Kp != null && entry.Kp !== '');
+        if (latestReading) kpCurrent = parseFloat(latestReading.Kp);
       }
     }
 
     markUpdated('sw-updated');
     renderSpaceWeather();
-  } catch(e) {
-    showState('sw-body','⚠️',`Failed: ${e.message}`);
+  } catch (err) {
+    showState('sw-body','⚠️',`Failed: ${err.message}`);
   }
 }
 
@@ -4029,27 +4028,27 @@ const SW_PRODUCT_URLS = {
 };
 
 function parseSWCategory(msg) {
-  const m = msg.toUpperCase();
-  if (m.includes('GEOMAGNETIC') || m.includes('K-INDEX') || m.includes('KP'))
+  const upper = msg.toUpperCase();
+  if (upper.includes('GEOMAGNETIC') || upper.includes('K-INDEX') || upper.includes('KP'))
     return { key:'geo',   cls:'cat-geo',   label:'Geomagnetic' };
-  if (m.includes('SOLAR RADIATION') || m.includes('PROTON'))
+  if (upper.includes('SOLAR RADIATION') || upper.includes('PROTON'))
     return { key:'solar', cls:'cat-solar', label:'Solar Radiation' };
-  if (m.includes('RADIO BLACKOUT') || m.includes('X-RAY'))
+  if (upper.includes('RADIO BLACKOUT') || upper.includes('X-RAY'))
     return { key:'radio', cls:'cat-radio', label:'Radio Blackout' };
   return { key:'other', cls:'cat-other', label:'Space Weather' };
 }
 
 function parseProductTitle(msg) {
-  const m = msg.match(/^([A-Z][A-Z \-]+)\n/);
-  if (m) return m[1].trim();
+  const titleMatch = msg.match(/^([A-Z][A-Z \-]+)\n/);
+  if (titleMatch) return titleMatch[1].trim();
   const first = msg.split('\n')[0].trim();
   return first.length < 58 ? first : first.slice(0,55)+'…';
 }
 
 function renderSpaceWeather() {
   const catFilter = document.getElementById('sw-cat-filter').value;
-  const filtered  = swAlerts.filter(a =>
-    catFilter === 'all' || parseSWCategory(a.message).key === catFilter
+  const filtered  = swAlerts.filter(alert =>
+    catFilter === 'all' || parseSWCategory(alert.message).key === catFilter
   );
 
   document.getElementById('sw-count').textContent = filtered.length;
@@ -4057,21 +4056,21 @@ function renderSpaceWeather() {
 
   // Kp gauge
   if (kpCurrent !== null) {
-    const kp  = kpCurrent;
-    const kpC = kp>=9?'#e67e80': kp>=7?'#e69875': kp>=5?'#dbbc7f': kp>=4?'#a7c080':'#83c092';
-    const kpL = kp>=9?'G5 Extreme': kp>=7?'G3–G4 Severe': kp>=5?'G1–G2 Storm': kp>=4?'Active':'Quiet';
+    const kp      = kpCurrent;
+    const kpColor = kp>=9?'#e67e80': kp>=7?'#e69875': kp>=5?'#dbbc7f': kp>=4?'#a7c080':'#83c092';
+    const kpLabel = kp>=9?'G5 Extreme': kp>=7?'G3–G4 Severe': kp>=5?'G1–G2 Storm': kp>=4?'Active':'Quiet';
     html += `<div class="kp-bar-row">
       <div class="kp-label">
         <span style="color:var(--muted)">Planetary K-Index (Kp)</span>
-        <span style="font-weight:600;color:${kpC}">${kpL}</span>
+        <span style="font-weight:600;color:${kpColor}">${kpLabel}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <span class="kp-value" style="color:${kpC}">${kp.toFixed(1)}</span>
+        <span class="kp-value" style="color:${kpColor}">${kp.toFixed(1)}</span>
         <div style="flex:1">
           <div class="kp-scale">
-            ${[0,1,2,3,4,5,6,7,8,9].map(s => {
-              const sc = s>=9?'#e67e80': s>=7?'#e69875': s>=5?'#dbbc7f': s>=4?'#a7c080':'#83c092';
-              return `<div class="kp-seg ${kp>=s?'active':''}" style="background:${sc}" data-tip="Kp${s}"></div>`;
+            ${[0,1,2,3,4,5,6,7,8,9].map(segment => {
+              const segColor = segment>=9?'#e67e80': segment>=7?'#e69875': segment>=5?'#dbbc7f': segment>=4?'#a7c080':'#83c092';
+              return `<div class="kp-seg ${kp>=segment?'active':''}" style="background:${segColor}" data-tip="Kp${segment}"></div>`;
             }).join('')}
           </div>
           <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px">
@@ -4089,11 +4088,11 @@ function renderSpaceWeather() {
   }
 
   html += '<div class="sw-alert-list">';
-  for (const a of filtered) {
-    const cat   = parseSWCategory(a.message);
-    const title = parseProductTitle(a.message);
-    const body  = a.message.replace(/\r?\n/g,' ').trim();
-    const issued= a.issue_datetime || null;
+  for (const alert of filtered) {
+    const cat   = parseSWCategory(alert.message);
+    const title = parseProductTitle(alert.message);
+    const body  = alert.message.replace(/\r?\n/g,' ').trim();
+    const issued= alert.issue_datetime || null;
     const link  = SW_PRODUCT_URLS[cat.key];
     html += `<div class="sw-item">
       <div class="sw-top">
@@ -4139,25 +4138,25 @@ function eonetCatInfo(event) {
 async function loadEonet() {
   showLoading('eonet-body');
   try {
-    const r = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50');
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    eonetData = j.events || [];
+    const response = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    eonetData = payload.events || [];
     markUpdated('eonet-updated');
     renderEonet();
-  } catch(e) {
-    showState('eonet-body','⚠️',`Failed: ${e.message}`);
+  } catch (err) {
+    showState('eonet-body','⚠️',`Failed: ${err.message}`);
   }
 }
 
 function renderEonet() {
   const catFilter = document.getElementById('eonet-cat').value;
   const eonetCutoff48 = Date.now() - 48 * 3_600_000;
-  const filtered  = eonetData.filter(ev => {
-    if (catFilter !== 'all' && !ev.categories?.some(c => c.id === catFilter)) return false;
-    const geo = ev.geometry?.[ev.geometry.length - 1];
-    const t   = geo?.date ? new Date(geo.date).getTime() : 0;
-    return t >= eonetCutoff48;
+  const filtered  = eonetData.filter(event => {
+    if (catFilter !== 'all' && !event.categories?.some(cat => cat.id === catFilter)) return false;
+    const geo = event.geometry?.[event.geometry.length - 1];
+    const updatedAt = geo?.date ? new Date(geo.date).getTime() : 0;
+    return updatedAt >= eonetCutoff48;
   });
 
   document.getElementById('eonet-count').textContent = filtered.length;
@@ -4170,19 +4169,19 @@ function renderEonet() {
   }
 
   let html = '';
-  for (const ev of filtered) {
-    const cat   = eonetCatInfo(ev);
-    const geo   = ev.geometry?.[ev.geometry.length - 1];
+  for (const event of filtered) {
+    const cat   = eonetCatInfo(event);
+    const geo   = event.geometry?.[event.geometry.length - 1];
     const mag   = geo?.magnitudeValue != null
       ? `${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit || ''}`
       : null;
     const date  = geo?.date ? fmtTime(geo.date) : '—';
-    const src   = ev.sources?.[0]?.url || ev.link || '';
+    const src   = event.sources?.[0]?.url || event.link || '';
 
-    html += `<div class="hazard-item" onclick="flyToEonet('${ev.id}')" title="Click to locate on map">
+    html += `<div class="hazard-item" onclick="flyToEonet('${event.id}')" title="Click to locate on map">
       <div class="hazard-top">
         <span style="font-size:13px">${cat.icon}</span>
-        <span class="hazard-title">${esc(ev.title)}</span>
+        <span class="hazard-title">${esc(event.title)}</span>
         <span class="hazard-cat" style="background:${cat.color}22;color:${cat.color}">${esc(cat.label)}</span>
       </div>
       <div class="hazard-meta">
@@ -4206,16 +4205,16 @@ function plotEonet() {
 
   const eonetMapCutoff = Date.now() - 48 * 3_600_000;
 
-  for (const ev of eonetData) {
-    if (catFilter !== 'all' && !ev.categories?.some(c => c.id === catFilter)) continue;
-    const geo = ev.geometry?.[ev.geometry.length - 1];
+  for (const event of eonetData) {
+    if (catFilter !== 'all' && !event.categories?.some(cat => cat.id === catFilter)) continue;
+    const geo = event.geometry?.[event.geometry.length - 1];
     if (!geo?.coordinates) continue;
-    const geoT = geo.date ? new Date(geo.date).getTime() : 0;
-    if (!geoT || geoT < eonetMapCutoff) continue;
+    const updatedAt = geo.date ? new Date(geo.date).getTime() : 0;
+    if (!updatedAt || updatedAt < eonetMapCutoff) continue;
 
     const [lon, lat] = geo.coordinates;
-    const cat   = eonetCatInfo(ev);
-    const isWildfire = ev.categories?.some(c => c.id === 'wildfires');
+    const cat   = eonetCatInfo(event);
+    const isWildfire = event.categories?.some(cat => cat.id === 'wildfires');
 
     let marker;
     if (isWildfire) {
@@ -4240,17 +4239,17 @@ function plotEonet() {
       });
     }
 
-    marker._eonetId = ev.id;
+    marker._eonetId = event.id;
     marker.bindPopup(`
       <div class="popup-inner">
-        <div class="popup-title">${cat.icon} ${esc(ev.title)}</div>
+        <div class="popup-title">${cat.icon} ${esc(event.title)}</div>
         <div class="popup-sub" style="color:${cat.color}">${esc(cat.label)}</div>
         ${geo.magnitudeValue != null
           ? `<div class="popup-row"><span>Size</span><span>${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit||''}</span></div>`
           : ''}
         <div class="popup-row"><span>Updated</span><span>${fmtTime(geo.date)}</span></div>
-        ${ev.sources?.[0]?.url
-          ? `<a class="popup-link" href="${esc(ev.sources[0].url)}" target="_blank" rel="noopener">Source ↗</a>`
+        ${event.sources?.[0]?.url
+          ? `<a class="popup-link" href="${esc(event.sources[0].url)}" target="_blank" rel="noopener">Source ↗</a>`
           : ''}
       </div>
     `);
@@ -4282,22 +4281,22 @@ async function loadFema() {
     const url = `https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries`
               + `?$orderby=declarationDate%20desc&$top=50`
               + `&$filter=declarationDate%20gt%20'${sixMonthsAgo}'`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
     // FEMA returns data under its own key, not OData's 'value'
-    femaData = j.DisasterDeclarationsSummaries || j.value || [];
+    femaData = payload.DisasterDeclarationsSummaries || payload.value || [];
     markUpdated('fema-updated');
     renderFema();
-  } catch(e) {
-    showState('fema-body','⚠️',`Failed: ${e.message}`);
+  } catch (err) {
+    showState('fema-body','⚠️',`Failed: ${err.message}`);
   }
 }
 
 function renderFema() {
   const typeFilter = document.getElementById('fema-type').value;
-  const filtered   = femaData.filter(d =>
-    typeFilter === 'all' || d.incidentType === typeFilter
+  const filtered   = femaData.filter(decl =>
+    typeFilter === 'all' || decl.incidentType === typeFilter
   );
 
   document.getElementById('fema-count').textContent = filtered.length;
@@ -4309,25 +4308,25 @@ function renderFema() {
   }
 
   let html = '';
-  for (const d of filtered) {
-    const icon   = FEMA_ICONS[d.incidentType] || '⚠️';
-    const typeL  = FEMA_TYPE_LABELS[d.declarationType] || d.declarationType;
-    const declId = d.femaDeclarationString || `DR-${d.disasterNumber}`;
-    const link   = d.disasterNumber
-      ? `https://www.fema.gov/disaster/${d.disasterNumber}`
+  for (const decl of filtered) {
+    const icon      = FEMA_ICONS[decl.incidentType] || '⚠️';
+    const typeLabel = FEMA_TYPE_LABELS[decl.declarationType] || decl.declarationType;
+    const declId    = decl.femaDeclarationString || `DR-${decl.disasterNumber}`;
+    const link      = decl.disasterNumber
+      ? `https://www.fema.gov/disaster/${decl.disasterNumber}`
       : '';
 
     html += `<div class="hazard-item">
       <div class="hazard-top">
         <span style="font-size:13px">${icon}</span>
-        <span class="hazard-title">${esc(d.declarationTitle || d.incidentType)}</span>
-        <span class="hazard-cat" style="background:#2a3528;color:#a7c080">${esc(typeL)}</span>
+        <span class="hazard-title">${esc(decl.declarationTitle || decl.incidentType)}</span>
+        <span class="hazard-cat" style="background:#2a3528;color:#a7c080">${esc(typeLabel)}</span>
       </div>
       <div class="hazard-meta">
         <span><b>${esc(declId)}</b></span>
-        <span><b>State:</b> ${esc(d.state || d.stateCode || '—')}</span>
-        <span><b>Type:</b> ${esc(d.incidentType || '—')}</span>
-        <span><b>Declared:</b> ${d.declarationDate ? fmtTime(d.declarationDate) : '—'}</span>
+        <span><b>State:</b> ${esc(decl.state || decl.stateCode || '—')}</span>
+        <span><b>Type:</b> ${esc(decl.incidentType || '—')}</span>
+        <span><b>Declared:</b> ${decl.declarationDate ? fmtTime(decl.declarationDate) : '—'}</span>
         ${link ? `<span><a class="link-btn" href="${esc(link)}" target="_blank" rel="noopener">FEMA ↗</a></span>` : ''}
       </div>
     </div>`;
@@ -4350,19 +4349,19 @@ const LSR_LABELS = { torn: 'Tornado', hail: 'Hail', wind: 'Wind Damage' };
 function parseSpcCsv(text, type) {
   // SPC CSV header: Time,F-Scale|Size|Speed,Location,County,State,Lat,Lon,Comments
   return text.trim().split('\n').slice(1).map(line => {
-    const p = line.split(',');
-    if (p.length < 7) return null;
-    const lat = parseFloat(p[5]), lon = parseFloat(p[6]);
+    const cols = line.split(',');
+    if (cols.length < 7) return null;
+    const lat = parseFloat(cols[5]), lon = parseFloat(cols[6]);
     if (isNaN(lat) || isNaN(lon)) return null;
     return {
       type,
-      time:      p[0].trim(),
-      magnitude: p[1].trim(),
-      location:  p[2].trim(),
-      county:    p[3].trim(),
-      state:     p[4].trim(),
+      time:      cols[0].trim(),
+      magnitude: cols[1].trim(),
+      location:  cols[2].trim(),
+      county:    cols[3].trim(),
+      state:     cols[4].trim(),
       lat, lon,
-      comments:  p.slice(7).join(',').trim()
+      comments:  cols.slice(7).join(',').trim()
     };
   }).filter(Boolean);
 }
@@ -4381,29 +4380,29 @@ async function loadLSR() {
     if (windRes.ok) reports.push(...parseSpcCsv(await windRes.text(), 'wind'));
     lsrData = reports;
     plotLSR();
-  } catch(e) {
-    console.warn('LSR load failed:', e.message);
+  } catch (err) {
+    console.warn('LSR load failed:', err.message);
   }
 }
 
 function plotLSR() {
   if (!map) return;
   lsrLayer.clearLayers();
-  for (const r of lsrData) {
-    const color = LSR_COLORS[r.type] || '#859289';
-    const icon  = LSR_ICONS[r.type]  || '⚡';
-    const label = LSR_LABELS[r.type] || 'Storm Report';
-    const magStr = r.magnitude
-      ? (r.type === 'hail' ? ` · ${r.magnitude}"` : r.type === 'wind' ? ` · ${r.magnitude} mph` : ` · ${r.magnitude}`)
+  for (const report of lsrData) {
+    const color = LSR_COLORS[report.type] || '#859289';
+    const icon  = LSR_ICONS[report.type]  || '⚡';
+    const label = LSR_LABELS[report.type] || 'Storm Report';
+    const magStr = report.magnitude
+      ? (report.type === 'hail' ? ` · ${report.magnitude}"` : report.type === 'wind' ? ` · ${report.magnitude} mph` : ` · ${report.magnitude}`)
       : '';
-    L.circleMarker([r.lat, r.lon], {
+    L.circleMarker([report.lat, report.lon], {
       radius: 5, color, fillColor: color, fillOpacity: 0.8, weight: 1.5
     })
     .bindPopup(`<div class="popup-inner">
       <div class="popup-title">${icon} ${esc(label)}${esc(magStr)}</div>
-      <div class="popup-sub">${esc(r.location)}, ${esc(r.county)} Co., ${esc(r.state)}</div>
-      <div class="popup-row">UTC ${esc(r.time)} · NWS LSR</div>
-      ${r.comments ? `<div class="popup-row">${esc(r.comments)}</div>` : ''}
+      <div class="popup-sub">${esc(report.location)}, ${esc(report.county)} Co., ${esc(report.state)}</div>
+      <div class="popup-row">UTC ${esc(report.time)} · NWS LSR</div>
+      ${report.comments ? `<div class="popup-row">${esc(report.comments)}</div>` : ''}
     </div>`)
     .addTo(lsrLayer);
   }
@@ -4425,10 +4424,10 @@ function _buildSpcLayer(geojson, layer) {
   layer.clearLayers();
   if (!geojson?.features?.length) return;
   // Sort lowest→highest risk so higher risk renders on top
-  const features = [...geojson.features].sort((a, b) => {
-    const oA = SPC_RISK[a.properties.LABEL]?.order ?? 0;
-    const oB = SPC_RISK[b.properties.LABEL]?.order ?? 0;
-    return oA - oB;
+  const features = [...geojson.features].sort((featA, featB) => {
+    const orderA = SPC_RISK[featA.properties.LABEL]?.order ?? 0;
+    const orderB = SPC_RISK[featB.properties.LABEL]?.order ?? 0;
+    return orderA - orderB;
   });
   L.geoJSON({ type: 'FeatureCollection', features }, {
     style(feature) {
@@ -4454,15 +4453,15 @@ async function loadSPC() {
   const base = 'https://www.spc.noaa.gov/products/outlook/';
   try {
     const [d1, d2, d3] = await Promise.all([
-      fetch(base + 'day1otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(r => r.ok ? r.json() : null),
-      fetch(base + 'day2otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(r => r.ok ? r.json() : null),
-      fetch(base + 'day3otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(r => r.ok ? r.json() : null),
+      fetch(base + 'day1otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(response => response.ok ? response.json() : null),
+      fetch(base + 'day2otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(response => response.ok ? response.json() : null),
+      fetch(base + 'day3otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(response => response.ok ? response.json() : null),
     ]);
     if (spcD1Layer) _buildSpcLayer(d1, spcD1Layer);
     if (spcD2Layer) _buildSpcLayer(d2, spcD2Layer);
     if (spcD3Layer) _buildSpcLayer(d3, spcD3Layer);
-  } catch(e) {
-    console.warn('SPC outlook load failed:', e.message);
+  } catch (err) {
+    console.warn('SPC outlook load failed:', err.message);
   }
 }
 
@@ -4472,13 +4471,19 @@ async function loadSPC() {
 let mscData = [], bomData = [], geonetVALData = [], vhpData = [], vonaData = [];
 let gdacsData = [], meteoalarmData = [], wmoData = [];
 
-// Classify MSC alert severity from headline text
-function mscSeverity(headline) {
-  const h = (headline || '').toLowerCase();
-  if (h.includes('warning'))  return { color: '#e67e80', label: 'Warning' };
-  if (h.includes('watch'))    return { color: '#e69875', label: 'Watch' };
-  if (h.includes('advisory')) return { color: '#dbbc7f', label: 'Advisory' };
+// Classify MSC alert severity from the alert_type field ("warning" / "watch" /
+// "advisory" / "statement"), falling back to matching on free text
+function mscSeverity(alertType) {
+  const type = (alertType || '').toLowerCase();
+  if (type.includes('warning'))  return { color: '#e67e80', label: 'Warning' };
+  if (type.includes('watch'))    return { color: '#e69875', label: 'Watch' };
+  if (type.includes('advisory')) return { color: '#dbbc7f', label: 'Advisory' };
   return { color: '#7fbbb3', label: 'Statement' };
+}
+
+// Title-case a lowercase MSC alert name ("air quality warning" → "Air Quality Warning")
+function mscTitleCase(name) {
+  return (name || '').replace(/\b\w/g, ch => ch.toUpperCase());
 }
 
 const BOM_TYPE = {
@@ -4493,14 +4498,15 @@ const BOM_TYPE = {
 
 async function loadMSC() {
   try {
-    const url = 'https://geo.weather.gc.ca/geomet?service=WFS&version=2.0.0&request=GetFeature' +
-      '&typeNames=ALERTS&outputFormat=application/json&count=500';
-    const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const gj = await r.json();
-    mscData = gj.features || [];
+    // GeoMet OGC API — Features (the old GeoMet WFS "ALERTS" layer was retired
+    // and now returns an XML exception). Serves CORS-enabled GeoJSON directly.
+    const url = 'https://api.weather.gc.ca/collections/weather-alerts/items?f=json&limit=500';
+    const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const geojson = await response.json();
+    mscData = geojson.features || [];
     plotMSC();
-  } catch(e) { console.warn('MSC load failed:', e.message); }
+  } catch (err) { console.warn('MSC load failed:', err.message); }
 }
 
 function plotMSC() {
@@ -4508,23 +4514,23 @@ function plotMSC() {
   mscLayer.clearLayers();
   L.geoJSON({ type: 'FeatureCollection', features: mscData }, {
     style(feature) {
-      const sv = mscSeverity(feature.properties.headline);
-      return { color: sv.color, weight: 1, opacity: 0.8, fillColor: sv.color, fillOpacity: 0.12, dashArray: '3 4' };
+      const severity = mscSeverity(feature.properties.alert_type);
+      return { color: severity.color, weight: 1, opacity: 0.8, fillColor: severity.color, fillOpacity: 0.12, dashArray: '3 4' };
     },
-    onEachFeature(feature, lyr) {
-      const p  = feature.properties;
-      const sv = mscSeverity(p.headline);
-      lyr._mscId = p.identifier;
-      lyr.bindPopup(`<div class="popup-inner">
-        <div class="popup-title">🇨🇦 ${esc(p.headline || 'MSC Alert')}</div>
-        <div class="popup-sub">${esc(p.area || p.zone || '')}</div>
+    onEachFeature(feature, layer) {
+      const props    = feature.properties;
+      const severity = mscSeverity(props.alert_type);
+      const alertText = props.alert_text_en || '';
+      layer._mscId = feature.id;
+      layer.bindPopup(`<div class="popup-inner">
+        <div class="popup-title">🇨🇦 ${esc(mscTitleCase(props.alert_name_en) || 'MSC Alert')}</div>
+        <div class="popup-sub">${esc(props.feature_name_en || props.province || '')}</div>
         <div class="popup-row" style="margin-top:4px">
-          <span style="background:${sv.color};color:var(--badge-text, #1a2227);padding:1px 6px;border-radius:3px;font-size:11px;font-weight:700">${sv.label}</span>
+          <span style="background:${severity.color};color:var(--badge-text, #1a2227);padding:1px 6px;border-radius:3px;font-size:11px;font-weight:700">${severity.label}</span>
         </div>
-        <div class="popup-row" style="margin-top:6px;line-height:1.4;font-size:11px;color:var(--muted)">${esc((p.descrip_en || '').slice(0, 300))}${p.descrip_en?.length > 300 ? '…' : ''}</div>
-        <div class="popup-row"><span>Effective</span><span>${fmtTime(p.effective)}</span></div>
-        <div class="popup-row"><span>Expires</span><span>${fmtTime(p.expires)}</span></div>
-        ${p.url ? `<div class="popup-row"><a href="${esc(p.url)}" target="_blank" style="color:var(--accent)">Full alert ↗</a></div>` : ''}
+        <div class="popup-row" style="margin-top:6px;line-height:1.4;font-size:11px;color:var(--muted)">${esc(alertText.slice(0, 300))}${alertText.length > 300 ? '…' : ''}</div>
+        <div class="popup-row"><span>Effective</span><span>${fmtTime(props.validity_datetime || props.publication_datetime)}</span></div>
+        <div class="popup-row"><span>Expires</span><span>${fmtTime(props.expiration_datetime)}</span></div>
       </div>`);
     }
   }).addTo(mscLayer);
@@ -4535,35 +4541,35 @@ function flyToMSC(identifier) {
   if (!map || !identifier) return;
   // mscLayer contains one L.geoJSON group; individual polygon layers are one level deeper
   mscLayer.eachLayer(group => {
-    (group.eachLayer ? group : { eachLayer: cb => cb(group) }).eachLayer(lyr => {
-      if (lyr._mscId !== identifier) return;
+    (group.eachLayer ? group : { eachLayer: visit => visit(group) }).eachLayer(polygonLayer => {
+      if (polygonLayer._mscId !== identifier) return;
       try {
-        const bounds = lyr.getBounds?.();
+        const bounds = polygonLayer.getBounds?.();
         if (bounds?.isValid()) map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
       } catch {}
-      lyr.openPopup();
+      polygonLayer.openPopup();
     });
   });
 }
 
 async function loadBOM() {
   try {
-    const r = await fetch('https://api.weather.bom.gov.au/v1/warnings', { signal: AbortSignal.timeout(10000) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    bomData = j.data || [];
-  } catch(e) { console.warn('BOM load failed:', e.message); }
+    const response = await fetch('https://api.weather.bom.gov.au/v1/warnings', { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    bomData = payload.data || [];
+  } catch (err) { console.warn('BOM load failed:', err.message); }
 }
 
 const GEONET_VAL_COLOR = { 0:'#859289', 1:'#a7c080', 2:'#dbbc7f', 3:'#e69875', 4:'#e67e80', 5:'#d699b6' };
 
 async function loadGeoNetVAL() {
   try {
-    const r = await fetch('https://api.geonet.org.nz/volcano/val', { signal: AbortSignal.timeout(10000) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    geonetVALData = j.features || [];
-  } catch(e) { console.warn('GeoNet VAL load failed:', e.message); }
+    const response = await fetch('https://api.geonet.org.nz/volcano/val', { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    geonetVALData = payload.features || [];
+  } catch (err) { console.warn('GeoNet VAL load failed:', err.message); }
 }
 
 const VHP_ALERT_COLOR = { NORMAL:'#859289', ADVISORY:'#dbbc7f', WATCH:'#e69875', WARNING:'#e67e80' };
@@ -4571,33 +4577,33 @@ const VHP_ALERT_COLOR = { NORMAL:'#859289', ADVISORY:'#dbbc7f', WATCH:'#e69875',
 async function loadVHP() {
   try {
     const [elevated, vonas] = await Promise.all([
-      fetch('https://volcanoes.usgs.gov/hans-public/api/volcano/getElevatedVolcanoes', { signal: AbortSignal.timeout(10000) }).then(r=>r.json()),
-      fetch('https://volcanoes.usgs.gov/hans-public/api/notice/getVonasWithinLastYear',  { signal: AbortSignal.timeout(10000) }).then(r=>r.json()),
+      fetch('https://volcanoes.usgs.gov/hans-public/api/volcano/getElevatedVolcanoes', { signal: AbortSignal.timeout(10000) }).then(response => response.json()),
+      fetch('https://volcanoes.usgs.gov/hans-public/api/notice/getVonasWithinLastYear',  { signal: AbortSignal.timeout(10000) }).then(response => response.json()),
     ]);
     const elevArr = Array.isArray(elevated) ? elevated : [];
     vonaData = Array.isArray(vonas) ? vonas : [];
 
     // Enrich each elevated volcano with lat/lon via getVolcano/{vnum}
     vhpData = await Promise.all(
-      elevArr.map(async v => {
+      elevArr.map(async volcano => {
         try {
           const detail = await fetch(
-            `https://volcanoes.usgs.gov/hans-public/api/volcano/getVolcano/${v.vnum}`,
+            `https://volcanoes.usgs.gov/hans-public/api/volcano/getVolcano/${volcano.vnum}`,
             { signal: AbortSignal.timeout(8000) }
-          ).then(r => r.json());
-          return { ...v, latitude: detail.latitude ?? null, longitude: detail.longitude ?? null, elevation_m: detail.elevation_meters ?? null };
-        } catch { return v; }
+          ).then(response => response.json());
+          return { ...volcano, latitude: detail.latitude ?? null, longitude: detail.longitude ?? null, elevation_m: detail.elevation_meters ?? null };
+        } catch { return volcano; }
       })
     );
 
     // Build vnum→coords lookup so VONAs can also have coordinates
     const vnumCoords = {};
-    for (const v of vhpData) {
-      if (v.vnum && v.latitude != null) vnumCoords[v.vnum] = { lat: v.latitude, lon: v.longitude };
+    for (const volcano of vhpData) {
+      if (volcano.vnum && volcano.latitude != null) vnumCoords[volcano.vnum] = { lat: volcano.latitude, lon: volcano.longitude };
     }
     // Tag VONAs with coordinates where the volcano is in the elevated list
-    vonaData = vonaData.map(v => ({ ...v, ...(vnumCoords[v.vnum] || {}) }));
-  } catch(e) { console.warn('USGS VHP load failed:', e.message); }
+    vonaData = vonaData.map(vona => ({ ...vona, ...(vnumCoords[vona.vnum] || {}) }));
+  } catch (err) { console.warn('USGS VHP load failed:', err.message); }
 }
 
 /* ── Volcanism — USGS VHP + GeoNet NZ ── */
@@ -4616,37 +4622,37 @@ function plotVolcanism() {
   volcLayer.clearLayers();
 
   // GeoNet NZ — GeoJSON Point geometry
-  for (const f of geonetVALData) {
-    const p = f.properties;
-    if (!f.geometry?.coordinates) continue;
-    const [lon, lat] = f.geometry.coordinates;
-    const col = GEONET_VAL_COLOR[p.level ?? 0] || '#859289';
+  for (const feature of geonetVALData) {
+    const props = feature.properties;
+    if (!feature.geometry?.coordinates) continue;
+    const [lon, lat] = feature.geometry.coordinates;
+    const col = GEONET_VAL_COLOR[props.level ?? 0] || '#859289';
     const marker = L.marker([lat, lon], { icon: volcMarkerIcon(col), zIndexOffset: 100 });
-    marker._volcId = `geonet-${p.volcanoID}`;
+    marker._volcId = `geonet-${props.volcanoID}`;
     marker.bindPopup(`<div class="popup-inner">
-      <div class="popup-title">🌋 ${esc(p.volcanoTitle)}</div>
-      <div class="popup-sub">GeoNet NZ — Volcanic Alert Level ${p.level ?? 0}</div>
-      ${p.activity ? `<div class="popup-row" style="margin-top:4px;font-size:11px;color:var(--muted)">${esc(p.activity)}</div>` : ''}
-      ${p.hazards  ? `<div class="popup-row" style="font-size:10px;color:var(--muted)">${esc(p.hazards.slice(0,200))}${p.hazards.length>200?'…':''}</div>` : ''}
-      <div class="popup-row"><a href="https://www.geonet.org.nz/volcano/${esc(p.volcanoID)}" target="_blank" style="color:var(--accent)">GeoNet ↗</a></div>
+      <div class="popup-title">🌋 ${esc(props.volcanoTitle)}</div>
+      <div class="popup-sub">GeoNet NZ — Volcanic Alert Level ${props.level ?? 0}</div>
+      ${props.activity ? `<div class="popup-row" style="margin-top:4px;font-size:11px;color:var(--muted)">${esc(props.activity)}</div>` : ''}
+      ${props.hazards  ? `<div class="popup-row" style="font-size:10px;color:var(--muted)">${esc(props.hazards.slice(0,200))}${props.hazards.length>200?'…':''}</div>` : ''}
+      <div class="popup-row"><a href="https://www.geonet.org.nz/volcano/${esc(props.volcanoID)}" target="_blank" style="color:var(--accent)">GeoNet ↗</a></div>
     </div>`);
     marker.addTo(volcLayer);
   }
 
   // USGS VHP — elevated volcanoes (coordinates enriched in loadVHP)
-  for (const v of vhpData) {
-    if (v.latitude == null || v.longitude == null) continue;
-    const col = VHP_ALERT_COLOR[v.alert_level] || '#859289';
-    const marker = L.marker([v.latitude, v.longitude], { icon: volcMarkerIcon(col), zIndexOffset: 200 });
-    marker._volcId = `vhp-${v.vnum}`;
+  for (const volcano of vhpData) {
+    if (volcano.latitude == null || volcano.longitude == null) continue;
+    const col = VHP_ALERT_COLOR[volcano.alert_level] || '#859289';
+    const marker = L.marker([volcano.latitude, volcano.longitude], { icon: volcMarkerIcon(col), zIndexOffset: 200 });
+    marker._volcId = `vhp-${volcano.vnum}`;
     marker.bindPopup(`<div class="popup-inner">
-      <div class="popup-title">🌋 ${esc(v.volcano_name)}</div>
-      <div class="popup-sub">${esc(v.obs_fullname)}</div>
+      <div class="popup-title">🌋 ${esc(volcano.volcano_name)}</div>
+      <div class="popup-sub">${esc(volcano.obs_fullname)}</div>
       <div class="popup-row" style="margin-top:4px">
-        <span style="background:${col};color:var(--badge-text, #1a2227);padding:1px 7px;border-radius:3px;font-size:11px;font-weight:700">${esc(v.alert_level)}</span>
-        ${v.color_code ? `<span style="margin-left:6px;font-size:11px;color:var(--muted)">Aviation: ${esc(v.color_code)}</span>` : ''}
+        <span style="background:${col};color:var(--badge-text, #1a2227);padding:1px 7px;border-radius:3px;font-size:11px;font-weight:700">${esc(volcano.alert_level)}</span>
+        ${volcano.color_code ? `<span style="margin-left:6px;font-size:11px;color:var(--muted)">Aviation: ${esc(volcano.color_code)}</span>` : ''}
       </div>
-      ${v.notice_url ? `<div class="popup-row"><a href="${esc(v.notice_url)}" target="_blank" style="color:var(--accent)">Latest Notice ↗</a></div>` : ''}
+      ${volcano.notice_url ? `<div class="popup-row"><a href="${esc(volcano.notice_url)}" target="_blank" style="color:var(--accent)">Latest Notice ↗</a></div>` : ''}
     </div>`);
     marker.addTo(volcLayer);
   }
@@ -4656,7 +4662,7 @@ function flyToVolc(id, lat, lon) {
   ensureLayerOn('volc');
   if (!map || lat == null || lon == null) return;
   map.flyTo([lat, lon], Math.max(map.getZoom(), 5), { duration: 1 });
-  volcLayer.eachLayer(m => { if (m._volcId === id) m.openPopup(); });
+  volcLayer.eachLayer(marker => { if (marker._volcId === id) marker.openPopup(); });
 }
 
 async function loadVolcanism() {
@@ -4678,21 +4684,21 @@ function renderVHP() {
 
   // Coord lookup for VONAs
   const vhpCoords = {};
-  for (const v of vhpData) {
-    if (v.vnum && v.latitude != null) vhpCoords[v.vnum] = { lat: v.latitude, lon: v.longitude, id: `vhp-${v.vnum}` };
+  for (const volcano of vhpData) {
+    if (volcano.vnum && volcano.latitude != null) vhpCoords[volcano.vnum] = { lat: volcano.latitude, lon: volcano.longitude, id: `vhp-${volcano.vnum}` };
   }
 
   // USGS VHP — currently elevated volcanoes
-  vhpData.forEach(v => {
-    const col = VHP_ALERT_COLOR[v.alert_level] || '#859289';
-    const coords = v.latitude != null ? { lat: v.latitude, lon: v.longitude, id: `vhp-${v.vnum}` } : null;
+  vhpData.forEach(volcano => {
+    const col = VHP_ALERT_COLOR[volcano.alert_level] || '#859289';
+    const coords = volcano.latitude != null ? { lat: volcano.latitude, lon: volcano.longitude, id: `vhp-${volcano.vnum}` } : null;
     items.push({
       source: 'VHP', color: col,
-      title:  `${v.volcano_name} — ${v.alert_level}`,
-      sub:    `${v.obs_fullname} · Aviation: ${v.color_code || '—'}`,
-      time:   v.sent_utc ? v.sent_utc.replace(' ', 'T') + 'Z' : null,
+      title:  `${volcano.volcano_name} — ${volcano.alert_level}`,
+      sub:    `${volcano.obs_fullname} · Aviation: ${volcano.color_code || '—'}`,
+      time:   volcano.sent_utc ? volcano.sent_utc.replace(' ', 'T') + 'Z' : null,
       desc:   '',
-      url:    v.notice_url || null,
+      url:    volcano.notice_url || null,
       coords,
     });
   });
@@ -4700,17 +4706,17 @@ function renderVHP() {
   // VONAs — last 7 days; coordinates shared via vnum lookup
   const cutoff = Date.now() - 7 * 86400_000;
   vonaData
-    .filter(v => (v.sent_unixtime * 1000) >= cutoff)
-    .forEach(v => {
-      const col = VHP_ALERT_COLOR[v.alert_level] || '#859289';
-      const coords = vhpCoords[v.vnum] || null;
+    .filter(vona => (vona.sent_unixtime * 1000) >= cutoff)
+    .forEach(vona => {
+      const col = VHP_ALERT_COLOR[vona.alert_level] || '#859289';
+      const coords = vhpCoords[vona.vnum] || null;
       items.push({
         source: 'VONA', color: col,
-        title:  `${v.volcano_name} — VONA ${v.color_code}`,
-        sub:    `${v.region} · ${v.nvews_threat || ''}`,
-        time:   v.sent_utc ? v.sent_utc.replace(' ', 'T') + 'Z' : null,
-        desc:   (v.synopsis_complete || '').slice(0, 160),
-        url:    v.vona_url || null,
+        title:  `${vona.volcano_name} — VONA ${vona.color_code}`,
+        sub:    `${vona.region} · ${vona.nvews_threat || ''}`,
+        time:   vona.sent_utc ? vona.sent_utc.replace(' ', 'T') + 'Z' : null,
+        desc:   (vona.synopsis_complete || '').slice(0, 160),
+        url:    vona.vona_url || null,
         coords,
       });
     });
@@ -4723,28 +4729,28 @@ function renderVHP() {
   }
 
   // Timed items first (most recent), then untimed
-  items.sort((a, b) => {
-    if (a.time && b.time) return new Date(b.time) - new Date(a.time);
-    if (a.time) return -1;
-    if (b.time) return 1;
-    return a.source.localeCompare(b.source);
+  items.sort((itemA, itemB) => {
+    if (itemA.time && itemB.time) return new Date(itemB.time) - new Date(itemA.time);
+    if (itemA.time) return -1;
+    if (itemB.time) return 1;
+    return itemA.source.localeCompare(itemB.source);
   });
 
-  body.innerHTML = items.map(it => {
-    const flyAttr = it.coords
-      ? `onclick="flyToVolc('${it.coords.id}',${it.coords.lat},${it.coords.lon})" style="border-left-color:${it.color};cursor:pointer"`
-      : `style="border-left-color:${it.color}"`;
+  body.innerHTML = items.map(item => {
+    const flyAttr = item.coords
+      ? `onclick="flyToVolc('${item.coords.id}',${item.coords.lat},${item.coords.lon})" style="border-left-color:${item.color};cursor:pointer"`
+      : `style="border-left-color:${item.color}"`;
     return `
-    <div class="alert-item" ${flyAttr} title="${it.coords ? 'Click to locate on map' : ''}">
+    <div class="alert-item" ${flyAttr} title="${item.coords ? 'Click to locate on map' : ''}">
       <div class="alert-row">
-        <span class="alert-badge" style="background:${it.color};color:var(--badge-text, #1a2227)">${esc(it.source)}</span>
-        <span class="alert-event">${esc(it.title)}</span>
+        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">${esc(item.source)}</span>
+        <span class="alert-event">${esc(item.title)}</span>
       </div>
-      ${it.sub  ? `<div class="alert-sub">${esc(it.sub)}</div>` : ''}
-      ${it.desc ? `<div class="alert-sub" style="opacity:.8">${esc(it.desc)}${it.desc.length >= 160 ? '…' : ''}</div>` : ''}
+      ${item.sub  ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
+      ${item.desc ? `<div class="alert-sub" style="opacity:.8">${esc(item.desc)}${item.desc.length >= 160 ? '…' : ''}</div>` : ''}
       <div class="alert-meta">
-        <span>${fmtTime(it.time)}</span>
-        ${it.url ? `<a href="${esc(it.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
+        <span>${fmtTime(item.time)}</span>
+        ${item.url ? `<a href="${esc(item.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -4756,19 +4762,19 @@ function renderGeoNet() {
   const items = [];
 
   // GeoNet VAL — all NZ volcanoes with their current alert level
-  geonetVALData.forEach(f => {
-    const p   = f.properties;
-    const col = GEONET_VAL_COLOR[p.level ?? 0] || '#859289';
-    const coords = f.geometry?.coordinates
-      ? { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], id: `geonet-${p.volcanoID}` }
+  geonetVALData.forEach(feature => {
+    const props = feature.properties;
+    const col   = GEONET_VAL_COLOR[props.level ?? 0] || '#859289';
+    const coords = feature.geometry?.coordinates
+      ? { lat: feature.geometry.coordinates[1], lon: feature.geometry.coordinates[0], id: `geonet-${props.volcanoID}` }
       : null;
     items.push({
       source: 'NZ', color: col,
-      title:  `${p.volcanoTitle} — VAL ${p.level ?? 0}`,
-      sub:    p.activity || '',
+      title:  `${props.volcanoTitle} — VAL ${props.level ?? 0}`,
+      sub:    props.activity || '',
       time:   null,
-      desc:   p.hazards || '',
-      url:    `https://www.geonet.org.nz/volcano/${p.volcanoID}`,
+      desc:   props.hazards || '',
+      url:    `https://www.geonet.org.nz/volcano/${props.volcanoID}`,
       coords,
     });
   });
@@ -4780,21 +4786,21 @@ function renderGeoNet() {
     return;
   }
 
-  body.innerHTML = items.map(it => {
-    const flyAttr = it.coords
-      ? `onclick="flyToVolc('${it.coords.id}',${it.coords.lat},${it.coords.lon})" style="border-left-color:${it.color};cursor:pointer"`
-      : `style="border-left-color:${it.color}"`;
+  body.innerHTML = items.map(item => {
+    const flyAttr = item.coords
+      ? `onclick="flyToVolc('${item.coords.id}',${item.coords.lat},${item.coords.lon})" style="border-left-color:${item.color};cursor:pointer"`
+      : `style="border-left-color:${item.color}"`;
     return `
-    <div class="alert-item" ${flyAttr} title="${it.coords ? 'Click to locate on map' : ''}">
+    <div class="alert-item" ${flyAttr} title="${item.coords ? 'Click to locate on map' : ''}">
       <div class="alert-row">
-        <span class="alert-badge" style="background:${it.color};color:var(--badge-text, #1a2227)">${esc(it.source)}</span>
-        <span class="alert-event">${esc(it.title)}</span>
+        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">${esc(item.source)}</span>
+        <span class="alert-event">${esc(item.title)}</span>
       </div>
-      ${it.sub  ? `<div class="alert-sub">${esc(it.sub)}</div>` : ''}
-      ${it.desc ? `<div class="alert-sub" style="opacity:.8">${esc(it.desc)}${it.desc.length >= 160 ? '…' : ''}</div>` : ''}
+      ${item.sub  ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
+      ${item.desc ? `<div class="alert-sub" style="opacity:.8">${esc(item.desc)}${item.desc.length >= 160 ? '…' : ''}</div>` : ''}
       <div class="alert-meta">
-        <span>${fmtTime(it.time)}</span>
-        ${it.url ? `<a href="${esc(it.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
+        <span>${fmtTime(item.time)}</span>
+        ${item.url ? `<a href="${esc(item.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -4814,18 +4820,18 @@ function renderMSCPanel() {
   const body = document.getElementById('msc-body');
   if (!body) return;
 
-  const items = mscData.map(f => {
-    const p  = f.properties;
-    const sv = mscSeverity(p.headline);
+  const items = mscData.map(feature => {
+    const props    = feature.properties;
+    const severity = mscSeverity(props.alert_type);
     return {
-      id:      p.identifier || '',
-      color:   sv.color,
-      title:   p.headline || 'MSC Alert',
-      sub:     p.area || p.zone || '',
-      time:    p.effective,
-      expires: p.expires,
-      desc:    (p.descrip_en || '').slice(0, 160),
-      url:     p.url,
+      id:      feature.id || '',
+      color:   severity.color,
+      title:   mscTitleCase(props.alert_name_en) || 'MSC Alert',
+      sub:     [props.feature_name_en, props.province].filter(Boolean).join(', '),
+      time:    props.validity_datetime || props.publication_datetime,
+      expires: props.expiration_datetime,
+      desc:    (props.alert_text_en || '').slice(0, 160),
+      url:     '',
     };
   });
 
@@ -4836,21 +4842,21 @@ function renderMSCPanel() {
     return;
   }
 
-  items.sort((a, b) => new Date(b.time) - new Date(a.time));
+  items.sort((itemA, itemB) => new Date(itemB.time) - new Date(itemA.time));
 
-  body.innerHTML = items.map(it => `
-    <div class="alert-item clickable" style="border-left-color:${it.color}"
-         onclick="flyToMSC('${esc(it.id)}')" title="Click to locate on map">
+  body.innerHTML = items.map(item => `
+    <div class="alert-item clickable" style="border-left-color:${item.color}"
+         onclick="flyToMSC('${esc(item.id)}')" title="Click to locate on map">
       <div class="alert-row">
-        <span class="alert-badge" style="background:${it.color};color:var(--badge-text, #1a2227)">CA</span>
-        <span class="alert-event">${esc(it.title)}</span>
+        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">CA</span>
+        <span class="alert-event">${esc(item.title)}</span>
       </div>
-      ${it.sub  ? `<div class="alert-sub">${esc(it.sub)}</div>` : ''}
-      ${it.desc ? `<div class="alert-sub" style="opacity:.8">${esc(it.desc)}${it.desc.length >= 160 ? '…' : ''}</div>` : ''}
+      ${item.sub  ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
+      ${item.desc ? `<div class="alert-sub" style="opacity:.8">${esc(item.desc)}${item.desc.length >= 160 ? '…' : ''}</div>` : ''}
       <div class="alert-meta">
-        <span>${fmtTime(it.time)}</span>
-        ${it.expires ? `<span>Exp: ${fmtTime(it.expires)}</span>` : ''}
-        ${it.url ? `<a href="${esc(it.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
+        <span>${fmtTime(item.time)}</span>
+        ${item.expires ? `<span>Exp: ${fmtTime(item.expires)}</span>` : ''}
+        ${item.url ? `<a href="${esc(item.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
       </div>
     </div>`).join('');
 }
@@ -4864,47 +4870,45 @@ const AUS_STATE_CENTER = {
   VIC: [-37.02, 144.97], WA:  [-25.33, 122.18],
 };
 
-// Fetch BOM flood watch + warning catchment polygons from ArcGIS REST
+// Plot catchment polygons for the currently ACTIVE BOM flood warnings only.
+// The National Flood Gauge Network layers are the full static catchment
+// reference set — querying them with where=1=1 draws every catchment in
+// Australia. Instead we match layer 1 (Flood Warning Catchments) against the
+// product ids of active warnings from the BOM warnings API (loadBOM must have
+// populated bomData first). Layer 0 (Flood Watch Catchments) has no product_id
+// field to join on, so watches appear in the panel list but not as polygons.
 async function plotBOM() {
   if (!bomLayer) return;
   bomLayer.clearLayers();
+
+  // Product ids of active warnings, sanitized for the ArcGIS where clause
+  const activeProductIds = bomData
+    .map(warning => warning.id)
+    .filter(id => /^[A-Za-z0-9_]+$/.test(id || ''));
+  if (!activeProductIds.length) return;  // nothing active → nothing to draw
+
   const base = 'https://hosting.wsapi.cloud.bom.gov.au/arcgis/rest/services/flood/National_Flood_Gauge_Network/FeatureServer';
-  const qs   = 'where=1%3D1&outFields=*&f=geojson';
+  const whereClause = `product_id IN (${activeProductIds.map(id => `'${id}'`).join(',')})`;
+  const query = new URLSearchParams({ where: whereClause, outFields: '*', f: 'geojson' });
   try {
-    const [watchGJ, warningGJ] = await Promise.all([
-      fetch(proxyUrl(`${base}/0/query?${qs}`), { signal: AbortSignal.timeout(15000) }).then(r => r.ok ? r.json() : null),
-      fetch(proxyUrl(`${base}/1/query?${qs}`), { signal: AbortSignal.timeout(15000) }).then(r => r.ok ? r.json() : null),
-    ]);
-    // Flood Watch (layer 0) — yellow
-    if (watchGJ?.features?.length) {
-      L.geoJSON(watchGJ, {
-        style: { color: '#dbbc7f', weight: 1.2, opacity: 0.8, fillColor: '#dbbc7f', fillOpacity: 0.18, dashArray: '4 3' },
-        onEachFeature(f, lyr) {
-          lyr._bomState = f.properties.state_code;
-          lyr.bindPopup(`<div class="popup-inner">
-            <div class="popup-title">🇦🇺 Flood Watch</div>
-            <div class="popup-row"><span>Area</span><span>${esc(f.properties.dist_name || '')}</span></div>
-            <div class="popup-row"><span>State</span><span>${esc(f.properties.state_code || '')}</span></div>
-          </div>`);
-        },
-      }).addTo(bomLayer);
-    }
-    // Flood Warning (layer 1) — red
-    if (warningGJ?.features?.length) {
-      L.geoJSON(warningGJ, {
-        style: { color: '#e67e80', weight: 1.5, opacity: 0.85, fillColor: '#e67e80', fillOpacity: 0.22 },
-        onEachFeature(f, lyr) {
-          lyr._bomState = f.properties.state_code;
-          lyr.bindPopup(`<div class="popup-inner">
-            <div class="popup-title">🇦🇺 Flood Warning</div>
-            <div class="popup-row"><span>Area</span><span>${esc(f.properties.dist_name || '')}</span></div>
-            <div class="popup-row"><span>State</span><span>${esc(f.properties.state_code || '')}</span></div>
-            <div class="popup-row"><span>Product</span><span>${esc(f.properties.product_id || '')}</span></div>
-          </div>`);
-        },
-      }).addTo(bomLayer);
-    }
-  } catch(e) { console.warn('BOM flood layer failed:', e.message); }
+    const warningGeojson = await fetch(proxyUrl(`${base}/1/query?${query}`), { signal: AbortSignal.timeout(15000) })
+      .then(response => response.ok ? response.json() : null);
+    if (!warningGeojson?.features?.length) return;
+
+    L.geoJSON(warningGeojson, {
+      style: { color: '#e67e80', weight: 1.5, opacity: 0.85, fillColor: '#e67e80', fillOpacity: 0.22 },
+      onEachFeature(feature, layer) {
+        const props = feature.properties;
+        layer._bomState = props.state_code;
+        layer.bindPopup(`<div class="popup-inner">
+          <div class="popup-title">🇦🇺 Flood Warning</div>
+          <div class="popup-row"><span>Area</span><span>${esc(props.dist_name || '')}</span></div>
+          <div class="popup-row"><span>State</span><span>${esc(props.state_code || '')}</span></div>
+          <div class="popup-row"><span>Product</span><span>${esc(props.product_id || '')}</span></div>
+        </div>`);
+      },
+    }).addTo(bomLayer);
+  } catch (err) { console.warn('BOM flood layer failed:', err.message); }
 }
 
 function flyToBOM(state) {
@@ -4929,16 +4933,16 @@ function renderBOMPanel() {
   const body = document.getElementById('bom-body');
   if (!body) return;
 
-  const items = bomData.map(w => {
-    const bt    = BOM_TYPE[w.type] || { label: w.type?.replace(/_/g,' ') || 'Warning', color: '#859289' };
-    const states = w.states?.length ? w.states : w.state ? [w.state] : [];
+  const items = bomData.map(warning => {
+    const typeInfo = BOM_TYPE[warning.type] || { label: warning.type?.replace(/_/g,' ') || 'Warning', color: '#859289' };
+    const states   = warning.states?.length ? warning.states : warning.state ? [warning.state] : [];
     return {
-      color:   bt.color,
-      title:   w.short_title || bt.label,
+      color:   typeInfo.color,
+      title:   warning.short_title || typeInfo.label,
       sub:     states.join(', '),
       flyState: states[0] || '',     // first state for flyTo
-      time:    w.issue_time,
-      expires: w.expiry_time,
+      time:    warning.issue_time,
+      expires: warning.expiry_time,
     };
   });
 
@@ -4949,19 +4953,19 @@ function renderBOMPanel() {
     return;
   }
 
-  items.sort((a, b) => new Date(b.time) - new Date(a.time));
+  items.sort((itemA, itemB) => new Date(itemB.time) - new Date(itemA.time));
 
-  body.innerHTML = items.map(it => `
-    <div class="alert-item${it.flyState ? ' clickable' : ''}" style="border-left-color:${it.color}"
-         ${it.flyState ? `onclick="flyToBOM('${esc(it.flyState)}')" title="Click to locate on map"` : ''}>
+  body.innerHTML = items.map(item => `
+    <div class="alert-item${item.flyState ? ' clickable' : ''}" style="border-left-color:${item.color}"
+         ${item.flyState ? `onclick="flyToBOM('${esc(item.flyState)}')" title="Click to locate on map"` : ''}>
       <div class="alert-row">
-        <span class="alert-badge" style="background:${it.color};color:var(--badge-text, #1a2227)">AU</span>
-        <span class="alert-event">${esc(it.title)}</span>
+        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">AU</span>
+        <span class="alert-event">${esc(item.title)}</span>
       </div>
-      ${it.sub ? `<div class="alert-sub">${esc(it.sub)}</div>` : ''}
+      ${item.sub ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
       <div class="alert-meta">
-        <span>${fmtTime(it.time)}</span>
-        ${it.expires ? `<span>Exp: ${fmtTime(it.expires)}</span>` : ''}
+        <span>${fmtTime(item.time)}</span>
+        ${item.expires ? `<span>Exp: ${fmtTime(item.expires)}</span>` : ''}
       </div>
     </div>`).join('');
 }
@@ -4976,18 +4980,18 @@ const FWX_RISK = {
 };
 
 // Parse SPC's compact timestamp format: "202604051700" → ISO string
-function parseSpcTs(s) {
-  if (!s || String(s).length < 12) return null;
-  s = String(s);
-  return new Date(Date.UTC(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8), +s.slice(8,10), +s.slice(10,12))).toISOString();
+function parseSpcTs(compact) {
+  if (!compact || String(compact).length < 12) return null;
+  const ts = String(compact);
+  return new Date(Date.UTC(+ts.slice(0,4), +ts.slice(4,6)-1, +ts.slice(6,8), +ts.slice(8,10), +ts.slice(10,12))).toISOString();
 }
 
 async function _fetchFwxLayer(layerId) {
   const base = 'https://mapservices.weather.noaa.gov/vector/rest/services/fire_weather/SPC_firewx/MapServer';
   const params = new URLSearchParams({ where: '1=1', outFields: 'dn,valid,expire', returnGeometry: 'true', f: 'geojson' });
-  const r = await fetch(`${base}/${layerId}/query?${params}`, { signal: AbortSignal.timeout(10000) });
-  if (!r.ok) return null;
-  return r.json();
+  const response = await fetch(`${base}/${layerId}/query?${params}`, { signal: AbortSignal.timeout(10000) });
+  if (!response.ok) return null;
+  return response.json();
 }
 
 function _buildFwxLayer(mainGJ, dryGJ, layer) {
@@ -4996,21 +5000,21 @@ function _buildFwxLayer(mainGJ, dryGJ, layer) {
   // Main categorical risk (Elevated / Critical / Extremely Critical)
   if (mainGJ?.features?.length) {
     const features = [...mainGJ.features]
-      .filter(f => f.properties.dn && FWX_RISK[f.properties.dn])
-      .sort((a, b) => (a.properties.dn ?? 0) - (b.properties.dn ?? 0));
+      .filter(feature => feature.properties.dn && FWX_RISK[feature.properties.dn])
+      .sort((featA, featB) => (featA.properties.dn ?? 0) - (featB.properties.dn ?? 0));
     L.geoJSON({ type: 'FeatureCollection', features }, {
-      style(f) {
-        const risk = FWX_RISK[f.properties.dn];
+      style(feature) {
+        const risk = FWX_RISK[feature.properties.dn];
         const col  = risk?.color ?? '#859289';
         return { color: col, weight: 1.5, opacity: 0.9, fillColor: col, fillOpacity: 0.22 };
       },
-      onEachFeature(f, lyr) {
-        const p    = f.properties;
-        const risk = FWX_RISK[p.dn];
-        lyr.bindPopup(`<div class="popup-inner">
+      onEachFeature(feature, polygonLayer) {
+        const props = feature.properties;
+        const risk  = FWX_RISK[props.dn];
+        polygonLayer.bindPopup(`<div class="popup-inner">
           <div class="popup-title">🔥 Fire Wx — ${esc(risk?.label ?? 'Unknown')}</div>
-          <div class="popup-row"><span>Valid</span><span>${fmtTime(parseSpcTs(p.valid))}</span></div>
-          <div class="popup-row"><span>Expires</span><span>${fmtTime(parseSpcTs(p.expire))}</span></div>
+          <div class="popup-row"><span>Valid</span><span>${fmtTime(parseSpcTs(props.valid))}</span></div>
+          <div class="popup-row"><span>Expires</span><span>${fmtTime(parseSpcTs(props.expire))}</span></div>
         </div>`);
       }
     }).addTo(layer);
@@ -5018,18 +5022,18 @@ function _buildFwxLayer(mainGJ, dryGJ, layer) {
 
   // Dry thunderstorm areas — dashed outline only, no fill
   if (dryGJ?.features?.length) {
-    const dryFeatures = dryGJ.features.filter(f => f.geometry?.coordinates?.length);
+    const dryFeatures = dryGJ.features.filter(feature => feature.geometry?.coordinates?.length);
     if (dryFeatures.length) {
       L.geoJSON({ type: 'FeatureCollection', features: dryFeatures }, {
         style() {
           return { color: '#d699b6', weight: 2, opacity: 0.85, dashArray: '6 4', fill: false };
         },
-        onEachFeature(f, lyr) {
-          const p = f.properties;
-          lyr.bindPopup(`<div class="popup-inner">
+        onEachFeature(feature, polygonLayer) {
+          const props = feature.properties;
+          polygonLayer.bindPopup(`<div class="popup-inner">
             <div class="popup-title">⚡ Dry Thunderstorm Area</div>
-            <div class="popup-row"><span>Valid</span><span>${fmtTime(parseSpcTs(p.valid))}</span></div>
-            <div class="popup-row"><span>Expires</span><span>${fmtTime(parseSpcTs(p.expire))}</span></div>
+            <div class="popup-row"><span>Valid</span><span>${fmtTime(parseSpcTs(props.valid))}</span></div>
+            <div class="popup-row"><span>Expires</span><span>${fmtTime(parseSpcTs(props.expire))}</span></div>
           </div>`);
         }
       }).addTo(layer);
@@ -5047,8 +5051,8 @@ async function loadFireWx() {
     ]);
     if (fwxD1Layer) _buildFwxLayer(d1main, d1dry, fwxD1Layer);
     if (fwxD2Layer) _buildFwxLayer(d2main, d2dry, fwxD2Layer);
-  } catch(e) {
-    console.warn('Fire weather outlook load failed:', e.message);
+  } catch (err) {
+    console.warn('Fire weather outlook load failed:', err.message);
   }
 }
 
@@ -5073,55 +5077,55 @@ async function loadGauges() {
       resultRecordCount: 2000,
       f: 'json'
     });
-    const r = await fetch(
+    const response = await fetch(
       `https://mapservices.weather.noaa.gov/eventdriven/rest/services/water/riv_gauges/MapServer/0/query?${params}`,
       { signal: AbortSignal.timeout(15000) }
     );
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    gaugeData = (j.features || []).map(f => f.attributes);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    gaugeData = (payload.features || []).map(feature => feature.attributes);
     plotGauges();
-  } catch(e) {
-    console.warn('River gauge load failed:', e.message);
+  } catch (err) {
+    console.warn('River gauge load failed:', err.message);
   }
 }
 
 function plotGauges() {
   if (!map) return;
   gaugeLayer.clearLayers();
-  for (const g of gaugeData) {
-    const lat = parseFloat(g.latitude), lon = parseFloat(g.longitude);
+  for (const gauge of gaugeData) {
+    const lat = parseFloat(gauge.latitude), lon = parseFloat(gauge.longitude);
     if (isNaN(lat) || isNaN(lon)) continue;
-    const st = GAUGE_STATUS[g.status];
-    if (!st) continue;
-    const obs = parseFloat(g.observed);
+    const status = GAUGE_STATUS[gauge.status];
+    if (!status) continue;
+    const observedValue = parseFloat(gauge.observed);
     const marker = L.marker([lat, lon], {
       icon: L.divIcon({
-        html: `<div style="width:10px;height:10px;background:${st.color};border:1.5px solid #1a2227;box-sizing:border-box"></div>`,
+        html: `<div style="width:10px;height:10px;background:${status.color};border:1.5px solid #1a2227;box-sizing:border-box"></div>`,
         className: 'leaflet-marker-emoji',
         iconSize: [10, 10],
         iconAnchor: [5, 5],
         popupAnchor: [0, -8]
       })
     });
-    const location = esc(g.location || g.gaugelid);
-    const waterbody = g.waterbody ? `<div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(g.waterbody)}, ${esc(g.state)}</div>` : `<div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(g.state)}</div>`;
+    const location = esc(gauge.location || gauge.gaugelid);
+    const waterbody = gauge.waterbody ? `<div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(gauge.waterbody)}, ${esc(gauge.state)}</div>` : `<div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(gauge.state)}</div>`;
     const thresholds = [
-      g.action   ? `<tr><td>Action</td><td>${g.action} ${g.units}</td></tr>` : '',
-      g.flood    ? `<tr><td>Minor</td><td>${g.flood} ${g.units}</td></tr>` : '',
-      g.moderate ? `<tr><td>Moderate</td><td>${g.moderate} ${g.units}</td></tr>` : '',
-      g.major    ? `<tr><td>Major</td><td>${g.major} ${g.units}</td></tr>` : '',
+      gauge.action   ? `<tr><td>Action</td><td>${gauge.action} ${gauge.units}</td></tr>` : '',
+      gauge.flood    ? `<tr><td>Minor</td><td>${gauge.flood} ${gauge.units}</td></tr>` : '',
+      gauge.moderate ? `<tr><td>Moderate</td><td>${gauge.moderate} ${gauge.units}</td></tr>` : '',
+      gauge.major    ? `<tr><td>Major</td><td>${gauge.major} ${gauge.units}</td></tr>` : '',
     ].filter(Boolean).join('');
     marker.bindPopup(`<div class="popup-inner">
       <div class="popup-title">💧 ${location}</div>
       ${waterbody}
       <div class="popup-row" style="margin-top:6px">
-        <span style="background:${st.color};color:var(--badge-text, #1a2227);padding:1px 6px;border-radius:3px;font-size:11px;font-weight:700">${st.label}</span>
-        <span style="margin-left:6px"><b>${isNaN(obs) ? esc(g.observed) : obs.toFixed(2)}</b> ${esc(g.units || 'ft')}</span>
+        <span style="background:${status.color};color:var(--badge-text, #1a2227);padding:1px 6px;border-radius:3px;font-size:11px;font-weight:700">${status.label}</span>
+        <span style="margin-left:6px"><b>${isNaN(observedValue) ? esc(gauge.observed) : observedValue.toFixed(2)}</b> ${esc(gauge.units || 'ft')}</span>
       </div>
       ${thresholds ? `<table style="margin-top:6px;font-size:11px;color:var(--muted);width:100%;border-collapse:collapse"><tbody>${thresholds}</tbody></table>` : ''}
-      <div class="popup-row" style="margin-top:4px">${g.obstime ? fmtTime(g.obstime.trim().replace(' ', 'T') + 'Z') : ''}</div>
-      ${g.url ? `<div class="popup-row"><a href="${esc(g.url)}" target="_blank" style="color:var(--accent)">View on water.noaa.gov ↗</a></div>` : ''}
+      <div class="popup-row" style="margin-top:4px">${gauge.obstime ? fmtTime(gauge.obstime.trim().replace(' ', 'T') + 'Z') : ''}</div>
+      ${gauge.url ? `<div class="popup-row"><a href="${esc(gauge.url)}" target="_blank" style="color:var(--accent)">View on water.noaa.gov ↗</a></div>` : ''}
     </div>`);
     marker.addTo(gaugeLayer);
   }
@@ -5143,19 +5147,19 @@ const DM_LEVELS = [
 async function loadDrought() {
   // Panel was removed — load data and plot map layer only
   try {
-    const r = await fetch('https://droughtmonitor.unl.edu/data/json/usdm_current.json');
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    droughtData = await r.json();
+    const response = await fetch('https://droughtmonitor.unl.edu/data/json/usdm_current.json');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    droughtData = await response.json();
     plotDrought();
-  } catch(e) { console.warn('Drought Monitor load failed:', e.message); }
+  } catch (err) { console.warn('Drought Monitor load failed:', err.message); }
 }
 
 function renderDrought() {
   if (!droughtData?.features) return;
 
   const features = droughtData.features;
-  const totalArea = features.reduce((s, f) => s + (f.properties?.Shape_Area || 0), 0);
-  const activeLevels = DM_LEVELS.filter(l => features.some(f => f.properties?.DM === l.dm));
+  const totalArea = features.reduce((sum, feature) => sum + (feature.properties?.Shape_Area || 0), 0);
+  const activeLevels = DM_LEVELS.filter(level => features.some(feature => feature.properties?.DM === level.dm));
 
   document.getElementById('drought-count').textContent = activeLevels.length;
 
@@ -5164,11 +5168,11 @@ function renderDrought() {
   </div>`;
 
   for (const level of DM_LEVELS) {
-    const feat = features.find(f => f.properties?.DM === level.dm);
+    const feat = features.find(feature => feature.properties?.DM === level.dm);
     if (!feat) continue;
     const area = feat.properties?.Shape_Area || 0;
     const pct  = totalArea > 0 ? ((area / totalArea) * 100).toFixed(1) : '?';
-    const barW = totalArea > 0 ? Math.round((area / totalArea) * 100) : 0;
+    const barWidth = totalArea > 0 ? Math.round((area / totalArea) * 100) : 0;
 
     html += `<div class="hazard-item">
       <div class="hazard-top">
@@ -5178,7 +5182,7 @@ function renderDrought() {
       </div>
       <div style="margin-top:4px">
         <div style="height:5px;border-radius:3px;background:var(--surface2);overflow:hidden">
-          <div style="height:100%;width:${barW}%;background:${level.color};border-radius:3px;transition:width .4s"></div>
+          <div style="height:100%;width:${barWidth}%;background:${level.color};border-radius:3px;transition:width .4s"></div>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px">${pct}% of monitored area</div>
       </div>
@@ -5201,17 +5205,17 @@ function plotDrought() {
   const dmColors = { 0:'#dbbc7f', 1:'#e69875', 2:'#e67e80', 3:'#d699b6', 4:'#a7c080' };
 
   L.geoJSON(droughtData, {
-    style: f => ({
-      color:       dmColors[f.properties?.DM] || '#859289',
+    style: feature => ({
+      color:       dmColors[feature.properties?.DM] || '#859289',
       weight:      0.5,
       opacity:     0.6,
-      fillColor:   dmColors[f.properties?.DM] || '#859289',
+      fillColor:   dmColors[feature.properties?.DM] || '#859289',
       fillOpacity: 0.18
     }),
-    onEachFeature: (f, layer) => {
-      const lvl = DM_LEVELS.find(l => l.dm === f.properties?.DM);
-      if (lvl) layer.bindPopup(`<div class="popup-inner">
-        <div class="popup-title">🏜️ ${esc(lvl.label)}</div>
+    onEachFeature: (feature, layer) => {
+      const level = DM_LEVELS.find(entry => entry.dm === feature.properties?.DM);
+      if (level) layer.bindPopup(`<div class="popup-inner">
+        <div class="popup-title">🏜️ ${esc(level.label)}</div>
         <div class="popup-sub">US Drought Monitor</div>
         <a class="popup-link" href="https://droughtmonitor.unl.edu/" target="_blank" rel="noopener">Full map ↗</a>
       </div>`);
@@ -5228,25 +5232,25 @@ function buildGlobalSummary() {
 
   // AlertStore sources (meteoalarm, wmo, gdacs — and future msc/bom)
   for (const country of AlertStore.countries()) {
-    for (const a of AlertStore.getCountry(country)) {
-      if (a._sevRank >= 3) extreme++;
-      else if (a._sevRank >= 2) severe++;
-      else if (a._sevRank >= 1) moderate++;
-      if (srcCounts.hasOwnProperty(a.source)) srcCounts[a.source]++;
+    for (const alert of AlertStore.getCountry(country)) {
+      if (alert._sevRank >= 3) extreme++;
+      else if (alert._sevRank >= 2) severe++;
+      else if (alert._sevRank >= 1) moderate++;
+      if (srcCounts.hasOwnProperty(alert.source)) srcCounts[alert.source]++;
     }
   }
 
   // NWS (not yet in AlertStore)
-  for (const a of easData) {
-    const sev = (a.properties || a).severity;
+  for (const alert of easData) {
+    const sev = (alert.properties || alert).severity;
     if      (sev === 'Extreme')  { extreme++;  srcCounts.nws++; }
     else if (sev === 'Severe')   { severe++;   srcCounts.nws++; }
     else if (sev === 'Moderate') { moderate++; srcCounts.nws++; }
   }
 
   // MSC (not in AlertStore — use mscSeverity to classify)
-  for (const f of mscData) {
-    const label = mscSeverity(f.properties?.headline).label;
+  for (const feature of mscData) {
+    const label = mscSeverity(feature.properties?.alert_type).label;
     srcCounts.msc++;
     if      (label === 'Warning') severe++;
     else if (label === 'Watch')   severe++;
@@ -5256,7 +5260,7 @@ function buildGlobalSummary() {
   // BOM (not in AlertStore — all items counted, no severity mapping)
   srcCounts.bom += bomData.length;
 
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || '—'; };
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value || '—'; };
   set('sc-extreme-count',  extreme  || '—');
   set('sc-severe-count',   severe   || '—');
   set('sc-moderate-count', moderate || '—');
@@ -5292,16 +5296,16 @@ function adbColorForItem(item) {
   }
   if (item.src === 'fema')  return '#dbbc7f';
   // NWS — colour by event type
-  const ev = (item._event || '').toLowerCase();
-  if (ev.includes('tornado'))                           return '#ff5555';
-  if (ev.includes('flash flood'))                       return '#4db8c8';
-  if (ev.includes('flood'))                             return '#5fa8e8';
-  if (ev.includes('thunderstorm'))                      return '#f0c040';
-  if (ev.includes('fire'))                              return '#f08040';
-  if (ev.includes('blizzard') || ev.includes('snow'))   return '#a8d8f8';
-  if (ev.includes('ice') || ev.includes('winter'))      return '#b8e8ff';
-  if (ev.includes('wind'))                              return '#90d080';
-  if (ev.includes('heat'))                              return '#ff9060';
+  const eventName = (item._event || '').toLowerCase();
+  if (eventName.includes('tornado'))                                 return '#ff5555';
+  if (eventName.includes('flash flood'))                             return '#4db8c8';
+  if (eventName.includes('flood'))                                   return '#5fa8e8';
+  if (eventName.includes('thunderstorm'))                            return '#f0c040';
+  if (eventName.includes('fire'))                                    return '#f08040';
+  if (eventName.includes('blizzard') || eventName.includes('snow'))  return '#a8d8f8';
+  if (eventName.includes('ice') || eventName.includes('winter'))     return '#b8e8ff';
+  if (eventName.includes('wind'))                                    return '#90d080';
+  if (eventName.includes('heat'))                                    return '#ff9060';
   return '#e67e80';
 }
 
@@ -5310,87 +5314,87 @@ function adbGatherItems() {
   const candidates = [];
 
   // USGS earthquakes
-  for (const f of eqData) {
-    const p   = f.properties;
-    const t   = p.time || 0;
-    const mag = p.mag != null ? p.mag.toFixed(1) : '?';
-    const dep = f.geometry?.coordinates?.[2];
-    const issueTime = fmtTime(new Date(t).toISOString());
+  for (const quake of eqData) {
+    const props = quake.properties;
+    const time  = props.time || 0;
+    const mag   = props.mag != null ? props.mag.toFixed(1) : '?';
+    const depth = quake.geometry?.coordinates?.[2];
+    const issueTime = fmtTime(new Date(time).toISOString());
     const parts = [];
-    if (p.place)     parts.push(p.place);
-    if (dep != null) parts.push(`Depth: ${dep.toFixed(0)} km`);
-    if (p.alert)     parts.push(`USGS alert level: ${p.alert.toUpperCase()}`);
+    if (props.place)   parts.push(props.place);
+    if (depth != null) parts.push(`Depth: ${depth.toFixed(0)} km`);
+    if (props.alert)   parts.push(`USGS alert level: ${props.alert.toUpperCase()}`);
     parts.push(`Magnitude: ${mag}`);
-    if (p.url)       parts.push(p.url.replace(/^https?:\/\//, ''));
+    if (props.url)     parts.push(props.url.replace(/^https?:\/\//, ''));
     candidates.push({
-      src: 'usgs', ts: t,
+      src: 'usgs', ts: time,
       tag: `M${mag} EQ`, issueTime,
-      short: p.place || 'Unknown location',
+      short: props.place || 'Unknown location',
       detail: parts.join('   ·   '),
       _event: `M${mag} Earthquake`,
-      flyId: f.id
+      flyId: quake.id
     });
   }
 
   // NWS alerts — all active, no filter
-  for (const a of easData) {
-    const p       = a.properties || a;
-    const t       = new Date(p.sent || p.effective || 0).getTime();
-    const sent    = p.sent || p.effective;
-    const expires = p.expires || p.ends;
+  for (const alert of easData) {
+    const props   = alert.properties || alert;
+    const time    = new Date(props.sent || props.effective || 0).getTime();
+    const sent    = props.sent || props.effective;
+    const expires = props.expires || props.ends;
     const issueTime = sent ? fmtTime(sent) : '—';
     const parts = [];
-    if (p.areaDesc)    parts.push(p.areaDesc.trim());
-    if (p.headline)    parts.push(p.headline.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
-    if (p.description) parts.push(p.description.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
-    if (p.instruction) parts.push('⚠ INSTRUCTIONS: ' + p.instruction.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
+    if (props.areaDesc)    parts.push(props.areaDesc.trim());
+    if (props.headline)    parts.push(props.headline.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
+    if (props.description) parts.push(props.description.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
+    if (props.instruction) parts.push('⚠ INSTRUCTIONS: ' + props.instruction.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
     // issue time is in the label; only include expiry in scroll
     if (expires) parts.push(`Expires: ${fmtTime(expires)}`);
     candidates.push({
-      src: 'nws', ts: t || Date.now(),
-      tag: p.event || 'ALERT', issueTime,
-      short: (p.areaDesc || '').split(';')[0].trim() || '—',
+      src: 'nws', ts: time || Date.now(),
+      tag: props.event || 'ALERT', issueTime,
+      short: (props.areaDesc || '').split(';')[0].trim() || '—',
       detail: parts.join('   ·   '),
-      _event: p.event || '',
-      flyId: a.id
+      _event: props.event || '',
+      flyId: alert.id
     });
   }
 
   // EONET natural events — last 2 days only
   const eonetCutoff = Date.now() - 2 * 24 * 3_600_000;
-  for (const ev of eonetData) {
-    const geo     = ev.geometry?.[ev.geometry.length - 1];
-    const t       = geo?.date ? new Date(geo.date).getTime() : 0;
-    if (!t || t < eonetCutoff) continue;
-    const catId   = ev.categories?.[0]?.id || 'manmade';
-    const catLbl  = ev.categories?.[0]?.title || 'Event';
+  for (const event of eonetData) {
+    const geo    = event.geometry?.[event.geometry.length - 1];
+    const time   = geo?.date ? new Date(geo.date).getTime() : 0;
+    if (!time || time < eonetCutoff) continue;
+    const catId  = event.categories?.[0]?.id || 'manmade';
+    const catLbl = event.categories?.[0]?.title || 'Event';
     const issueTime = geo?.date ? fmtTime(geo.date) : '—';
     const parts = [];
-    parts.push(ev.title || catLbl);
+    parts.push(event.title || catLbl);
     parts.push(`Category: ${catLbl}`);
     if (geo?.magnitudeValue != null) parts.push(`Size: ${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit || ''}`);
-    if (ev.sources?.[0]?.id) parts.push(`Source: ${ev.sources[0].id}`);
-    if (ev.link) parts.push(`Info: ${ev.link}`);
+    if (event.sources?.[0]?.id) parts.push(`Source: ${event.sources[0].id}`);
+    if (event.link) parts.push(`Info: ${event.link}`);
     // updated time is in the issueTime label
     candidates.push({
-      src: 'eonet', ts: t,
+      src: 'eonet', ts: time,
       tag: catLbl.toUpperCase(), issueTime,
-      short: ev.title || catLbl,
+      short: event.title || catLbl,
       detail: parts.join('   ·   '),
       _catId: catId,
-      flyId: ev.id
+      flyId: event.id
     });
   }
 
   // SWPC space weather
-  for (const a of swAlerts) {
-    const t         = swpcUTC(a.issue_datetime);
-    const issueTime = a.issue_datetime ? fmtTime(new Date(t).toISOString()) : '—';
-    const msg       = (a.message || '').replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim();
-    const title     = parseProductTitle ? parseProductTitle(a.message || '') : 'Space Weather';
+  for (const alert of swAlerts) {
+    const time      = swpcUTC(alert.issue_datetime);
+    const issueTime = alert.issue_datetime ? fmtTime(new Date(time).toISOString()) : '—';
+    const msg       = (alert.message || '').replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim();
+    const title     = parseProductTitle ? parseProductTitle(alert.message || '') : 'Space Weather';
     // issue time in label; message is the detail
     candidates.push({
-      src: 'swpc', ts: t,
+      src: 'swpc', ts: time,
       tag: title.toUpperCase().slice(0, 20), issueTime,
       short: title,
       detail: msg,
@@ -5399,52 +5403,52 @@ function adbGatherItems() {
   }
 
   // FEMA declarations
-  for (const d of femaData) {
-    const t         = d.declarationDate ? new Date(d.declarationDate).getTime() : 0;
-    const typeL     = FEMA_TYPE_LABELS[d.declarationType] || d.declarationType;
-    const declId    = d.femaDeclarationString || `DR-${d.disasterNumber}`;
-    const issueTime = d.declarationDate ? fmtTime(d.declarationDate) : '—';
+  for (const decl of femaData) {
+    const time      = decl.declarationDate ? new Date(decl.declarationDate).getTime() : 0;
+    const typeLabel = FEMA_TYPE_LABELS[decl.declarationType] || decl.declarationType;
+    const declId    = decl.femaDeclarationString || `DR-${decl.disasterNumber}`;
+    const issueTime = decl.declarationDate ? fmtTime(decl.declarationDate) : '—';
     const parts     = [];
-    parts.push(d.declarationTitle || d.incidentType || 'Declaration');
-    parts.push(`${typeL} declared for ${d.state || d.stateCode || 'Unknown'}`);
-    parts.push(`Incident type: ${d.incidentType || '—'}`);
+    parts.push(decl.declarationTitle || decl.incidentType || 'Declaration');
+    parts.push(`${typeLabel} declared for ${decl.state || decl.stateCode || 'Unknown'}`);
+    parts.push(`Incident type: ${decl.incidentType || '—'}`);
     parts.push(`Declaration ID: ${declId}`);
-    if (d.disasterNumber) parts.push(`FEMA.gov/disaster/${d.disasterNumber}`);
+    if (decl.disasterNumber) parts.push(`FEMA.gov/disaster/${decl.disasterNumber}`);
     // declared date is in the issueTime label
     candidates.push({
-      src: 'fema', ts: t,
-      tag: typeL.toUpperCase(), issueTime,
-      short: `${d.state || '—'} · ${d.incidentType || '—'}`,
+      src: 'fema', ts: time,
+      tag: typeLabel.toUpperCase(), issueTime,
+      short: `${decl.state || '—'} · ${decl.incidentType || '—'}`,
       detail: parts.join('   ·   '),
-      _event: typeL
+      _event: typeLabel
     });
   }
 
   // AlertStore — severe+ alerts that are currently active (onset in the past)
   const _now = Date.now();
   for (const country of AlertStore.countries()) {
-    for (const a of AlertStore.getCountry(country)) {
-      if (a._sevRank < 2) continue;
-      const srcStyle    = GEO_SOURCE_STYLE[a.source] || {};
-      const countryLbl  = (a.country||'').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-      const onsetTs     = a.onset ? new Date(a.onset).getTime() : 0;
+    for (const alert of AlertStore.getCountry(country)) {
+      if (alert._sevRank < 2) continue;
+      const srcStyle    = GEO_SOURCE_STYLE[alert.source] || {};
+      const countryLbl  = (alert.country||'').replace(/-/g,' ').replace(/\b\w/g,ch=>ch.toUpperCase());
+      const onsetTs     = alert.onset ? new Date(alert.onset).getTime() : 0;
       if (onsetTs > _now) continue;  // skip advance warnings not yet in effect
       candidates.push({
-        src:       a.source,
+        src:       alert.source,
         ts:        onsetTs,
-        tag:       `${(srcStyle.label||a.source.slice(0,4).toUpperCase())} · ${a.severity.toUpperCase()}`,
-        issueTime: a.onset ? fmtTime(a.onset) : '—',
-        short:     `${countryLbl}${a.areaDesc ? ' — ' + a.areaDesc.slice(0,38) : ''}`,
-        detail:    [a.title, countryLbl, a.areaDesc, a.expires ? `Exp: ${fmtTime(a.expires)}` : ''].filter(Boolean).join('   ·   '),
-        _event:    a.title,
-        _color:    a.color,
+        tag:       `${(srcStyle.label||alert.source.slice(0,4).toUpperCase())} · ${alert.severity.toUpperCase()}`,
+        issueTime: alert.onset ? fmtTime(alert.onset) : '—',
+        short:     `${countryLbl}${alert.areaDesc ? ' — ' + alert.areaDesc.slice(0,38) : ''}`,
+        detail:    [alert.title, countryLbl, alert.areaDesc, alert.expires ? `Exp: ${fmtTime(alert.expires)}` : ''].filter(Boolean).join('   ·   '),
+        _event:    alert.title,
+        _color:    alert.color,
         flyId:     null,
       });
     }
   }
 
   // Sort newest-first, take top 5
-  candidates.sort((a, b) => b.ts - a.ts);
+  candidates.sort((itemA, itemB) => itemB.ts - itemA.ts);
   return candidates.slice(0, 5);
 }
 
@@ -5601,8 +5605,8 @@ function adbFlyTo(src, id) {
 }
 
 // Event delegation — alert detail bar panels
-document.getElementById('adb-panels').addEventListener('click', e => {
-  const panel = e.target.closest('.adb-panel.flyable');
+document.getElementById('adb-panels').addEventListener('click', event => {
+  const panel = event.target.closest('.adb-panel.flyable');
   if (panel) adbFlyTo(panel.dataset.flySrc, panel.dataset.flyId);
 });
 
@@ -5631,9 +5635,9 @@ async function loadGDACS() {
   showLoading('gdacs-body');
   gdacsData = [];
   try {
-    const r = await fetch(proxyUrl('https://www.gdacs.org/xml/rss.xml'), { signal: AbortSignal.timeout(15000) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const text = await r.text();
+    const response = await fetch(proxyUrl('https://www.gdacs.org/xml/rss.xml'), { signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await response.text();
     const doc  = new DOMParser().parseFromString(text, 'application/xml');
     const items = Array.from(doc.querySelectorAll('item'));
     gdacsData = items.map(item => {
@@ -5656,11 +5660,11 @@ async function loadGDACS() {
         if (parts.length >= 2) { lat = parseFloat(parts[0]); lon = parseFloat(parts[1]); }
       }
       return { type, level, name, country, todate, sevVal, popVal, guid, link, lat, lon };
-    }).filter(d => d.type);
-  } catch(e) {
-    console.warn('GDACS load failed:', e.message);
+    }).filter(event => event.type);
+  } catch (err) {
+    console.warn('GDACS load failed:', err.message);
     const body = document.getElementById('gdacs-body');
-    if (body) body.innerHTML = `<div class="state muted">Failed to load: ${esc(e.message)}</div>`;
+    if (body) body.innerHTML = `<div class="state muted">Failed to load: ${esc(err.message)}</div>`;
     return;
   }
   renderGDACS();
@@ -5673,29 +5677,29 @@ function renderGDACS() {
   const body = document.getElementById('gdacs-body');
   if (!body) return;
   const selType  = document.getElementById('gdacs-type')?.value || 'all';
-  const filtered = gdacsData.filter(d => selType === 'all' || d.type === selType);
+  const filtered = gdacsData.filter(event => selType === 'all' || event.type === selType);
   document.getElementById('gdacs-count').textContent = filtered.length;
   if (!filtered.length) {
     body.innerHTML = '<div class="state muted">No active GDACS alerts</div>';
     return;
   }
   const order = { Red: 0, Orange: 1, Green: 2 };
-  filtered.sort((a, b) => (order[a.level] ?? 3) - (order[b.level] ?? 3));
-  body.innerHTML = filtered.map(d => {
-    const col    = GDACS_COLOR[d.level] || '#859289';
-    const icon   = GDACS_ICON[d.type]  || '⚠️';
-    const lbl    = GDACS_LABEL[d.type] || d.type;
-    const canFly = d.lat != null && d.lon != null;
+  filtered.sort((eventA, eventB) => (order[eventA.level] ?? 3) - (order[eventB.level] ?? 3));
+  body.innerHTML = filtered.map(event => {
+    const col    = GDACS_COLOR[event.level] || '#859289';
+    const icon   = GDACS_ICON[event.type]  || '⚠️';
+    const lbl    = GDACS_LABEL[event.type] || event.type;
+    const canFly = event.lat != null && event.lon != null;
     return `<div class="alert-item${canFly ? ' clickable' : ''}" style="border-left-color:${col}"
-               ${canFly ? `onclick="flyToGDACS('${esc(d.guid)}')" title="Click to locate on map"` : ''}>
+               ${canFly ? `onclick="flyToGDACS('${esc(event.guid)}')" title="Click to locate on map"` : ''}>
       <div class="alert-row">
-        <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(d.level || '?')}</span>
-        <span class="alert-event">${icon} ${esc(d.name || lbl)}</span>
+        <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(event.level || '?')}</span>
+        <span class="alert-event">${icon} ${esc(event.name || lbl)}</span>
       </div>
-      ${d.country ? `<div class="alert-sub">${esc(d.country)}</div>` : ''}
+      ${event.country ? `<div class="alert-sub">${esc(event.country)}</div>` : ''}
       <div class="alert-meta">
-        ${d.popVal  ? `<span>👥 ${esc(d.popVal)}</span>` : ''}
-        ${d.todate  ? `<span>${fmtTime(d.todate)}</span>` : ''}
+        ${event.popVal  ? `<span>👥 ${esc(event.popVal)}</span>` : ''}
+        ${event.todate  ? `<span>${fmtTime(event.todate)}</span>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -5721,37 +5725,37 @@ function gdacsMarkerIcon(type, level) {
 function plotGDACS() {
   if (!gdacsLayer) return;
   gdacsLayer.clearLayers();
-  gdacsData.filter(d => d.lat != null && d.lon != null).forEach(d => {
-    const icon = GDACS_ICON[d.type]  || '⚠️';
-    const lbl  = GDACS_LABEL[d.type] || d.type;
-    const col  = GDACS_COLOR[d.level] || '#859289';
-    const m = L.marker([d.lat, d.lon], { icon: gdacsMarkerIcon(d.type, d.level) });
-    m._gdacsGuid = d.guid;
-    m.bindPopup(`<div class="popup-inner">
-      <div class="popup-title">${icon} ${esc(d.name || lbl)}</div>
+  gdacsData.filter(event => event.lat != null && event.lon != null).forEach(event => {
+    const icon = GDACS_ICON[event.type]  || '⚠️';
+    const lbl  = GDACS_LABEL[event.type] || event.type;
+    const col  = GDACS_COLOR[event.level] || '#859289';
+    const marker = L.marker([event.lat, event.lon], { icon: gdacsMarkerIcon(event.type, event.level) });
+    marker._gdacsGuid = event.guid;
+    marker.bindPopup(`<div class="popup-inner">
+      <div class="popup-title">${icon} ${esc(event.name || lbl)}</div>
       <div class="popup-row"><span>Type</span><span>${esc(lbl)}</span></div>
-      <div class="popup-row"><span>Alert</span><span style="color:${col};font-weight:600">${esc(d.level)}</span></div>
-      ${d.country  ? `<div class="popup-row"><span>Country</span><span>${esc(d.country)}</span></div>` : ''}
-      ${d.popVal   ? `<div class="popup-row"><span>Affected</span><span>${esc(d.popVal)}</span></div>` : ''}
-      ${d.sevVal   ? `<div class="popup-row"><span>Severity</span><span>${esc(d.sevVal)}</span></div>` : ''}
-      ${d.todate   ? `<div class="popup-row"><span>Updated</span><span>${fmtTime(d.todate)}</span></div>` : ''}
-      ${d.link     ? `<div class="popup-row"><a href="${esc(d.link)}" target="_blank" rel="noopener">GDACS Details ↗</a></div>` : ''}
+      <div class="popup-row"><span>Alert</span><span style="color:${col};font-weight:600">${esc(event.level)}</span></div>
+      ${event.country  ? `<div class="popup-row"><span>Country</span><span>${esc(event.country)}</span></div>` : ''}
+      ${event.popVal   ? `<div class="popup-row"><span>Affected</span><span>${esc(event.popVal)}</span></div>` : ''}
+      ${event.sevVal   ? `<div class="popup-row"><span>Severity</span><span>${esc(event.sevVal)}</span></div>` : ''}
+      ${event.todate   ? `<div class="popup-row"><span>Updated</span><span>${fmtTime(event.todate)}</span></div>` : ''}
+      ${event.link     ? `<div class="popup-row"><a href="${esc(event.link)}" target="_blank" rel="noopener">GDACS Details ↗</a></div>` : ''}
     </div>`);
-    gdacsLayer.addLayer(m);
+    gdacsLayer.addLayer(marker);
   });
 }
 
 function flyToGDACS(guid) {
   ensureLayerOn('gdacs');
-  const d = gdacsData.find(x => x.guid === guid);
-  if (!d || d.lat == null || d.lon == null || !map) return;
-  map.flyTo([d.lat, d.lon], Math.max(map.getZoom(), 5), { duration: 1 });
-  gdacsLayer.eachLayer(m => { if (m._gdacsGuid === guid) m.openPopup(); });
+  const event = gdacsData.find(entry => entry.guid === guid);
+  if (!event || event.lat == null || event.lon == null || !map) return;
+  map.flyTo([event.lat, event.lon], Math.max(map.getZoom(), 5), { duration: 1 });
+  gdacsLayer.eachLayer(marker => { if (marker._gdacsGuid === guid) marker.openPopup(); });
 }
 
 /* ══════════════════════════════════════════════════════
    METEOALARM — European Severe Weather Warnings
-   Covers 33 countries via CAP feeds (via CORS proxy)
+   Covers 39 countries via CAP feeds (via CORS proxy)
 ══════════════════════════════════════════════════════ */
 const METEO_SEV_COLOR = {
   Minor:    '#a7c080',
@@ -5761,22 +5765,26 @@ const METEO_SEV_COLOR = {
 };
 const METEO_SEV_ORDER = { Minor: 0, Moderate: 1, Severe: 2, Extreme: 3 };
 
+// Slugs must match live feeds at https://feeds.meteoalarm.org/
+// (Turkey was removed upstream — its feed now returns 404)
 const METEOALARM_COUNTRIES = [
-  'austria','belgium','croatia','czechia','denmark','finland','france',
-  'germany','greece','hungary','iceland','ireland','israel','italy',
-  'latvia','lithuania','luxembourg','malta','moldova','netherlands',
-  'norway','poland','portugal','romania','serbia','slovakia','slovenia',
-  'spain','sweden','switzerland','turkey','ukraine','united-kingdom',
+  'andorra','austria','belgium','bosnia-herzegovina','bulgaria','croatia',
+  'cyprus','czechia','denmark','estonia','finland','france','germany',
+  'greece','hungary','iceland','ireland','israel','italy','latvia',
+  'lithuania','luxembourg','malta','moldova','montenegro','netherlands',
+  'norway','poland','portugal','republic-of-north-macedonia','romania',
+  'serbia','slovakia','slovenia','spain','sweden','switzerland','ukraine',
+  'united-kingdom',
 ];
 
 // European sub-regions for Meteoalarm panel grouping
 const METEO_REGIONS = {
   'Nordic':          ['denmark','finland','iceland','norway','sweden'],
   'British Isles':   ['ireland','united-kingdom'],
-  'Western Europe':  ['belgium','france','luxembourg','netherlands','switzerland'],
+  'Western Europe':  ['andorra','belgium','france','luxembourg','netherlands','switzerland'],
   'Central Europe':  ['austria','czechia','germany','hungary','poland','slovakia','slovenia'],
-  'Southern Europe': ['croatia','greece','israel','italy','malta','portugal','serbia','spain','turkey'],
-  'Eastern Europe':  ['latvia','lithuania','moldova','romania','ukraine'],
+  'Southern Europe': ['bosnia-herzegovina','croatia','cyprus','greece','israel','italy','malta','montenegro','portugal','republic-of-north-macedonia','serbia','spain'],
+  'Eastern Europe':  ['bulgaria','estonia','latvia','lithuania','moldova','romania','ukraine'],
 };
 // Reverse lookup: country → region name
 const METEO_COUNTRY_REGION = {};
@@ -5792,7 +5800,7 @@ const GEO_REGIONS = {
   'Western Europe':  ['andorra','belgium','france','luxembourg','monaco','netherlands','switzerland'],
   'Central Europe':  ['austria','czechia','germany','hungary','poland','slovakia','slovenia'],
   'Southern Europe': ['albania','bosnia-herzegovina','croatia','cyprus','greece','israel','italy','malta','montenegro','north-macedonia','portugal','serbia','spain','turkey'],
-  'Eastern Europe':  ['belarus','estonia','latvia','lithuania','moldova','romania','russia','ukraine'],
+  'Eastern Europe':  ['belarus','bulgaria','estonia','latvia','lithuania','moldova','romania','russia','ukraine'],
   // Americas
   'North America':   ['canada','mexico','united-states'],
   'Caribbean':       ['bahamas','barbados','cuba','dominican-republic','haiti','jamaica','puerto-rico','trinidad-and-tobago'],
@@ -5923,34 +5931,34 @@ const AlertStore = (() => {
   return {
     push(sourceId, alerts) {
       // Remove stale alerts from this source across all countries
-      for (const [k, list] of _store) {
-        const kept = list.filter(a => a.source !== sourceId);
-        if (kept.length === 0) _store.delete(k);
-        else _store.set(k, kept);
+      for (const [countrySlug, list] of _store) {
+        const kept = list.filter(alert => alert.source !== sourceId);
+        if (kept.length === 0) _store.delete(countrySlug);
+        else _store.set(countrySlug, kept);
       }
       // Drop expired alerts; for no-expiry alerts, drop if onset is older than 48 hours
       const now       = Date.now();
       const MAX_AGE   = 48 * 60 * 60 * 1000;
-      const active = alerts.filter(a => {
-        if (a.expires) return new Date(a.expires).getTime() > now;
-        if (a.onset)   return now - new Date(a.onset).getTime() < MAX_AGE;
+      const active = alerts.filter(alert => {
+        if (alert.expires) return new Date(alert.expires).getTime() > now;
+        if (alert.onset)   return now - new Date(alert.onset).getTime() < MAX_AGE;
         return true;
       });
       // Insert new alerts
-      for (const a of active) {
-        const key = a.country || 'unknown';
+      for (const alert of active) {
+        const key = alert.country || 'unknown';
         if (!_store.has(key)) _store.set(key, []);
-        _store.get(key).push(a);
+        _store.get(key).push(alert);
       }
       // Sort each country's alerts by severity desc
       for (const list of _store.values()) {
-        list.sort((a, b) => (b._sevRank ?? 0) - (a._sevRank ?? 0));
+        list.sort((alertA, alertB) => (alertB._sevRank ?? 0) - (alertA._sevRank ?? 0));
       }
       _notify();
     },
 
-    countries()       { return [..._store.keys()]; },
-    getCountry(c)     { return _store.get(c) || []; },
+    countries()             { return [..._store.keys()]; },
+    getCountry(countrySlug) { return _store.get(countrySlug) || []; },
 
     // Returns { subRegion: { countrySlug: Alert[] } } filtered to given panel groups
     getForGroups(groups) {
@@ -5976,64 +5984,69 @@ const AlertStore = (() => {
 /* ── Country name normalizer ────────────────────────────────────── */
 function countryNameToSlug(name) {
   if (!name || typeof name !== 'string') return 'unknown';
-  const n = name.toLowerCase().trim();
-  return COUNTRY_NAME_SLUG[n] || n.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const normalized = name.toLowerCase().trim();
+  return COUNTRY_NAME_SLUG[normalized] || normalized.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 }
 
 /* ── Alert normalization adapters ───────────────────────────────── */
+// Meteoalarm feed slugs that differ from the canonical GEO_REGIONS slugs
+const METEOALARM_GEO_SLUG = {
+  'republic-of-north-macedonia': 'north-macedonia',
+};
+
 function normalizeMeteoalarm(data) {
-  return data.map(d => ({
-    id:       `meteoalarm-${d.id}`,
+  return data.map(warning => ({
+    id:       `meteoalarm-${warning.id}`,
     source:   'meteoalarm',
-    country:  d.country,
-    title:    d.event,
-    severity: d.severity,
-    _sevRank: METEO_SEV_ORDER[d.severity] ?? 0,
-    color:    METEO_SEV_COLOR[d.severity] || '#859289',
-    areaDesc: d.areaDesc,
-    onset:    d.onset,
-    expires:  d.expires,
-    centLat:  d.centLat,
-    centLon:  d.centLon,
-    flyFn:    d.centLat != null ? `flyToMeteo('${d.id.replace(/'/g,"\\'")}')` : null,
+    country:  METEOALARM_GEO_SLUG[warning.country] || warning.country,
+    title:    warning.event,
+    severity: warning.severity,
+    _sevRank: METEO_SEV_ORDER[warning.severity] ?? 0,
+    color:    METEO_SEV_COLOR[warning.severity] || '#859289',
+    areaDesc: warning.areaDesc,
+    onset:    warning.onset,
+    expires:  warning.expires,
+    centLat:  warning.centLat,
+    centLon:  warning.centLon,
+    flyFn:    warning.centLat != null ? `flyToMeteo('${warning.id.replace(/'/g,"\\'")}')` : null,
   }));
 }
 
 function normalizeWMO(data) {
   const sevRank = [0, 1, 2, 3, 4];   // index = WMO sev number
-  return data.map(d => ({
-    id:       `wmo-${d.id}`,
+  return data.map(alert => ({
+    id:       `wmo-${alert.id}`,
     source:   'wmo',
-    country:  countryNameToSlug(d.country || ''),
-    title:    d.event || 'Weather Alert',
-    severity: WMO_SEV_LABEL[d.sev] || 'Unknown',
-    _sevRank: sevRank[d.sev] ?? 0,
-    color:    WMO_SEV_COLOR[d.sev]  || '#859289',
-    areaDesc: d.areadesc || '',
-    onset:    d.onset,
-    expires:  d.expires,
-    centLat:  d.centLat,
-    centLon:  d.centLon,
-    flyFn:    d.centLat != null ? `flyToWMO('${d.id.replace(/'/g,"\\'")}')` : null,
+    country:  countryNameToSlug(alert.country || ''),
+    title:    alert.event || 'Weather Alert',
+    severity: WMO_SEV_LABEL[alert.sev] || 'Unknown',
+    _sevRank: sevRank[alert.sev] ?? 0,
+    color:    WMO_SEV_COLOR[alert.sev]  || '#859289',
+    areaDesc: alert.areadesc || '',
+    onset:    alert.onset,
+    expires:  alert.expires,
+    centLat:  alert.centLat,
+    centLon:  alert.centLon,
+    flyFn:    alert.centLat != null ? `flyToWMO('${alert.id.replace(/'/g,"\\'")}')` : null,
   }));
 }
 
 function normalizeGDACS(data) {
   const sevRank = { Red: 3, Orange: 2, Green: 1 };
-  return data.map(d => ({
-    id:       `gdacs-${d.guid}`,
+  return data.map(event => ({
+    id:       `gdacs-${event.guid}`,
     source:   'gdacs',
-    country:  countryNameToSlug(d.country || ''),
-    title:    `${GDACS_ICON[d.type] || '⚠️'} ${d.name || GDACS_LABEL[d.type] || d.type}`,
-    severity: d.level || 'Unknown',
-    _sevRank: sevRank[d.level] ?? 0,
-    color:    GDACS_COLOR[d.level]  || '#859289',
-    areaDesc: d.country || '',
-    onset:    d.todate,
+    country:  countryNameToSlug(event.country || ''),
+    title:    `${GDACS_ICON[event.type] || '⚠️'} ${event.name || GDACS_LABEL[event.type] || event.type}`,
+    severity: event.level || 'Unknown',
+    _sevRank: sevRank[event.level] ?? 0,
+    color:    GDACS_COLOR[event.level]  || '#859289',
+    areaDesc: event.country || '',
+    onset:    event.todate,
     expires:  null,
-    centLat:  d.lat,
-    centLon:  d.lon,
-    flyFn:    d.lat != null ? `flyToGDACS('${d.guid.replace(/'/g,"\\'")}')` : null,
+    centLat:  event.lat,
+    centLon:  event.lon,
+    flyFn:    event.lat != null ? `flyToGDACS('${event.guid.replace(/'/g,"\\'")}')` : null,
   }));
 }
 
@@ -6055,31 +6068,31 @@ const GEO_GROUP_CONTAINER = {
 
 /* ── Build a single country panel element ────────────────────────── */
 function buildCountryPanel(country, alerts) {
-  const label    = country.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const label    = country.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
   const topAlert = alerts[0];
 
   // Unique sources for header badges
-  const uniqSources = [...new Set(alerts.map(a => a.source))];
-  const sourceTags  = uniqSources.map(s => {
-    const st = GEO_SOURCE_STYLE[s] || { bg: 'rgba(255,255,255,0.08)', color: 'var(--muted)', label: s.slice(0,3).toUpperCase() };
-    return `<span class="geo-source-tag" style="background:${st.bg};color:${st.color}">${st.label}</span>`;
+  const uniqSources = [...new Set(alerts.map(alert => alert.source))];
+  const sourceTags  = uniqSources.map(sourceId => {
+    const style = GEO_SOURCE_STYLE[sourceId] || { bg: 'rgba(255,255,255,0.08)', color: 'var(--muted)', label: sourceId.slice(0,3).toUpperCase() };
+    return `<span class="geo-source-tag" style="background:${style.bg};color:${style.color}">${style.label}</span>`;
   }).join('');
 
   // Alert item rows
   let alertsHtml = '';
-  for (const a of alerts) {
-    const src = GEO_SOURCE_STYLE[a.source] || { bg: 'rgba(255,255,255,0.08)', color: 'var(--muted)', label: a.source.toUpperCase().slice(0,3) };
-    alertsHtml += `<div class="alert-item${a.flyFn ? ' clickable' : ''}" style="border-left-color:${a.color}"
-                       ${a.flyFn ? `onclick="${esc(a.flyFn)}" title="Click to locate on map"` : ''}>
+  for (const alert of alerts) {
+    const sourceStyle = GEO_SOURCE_STYLE[alert.source] || { bg: 'rgba(255,255,255,0.08)', color: 'var(--muted)', label: alert.source.toUpperCase().slice(0,3) };
+    alertsHtml += `<div class="alert-item${alert.flyFn ? ' clickable' : ''}" style="border-left-color:${alert.color}"
+                       ${alert.flyFn ? `onclick="${esc(alert.flyFn)}" title="Click to locate on map"` : ''}>
       <div class="alert-row">
-        <span class="alert-badge" style="background:${a.color};color:var(--badge-text)">${esc(a.severity)}</span>
-        <span class="alert-event">${esc(a.title)}</span>
-        <span class="geo-source-tag" style="background:${src.bg};color:${src.color}">${src.label}</span>
+        <span class="alert-badge" style="background:${alert.color};color:var(--badge-text)">${esc(alert.severity)}</span>
+        <span class="alert-event">${esc(alert.title)}</span>
+        <span class="geo-source-tag" style="background:${sourceStyle.bg};color:${sourceStyle.color}">${sourceStyle.label}</span>
       </div>
-      ${a.areaDesc ? `<div class="alert-sub">${esc(a.areaDesc)}</div>` : ''}
+      ${alert.areaDesc ? `<div class="alert-sub">${esc(alert.areaDesc)}</div>` : ''}
       <div class="alert-meta">
-        ${a.onset   ? `<span>${fmtTime(a.onset)}</span>`        : ''}
-        ${a.expires ? `<span>Exp: ${fmtTime(a.expires)}</span>` : ''}
+        ${alert.onset   ? `<span>${fmtTime(alert.onset)}</span>`        : ''}
+        ${alert.expires ? `<span>Exp: ${fmtTime(alert.expires)}</span>` : ''}
       </div>
     </div>`;
   }
@@ -6130,8 +6143,8 @@ function renderCountryPanels() {
       if (!countries) continue;
 
       // Sort countries within region: highest top-severity first
-      const sorted = Object.entries(countries).sort(([, a], [, b]) =>
-        Math.max(...b.map(x => x._sevRank)) - Math.max(...a.map(x => x._sevRank))
+      const sorted = Object.entries(countries).sort(([, alertsA], [, alertsB]) =>
+        Math.max(...alertsB.map(alert => alert._sevRank)) - Math.max(...alertsA.map(alert => alert._sevRank))
       );
       if (!sorted.length) continue;
 
@@ -6177,7 +6190,7 @@ AlertStore.subscribe(() => {
 // Prefer English info block; fall back to first
 function meteoInfoEN(infoArr) {
   if (!Array.isArray(infoArr) || !infoArr.length) return null;
-  return infoArr.find(i => i.language && i.language.toLowerCase().startsWith('en')) || infoArr[0];
+  return infoArr.find(info => info.language && info.language.toLowerCase().startsWith('en')) || infoArr[0];
 }
 
 // Parse Meteoalarm polygon field → array of rings [[lat,lon],...] or null
@@ -6205,16 +6218,16 @@ async function loadMeteoalarm() {
   const results = await Promise.allSettled(
     METEOALARM_COUNTRIES.map(country =>
       fetch(proxyUrl(BASE + country), { signal: AbortSignal.timeout(15000) })
-        .then(r => r.ok ? r.json() : null)
+        .then(response => response.ok ? response.json() : null)
         .catch(() => null)
     )
   );
-  results.forEach((res, i) => {
-    if (res.status !== 'fulfilled' || !res.value?.warnings) return;
-    const country = METEOALARM_COUNTRIES[i];
-    res.value.warnings.forEach(w => {
-      // API wraps CAP data under w.alert; fall back to flat structure for older feeds
-      const alertObj = w.alert || w;
+  results.forEach((result, index) => {
+    if (result.status !== 'fulfilled' || !result.value?.warnings) return;
+    const country = METEOALARM_COUNTRIES[index];
+    result.value.warnings.forEach(warning => {
+      // API wraps CAP data under warning.alert; fall back to flat structure for older feeds
+      const alertObj = warning.alert || warning;
       const info = meteoInfoEN(alertObj.info);
       if (!info) return;
       const sev    = info.severity || 'Minor';
@@ -6223,19 +6236,19 @@ async function loadMeteoalarm() {
       const allAreas = Array.isArray(info.area) ? info.area : (info.area ? [info.area] : []);
       const area = allAreas[0] || {};
       // Gather all polygon strings across all areas, then parse
-      const allPolygonStrings = allAreas.flatMap(a =>
-        Array.isArray(a.polygon) ? a.polygon : (a.polygon ? [a.polygon] : [])
+      const allPolygonStrings = allAreas.flatMap(areaEntry =>
+        Array.isArray(areaEntry.polygon) ? areaEntry.polygon : (areaEntry.polygon ? [areaEntry.polygon] : [])
       );
       const coords = parseMeteoPolygon(allPolygonStrings.length ? allPolygonStrings : null);
       // Centroid: average of all rings' average points
       let centLat = null, centLon = null;
       if (coords) {
         const allPts = coords.flat();
-        centLat = allPts.reduce((s, c) => s + c[0], 0) / allPts.length;
-        centLon = allPts.reduce((s, c) => s + c[1], 0) / allPts.length;
+        centLat = allPts.reduce((sum, point) => sum + point[0], 0) / allPts.length;
+        centLon = allPts.reduce((sum, point) => sum + point[1], 0) / allPts.length;
       }
       meteoalarmData.push({
-        id:       alertObj.identifier || w.uuid || `${country}-${Date.now()}-${Math.random()}`,
+        id:       alertObj.identifier || warning.uuid || `${country}-${Date.now()}-${Math.random()}`,
         country,
         severity: sev,
         event,
@@ -6263,11 +6276,11 @@ function renderMeteoalarm() {
   const minOrder  = selSev === 'Extreme' ? 3 : selSev === 'Severe' ? 2 : selSev === 'Moderate' ? 1 : -1;
 
   // Filter by severity + region
-  const filtered = meteoalarmData.filter(d => {
-    if ((METEO_SEV_ORDER[d.severity] ?? 0) < minOrder) return false;
+  const filtered = meteoalarmData.filter(warning => {
+    if ((METEO_SEV_ORDER[warning.severity] ?? 0) < minOrder) return false;
     if (selRegion !== 'all') {
       const regionCountries = METEO_REGIONS[selRegion];
-      if (regionCountries && !regionCountries.includes(d.country)) return false;
+      if (regionCountries && !regionCountries.includes(warning.country)) return false;
     }
     return true;
   });
@@ -6280,33 +6293,33 @@ function renderMeteoalarm() {
   // Group by region, sorted by severity within each group
   const regionOrder = Object.keys(METEO_REGIONS);
   const byRegion = new Map();
-  for (const d of filtered) {
-    const rg = METEO_COUNTRY_REGION[d.country] || 'Other';
-    if (!byRegion.has(rg)) byRegion.set(rg, []);
-    byRegion.get(rg).push(d);
+  for (const warning of filtered) {
+    const region = METEO_COUNTRY_REGION[warning.country] || 'Other';
+    if (!byRegion.has(region)) byRegion.set(region, []);
+    byRegion.get(region).push(warning);
   }
   // Sort each region's alerts by severity desc
-  for (const arr of byRegion.values()) arr.sort((a, b) => (METEO_SEV_ORDER[b.severity] ?? 0) - (METEO_SEV_ORDER[a.severity] ?? 0));
+  for (const regionAlerts of byRegion.values()) regionAlerts.sort((warnA, warnB) => (METEO_SEV_ORDER[warnB.severity] ?? 0) - (METEO_SEV_ORDER[warnA.severity] ?? 0));
 
   let html = '';
-  for (const rg of regionOrder) {
-    const items = byRegion.get(rg);
+  for (const region of regionOrder) {
+    const items = byRegion.get(region);
     if (!items) continue;
-    html += `<div class="alert-region-header">${esc(rg)} <span class="alert-region-count">${items.length}</span></div>`;
-    html += items.map(d => {
-      const col    = METEO_SEV_COLOR[d.severity] || '#859289';
-      const canFly = d.centLat != null && d.centLon != null;
-      const ctryLabel = d.country.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    html += `<div class="alert-region-header">${esc(region)} <span class="alert-region-count">${items.length}</span></div>`;
+    html += items.map(warning => {
+      const col    = METEO_SEV_COLOR[warning.severity] || '#859289';
+      const canFly = warning.centLat != null && warning.centLon != null;
+      const ctryLabel = warning.country.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
       return `<div class="alert-item${canFly ? ' clickable' : ''}" style="border-left-color:${col}"
-                 ${canFly ? `onclick="flyToMeteo('${esc(d.id)}')" title="Click to locate on map"` : ''}>
+                 ${canFly ? `onclick="flyToMeteo('${esc(warning.id)}')" title="Click to locate on map"` : ''}>
         <div class="alert-row">
-          <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(d.severity)}</span>
-          <span class="alert-event">${esc(d.event)}</span>
+          <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(warning.severity)}</span>
+          <span class="alert-event">${esc(warning.event)}</span>
         </div>
-        <div class="alert-sub">${esc(d.areaDesc)} · ${esc(ctryLabel)}</div>
+        <div class="alert-sub">${esc(warning.areaDesc)} · ${esc(ctryLabel)}</div>
         <div class="alert-meta">
-          ${d.onset   ? `<span>${fmtTime(d.onset)}</span>`   : ''}
-          ${d.expires ? `<span>Exp: ${fmtTime(d.expires)}</span>` : ''}
+          ${warning.onset   ? `<span>${fmtTime(warning.onset)}</span>`   : ''}
+          ${warning.expires ? `<span>Exp: ${fmtTime(warning.expires)}</span>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -6315,20 +6328,20 @@ function renderMeteoalarm() {
   const other = byRegion.get('Other');
   if (other) {
     html += `<div class="alert-region-header">Other <span class="alert-region-count">${other.length}</span></div>`;
-    html += other.map(d => {
-      const col    = METEO_SEV_COLOR[d.severity] || '#859289';
-      const canFly = d.centLat != null && d.centLon != null;
-      const ctryLabel = d.country.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    html += other.map(warning => {
+      const col    = METEO_SEV_COLOR[warning.severity] || '#859289';
+      const canFly = warning.centLat != null && warning.centLon != null;
+      const ctryLabel = warning.country.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
       return `<div class="alert-item${canFly ? ' clickable' : ''}" style="border-left-color:${col}"
-                 ${canFly ? `onclick="flyToMeteo('${esc(d.id)}')" title="Click to locate on map"` : ''}>
+                 ${canFly ? `onclick="flyToMeteo('${esc(warning.id)}')" title="Click to locate on map"` : ''}>
         <div class="alert-row">
-          <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(d.severity)}</span>
-          <span class="alert-event">${esc(d.event)}</span>
+          <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(warning.severity)}</span>
+          <span class="alert-event">${esc(warning.event)}</span>
         </div>
-        <div class="alert-sub">${esc(d.areaDesc)} · ${esc(ctryLabel)}</div>
+        <div class="alert-sub">${esc(warning.areaDesc)} · ${esc(ctryLabel)}</div>
         <div class="alert-meta">
-          ${d.onset   ? `<span>${fmtTime(d.onset)}</span>`   : ''}
-          ${d.expires ? `<span>Exp: ${fmtTime(d.expires)}</span>` : ''}
+          ${warning.onset   ? `<span>${fmtTime(warning.onset)}</span>`   : ''}
+          ${warning.expires ? `<span>Exp: ${fmtTime(warning.expires)}</span>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -6339,60 +6352,60 @@ function renderMeteoalarm() {
 function plotMeteoalarm() {
   if (!meteoalarmLayer) return;
   meteoalarmLayer.clearLayers();
-  meteoalarmData.forEach(d => {
-    const col = METEO_SEV_COLOR[d.severity] || '#859289';
-    if (d.coords) {
+  meteoalarmData.forEach(warning => {
+    const col = METEO_SEV_COLOR[warning.severity] || '#859289';
+    if (warning.coords) {
       // coords is an array of rings; L.polygon accepts [[ring1],[ring2],...] for multi-ring
-      const poly = L.polygon(d.coords, {
+      const poly = L.polygon(warning.coords, {
         color: col, weight: 1.5, opacity: 0.85,
         fillColor: col, fillOpacity: 0.18,
       });
-      poly._meteoId = d.id;
-      poly.bindPopup(_meteoPopup(d));
+      poly._meteoId = warning.id;
+      poly.bindPopup(_meteoPopup(warning));
       meteoalarmLayer.addLayer(poly);
-    } else if (d.centLat != null) {
-      const m = L.circleMarker([d.centLat, d.centLon], {
+    } else if (warning.centLat != null) {
+      const marker = L.circleMarker([warning.centLat, warning.centLon], {
         radius: 7, color: col, weight: 2, opacity: 0.9,
         fillColor: col, fillOpacity: 0.35,
       });
-      m._meteoId = d.id;
-      m.bindPopup(_meteoPopup(d));
-      meteoalarmLayer.addLayer(m);
+      marker._meteoId = warning.id;
+      marker.bindPopup(_meteoPopup(warning));
+      meteoalarmLayer.addLayer(marker);
     }
   });
 }
 
-function _meteoPopup(d) {
-  const col = METEO_SEV_COLOR[d.severity] || '#859289';
+function _meteoPopup(warning) {
+  const col = METEO_SEV_COLOR[warning.severity] || '#859289';
   return `<div class="popup-inner">
-    <div class="popup-title">⚠️ ${esc(d.event)}</div>
-    <div class="popup-row"><span>Severity</span><span style="color:${col}">${esc(d.severity)}</span></div>
-    <div class="popup-row"><span>Area</span><span>${esc(d.areaDesc)}</span></div>
-    ${d.headline ? `<div class="popup-row"><span>Info</span><span>${esc(d.headline)}</span></div>` : ''}
-    ${d.onset   ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(d.onset)}</span></div>`     : ''}
-    ${d.expires ? `<div class="popup-row"><span>Expires</span><span>${fmtTime(d.expires)}</span></div>` : ''}
+    <div class="popup-title">⚠️ ${esc(warning.event)}</div>
+    <div class="popup-row"><span>Severity</span><span style="color:${col}">${esc(warning.severity)}</span></div>
+    <div class="popup-row"><span>Area</span><span>${esc(warning.areaDesc)}</span></div>
+    ${warning.headline ? `<div class="popup-row"><span>Info</span><span>${esc(warning.headline)}</span></div>` : ''}
+    ${warning.onset   ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(warning.onset)}</span></div>`     : ''}
+    ${warning.expires ? `<div class="popup-row"><span>Expires</span><span>${fmtTime(warning.expires)}</span></div>` : ''}
   </div>`;
 }
 
 function flyToMeteo(id) {
   ensureLayerOn('meteoalarm');
-  const d = meteoalarmData.find(x => x.id === id);
+  const warning = meteoalarmData.find(entry => entry.id === id);
   if (!d || !map) return;
   // Try to fly to polygon bounds first, then fall back to centroid
   let flown = false;
-  meteoalarmLayer.eachLayer(m => {
-    if (m._meteoId !== id) return;
+  meteoalarmLayer.eachLayer(layer => {
+    if (layer._meteoId !== id) return;
     try {
-      const bounds = m.getBounds?.();
+      const bounds = layer.getBounds?.();
       if (bounds?.isValid()) {
         map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
         flown = true;
       }
     } catch {}
-    m.openPopup();
+    layer.openPopup();
   });
-  if (!flown && d.centLat != null && d.centLon != null) {
-    map.flyTo([d.centLat, d.centLon], Math.max(map.getZoom(), 5), { duration: 1 });
+  if (!flown && warning.centLat != null && warning.centLon != null) {
+    map.flyTo([warning.centLat, warning.centLon], Math.max(map.getZoom(), 5), { duration: 1 });
   }
 }
 
@@ -6457,50 +6470,50 @@ async function loadWMO() {
     sortBy:       's D',
   });
   try {
-    const r = await fetch(proxyUrl(`${base}?${params}`), { signal: AbortSignal.timeout(20000) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const gj = await r.json();
-    if (!Array.isArray(gj.features)) throw new Error('Unexpected response shape');
+    const response = await fetch(proxyUrl(`${base}?${params}`), { signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const geojson = await response.json();
+    if (!Array.isArray(geojson.features)) throw new Error('Unexpected response shape');
 
     // Deduplicate by capurl — keep best geometry type (POLYGON/MULTIPOLYGON > POINT)
     const geomRank = { POLYGON: 2, MULTIPOLYGON: 2, POINT: 1 };
     const seen = new Map();
-    for (const f of gj.features) {
-      const p   = f.properties;
-      const key = p.capurl || f.id;
-      const rank = geomRank[p.row_type] ?? 0;
+    for (const feature of geojson.features) {
+      const props = feature.properties;
+      const key = props.capurl || feature.id;
+      const rank = geomRank[props.row_type] ?? 0;
       if (!seen.has(key) || rank > (geomRank[seen.get(key).properties.row_type] ?? 0)) {
-        seen.set(key, f);
+        seen.set(key, feature);
       }
     }
 
-    wmoData = [...seen.values()].map(f => {
-      const p = f.properties;
+    wmoData = [...seen.values()].map(feature => {
+      const props = feature.properties;
       // Compute centroid for point/polygon fly-to
       let centLat = null, centLon = null;
-      if (f.geometry?.type === 'Point') {
-        [centLon, centLat] = f.geometry.coordinates;
-      } else if (f.bbox) {
-        centLon = (f.bbox[0] + f.bbox[2]) / 2;
-        centLat = (f.bbox[1] + f.bbox[3]) / 2;
+      if (feature.geometry?.type === 'Point') {
+        [centLon, centLat] = feature.geometry.coordinates;
+      } else if (feature.bbox) {
+        centLon = (feature.bbox[0] + feature.bbox[2]) / 2;
+        centLat = (feature.bbox[1] + feature.bbox[3]) / 2;
       }
       return {
-        id:       f.id,
-        capurl:   p.capurl || '',
-        country:  wmoCountryFromCapurl(p.capurl),
-        areadesc: p.areadesc || '',
-        event:    p.event    || '',
-        sev:      p.s ?? 0,
-        onset:    p.onset    || p.effective || p.sent || '',
-        expires:  p.expires  || p.chk_expires || '',
-        geometry: f.geometry || null,
+        id:       feature.id,
+        capurl:   props.capurl || '',
+        country:  wmoCountryFromCapurl(props.capurl),
+        areadesc: props.areadesc || '',
+        event:    props.event    || '',
+        sev:      props.s ?? 0,
+        onset:    props.onset    || props.effective || props.sent || '',
+        expires:  props.expires  || props.chk_expires || '',
+        geometry: feature.geometry || null,
         centLat, centLon,
       };
     });
-  } catch(e) {
-    console.warn('WMO load failed:', e.message);
+  } catch (err) {
+    console.warn('WMO load failed:', err.message);
     const body = document.getElementById('wmo-body');
-    if (body) body.innerHTML = `<div class="state muted">Failed to load: ${esc(e.message)}</div>`;
+    if (body) body.innerHTML = `<div class="state muted">Failed to load: ${esc(err.message)}</div>`;
     return;
   }
   renderWMO();
@@ -6513,28 +6526,28 @@ function renderWMO() {
   const body = document.getElementById('wmo-body');
   if (!body) return;
   const minSev  = parseInt(document.getElementById('wmo-sev')?.value ?? '3', 10);
-  const filtered = wmoData.filter(d => d.sev >= minSev);
+  const filtered = wmoData.filter(alert => alert.sev >= minSev);
   document.getElementById('wmo-count').textContent = filtered.length;
   if (!filtered.length) {
     body.innerHTML = '<div class="state muted">No active WMO alerts</div>';
     return;
   }
   // Sort: highest severity first, then most recent
-  filtered.sort((a, b) => b.sev - a.sev || new Date(b.onset) - new Date(a.onset));
-  body.innerHTML = filtered.map(d => {
-    const col    = WMO_SEV_COLOR[d.sev] || '#859289';
-    const label  = WMO_SEV_LABEL[d.sev] || 'Unknown';
-    const canFly = d.centLat != null && d.centLon != null;
+  filtered.sort((alertA, alertB) => alertB.sev - alertA.sev || new Date(alertB.onset) - new Date(alertA.onset));
+  body.innerHTML = filtered.map(alert => {
+    const col    = WMO_SEV_COLOR[alert.sev] || '#859289';
+    const label  = WMO_SEV_LABEL[alert.sev] || 'Unknown';
+    const canFly = alert.centLat != null && alert.centLon != null;
     return `<div class="alert-item${canFly ? ' clickable' : ''}" style="border-left-color:${col}"
-               ${canFly ? `onclick="flyToWMO('${esc(d.id)}')" title="Click to locate on map"` : ''}>
+               ${canFly ? `onclick="flyToWMO('${esc(alert.id)}')" title="Click to locate on map"` : ''}>
       <div class="alert-row">
         <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(label)}</span>
-        <span class="alert-event">${esc(d.event || 'Weather Alert')}</span>
+        <span class="alert-event">${esc(alert.event || 'Weather Alert')}</span>
       </div>
-      <div class="alert-sub">${esc(d.areadesc)}${d.country ? ' · ' + esc(d.country) : ''}</div>
+      <div class="alert-sub">${esc(alert.areadesc)}${alert.country ? ' · ' + esc(alert.country) : ''}</div>
       <div class="alert-meta">
-        ${d.onset   ? `<span>${fmtTime(d.onset)}</span>`            : ''}
-        ${d.expires ? `<span>Exp: ${fmtTime(d.expires)}</span>`     : ''}
+        ${alert.onset   ? `<span>${fmtTime(alert.onset)}</span>`            : ''}
+        ${alert.expires ? `<span>Exp: ${fmtTime(alert.expires)}</span>`     : ''}
       </div>
     </div>`;
   }).join('');
@@ -6544,51 +6557,51 @@ function plotWMO() {
   if (!wmoLayer) return;
   wmoLayer.clearLayers();
   // Only plot Severe+ on the map to avoid overwhelming it
-  wmoData.filter(d => d.sev >= 3 && d.geometry).forEach(d => {
-    const col = WMO_SEV_COLOR[d.sev] || '#859289';
+  wmoData.filter(alert => alert.sev >= 3 && alert.geometry).forEach(alert => {
+    const col = WMO_SEV_COLOR[alert.sev] || '#859289';
     let layer;
-    if (d.geometry.type === 'Point') {
-      const [lon, lat] = d.geometry.coordinates;
+    if (alert.geometry.type === 'Point') {
+      const [lon, lat] = alert.geometry.coordinates;
       layer = L.circleMarker([lat, lon], {
         radius: 6, color: col, weight: 1.5, opacity: 0.9,
         fillColor: col, fillOpacity: 0.4,
       });
     } else {
       // L.geoJSON handles GeoJSON [lon,lat] → Leaflet [lat,lon] natively
-      layer = L.geoJSON(d.geometry, {
+      layer = L.geoJSON(alert.geometry, {
         style: { color: col, weight: 1.2, opacity: 0.8, fillColor: col, fillOpacity: 0.15 },
       });
     }
     const popup = `<div class="popup-inner">
-      <div class="popup-title">⚠️ ${esc(d.event || 'Weather Alert')}</div>
-      <div class="popup-row"><span>Severity</span><span style="color:${col};font-weight:600">${esc(WMO_SEV_LABEL[d.sev] ?? '')}</span></div>
-      ${d.areadesc ? `<div class="popup-row"><span>Area</span><span>${esc(d.areadesc)}</span></div>` : ''}
-      ${d.country  ? `<div class="popup-row"><span>Country</span><span>${esc(d.country)}</span></div>` : ''}
-      ${d.onset    ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(d.onset)}</span></div>` : ''}
-      ${d.expires  ? `<div class="popup-row"><span>Expires</span><span>${fmtTime(d.expires)}</span></div>` : ''}
+      <div class="popup-title">⚠️ ${esc(alert.event || 'Weather Alert')}</div>
+      <div class="popup-row"><span>Severity</span><span style="color:${col};font-weight:600">${esc(WMO_SEV_LABEL[alert.sev] ?? '')}</span></div>
+      ${alert.areadesc ? `<div class="popup-row"><span>Area</span><span>${esc(alert.areadesc)}</span></div>` : ''}
+      ${alert.country  ? `<div class="popup-row"><span>Country</span><span>${esc(alert.country)}</span></div>` : ''}
+      ${alert.onset    ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(alert.onset)}</span></div>` : ''}
+      ${alert.expires  ? `<div class="popup-row"><span>Expires</span><span>${fmtTime(alert.expires)}</span></div>` : ''}
     </div>`;
     if (layer.bindPopup) {
       layer.bindPopup(popup);
     } else {
-      layer.eachLayer(l => l.bindPopup(popup));
+      layer.eachLayer(subLayer => subLayer.bindPopup(popup));
     }
-    layer._wmoId = d.id;
+    layer._wmoId = alert.id;
     wmoLayer.addLayer(layer);
   });
 }
 
 function flyToWMO(id) {
   ensureLayerOn('wmo');
-  const d = wmoData.find(x => x.id === id);
-  if (!d || !map) return;
-  if (d.centLat != null && d.centLon != null) {
-    map.flyTo([d.centLat, d.centLon], Math.max(map.getZoom(), 5), { duration: 1 });
+  const alert = wmoData.find(entry => entry.id === id);
+  if (!alert || !map) return;
+  if (alert.centLat != null && alert.centLon != null) {
+    map.flyTo([alert.centLat, alert.centLon], Math.max(map.getZoom(), 5), { duration: 1 });
   }
   // Open popup on matching layer
-  wmoLayer.eachLayer(l => {
-    if (l._wmoId !== id) return;
-    if (l.openPopup) l.openPopup();
-    else l.eachLayer?.(sub => sub.openPopup?.());
+  wmoLayer.eachLayer(layer => {
+    if (layer._wmoId !== id) return;
+    if (layer.openPopup) layer.openPopup();
+    else layer.eachLayer?.(subLayer => subLayer.openPopup?.());
   });
 }
 
