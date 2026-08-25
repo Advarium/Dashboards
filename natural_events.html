@@ -2527,7 +2527,7 @@
             <label class="layer-toggle">
               <input type="checkbox" id="toggle-meteosat" onchange="toggleLayer('meteosat')">
               <span class="layer-dot" style="background:#a7c080;border-radius:2px"></span>
-              Meteosat IR
+              Meteosat IR (MTG)
             </label>
             <label class="layer-toggle">
               <input type="checkbox" id="toggle-himawari" onchange="toggleLayer('himawari')">
@@ -2883,13 +2883,13 @@
 
         <!-- Meteosat -->
         <details class="mls-section">
-          <summary><span>Meteosat-11 IR</span><span class="mls-chevron">▾</span></summary>
+          <summary><span>Meteosat IR (MTG)</span><span class="mls-chevron">▾</span></summary>
           <div class="mls-content">
-            <div class="mls-desc">EUMETSAT Meteosat-11 SEVIRI Band 9 (10.8 µm) thermal infrared via SSEC RealEarth. Full-disk coverage of Europe, Africa, and the Indian Ocean. 15-minute scan cadence. RealEarth serves this product as a grayscale image.</div>
-            <div class="mls-sub">Cloud-top Brightness Temperature (Grayscale)</div>
-            <div class="mls-gradient-bar" style="background:linear-gradient(to right,#181818,#505050,#a0a0a0,#f0f0f0,#ffffff)"></div>
-            <div class="mls-scale-labels"><span>Warm / surface</span><span></span><span>Cold / high cloud</span></div>
-            <div class="mls-note">Dark = warm surface / low cloud · Light gray = mid-level cloud · White = cold high-altitude tops (MCSs, Indian Ocean cyclones)</div>
+            <div class="mls-desc">EUMETSAT Meteosat Third Generation (MTG-I) FCI Band IR 10.5 µm, served directly from EUMETSAT's own EUMETView WMS. Full-disk coverage of Europe, Africa, and the Atlantic from the 0° position, at a 10-minute scan cadence. MTG is the successor to the older Meteosat-11 SEVIRI imager.</div>
+            <div class="mls-sub">Cloud-top Brightness Temperature — Enhanced IR</div>
+            <div class="mls-gradient-bar" style="background:linear-gradient(to right,#1c1c1c 0%,#8a8a8a 30%,#f2f2f2 50%,#00e0f0 64%,#00b050 76%,#f0e000 86%,#ff7000 94%,#e00000 100%)"></div>
+            <div class="mls-scale-labels"><span>Warm / surface</span><span></span><span>Cold tops</span><span></span><span>Coldest</span></div>
+            <div class="mls-note">Grayscale carries warm surface and low/mid cloud; the colour enhancement only kicks in on cold, high cloud tops so deep convection stands out. Cyan through green marks vigorous convection, yellow to red the coldest overshooting tops — storm systems over Africa, the Sahel, and Atlantic tropical waves.</div>
           </div>
         </details>
 
@@ -3633,6 +3633,21 @@ function initMap() {
     }
   );
 
+  // EUMETSAT EUMETView — MTG-I FCI IR 10.5 µm full disk (0°), 10-min cadence.
+  // Replaces SSEC RealEarth, whose anonymous /api/image allowance stamped
+  // "Size limit exceeded" into tiles. EUMETView is the operator's own service:
+  // CORS-enabled, no key, no quota. Omitting `time` serves the latest frame,
+  // and style_02 is the enhanced-IR ramp that matches the GOES/Himawari look.
+  meteosatLayer = L.tileLayer.wms('https://view.eumetsat.int/geoserver/wms', {
+    layers:      'mtg_fd:ir105_hrfi',
+    styles:      'mtg_fd:mtg_fd_ir105_hrfi_style_02',
+    format:      'image/png',
+    transparent: true,
+    opacity:     0.75,
+    zIndex:      4,
+    attribution: 'Meteosat MTG-I FCI &copy; <a href="https://www.eumetsat.int/" target="_blank">EUMETSAT</a>',
+  });
+
   // NASA GIBS — Himawari AHI Band 13 Clean Infrared (East Asia / W Pacific).
   // Moved off SSEC RealEarth: its anonymous /api/image allowance stamps
   // "Size limit exceeded" into tiles once a session pulls enough imagery.
@@ -3891,7 +3906,7 @@ function ensureLayerOn(which) {
 function toggleLayer(which) {
   if (!map) return;
   // Dynamic layers (created async) — handle via shared lookup
-  const dynamicMap = { rainviewer: rainviewerLayer, meteosat: meteosatLayer };
+  const dynamicMap = { rainviewer: rainviewerLayer };
   if (which in dynamicMap) {
     const layer = dynamicMap[which];
     const el = document.getElementById(`toggle-${which}`);
@@ -3900,7 +3915,7 @@ function toggleLayer(which) {
     updateMapCount();
     return;
   }
-  const layers = { eq: eqLayer, eas: easLayer, lsr: lsrLayer, eonet: eonetLayer, drought: droughtLayer, gauge: gaugeLayer, volc: volcLayer, gdacs: gdacsLayer, meteoalarm: meteoalarmLayer, wmo: wmoLayer, 'spc-d1': spcD1Layer, 'spc-d2': spcD2Layer, 'spc-d3': spcD3Layer, 'fwx-d1': fwxD1Layer, 'fwx-d2': fwxD2Layer, msc: mscLayer, bom: bomLayer, radar: radarLayer, imerg: imergLayer, goesw: goesWLayer, goese: goesELayer, grace: graceLayer, 'smap-root': smapRootLayer, 'smap-surf': smapSurfLayer, 'dwd-radar': dwdRadarLayer, 'fmi-radar': fmiRadarLayer, sst: sstLayer, seaice: seaIceLayer, wind: windLayer, ozone: ozoneLayer, so2: so2Layer, himawari: himawariLayer };
+  const layers = { eq: eqLayer, eas: easLayer, lsr: lsrLayer, eonet: eonetLayer, drought: droughtLayer, gauge: gaugeLayer, volc: volcLayer, gdacs: gdacsLayer, meteoalarm: meteoalarmLayer, wmo: wmoLayer, 'spc-d1': spcD1Layer, 'spc-d2': spcD2Layer, 'spc-d3': spcD3Layer, 'fwx-d1': fwxD1Layer, 'fwx-d2': fwxD2Layer, msc: mscLayer, bom: bomLayer, radar: radarLayer, imerg: imergLayer, goesw: goesWLayer, goese: goesELayer, grace: graceLayer, 'smap-root': smapRootLayer, 'smap-surf': smapSurfLayer, 'dwd-radar': dwdRadarLayer, 'fmi-radar': fmiRadarLayer, sst: sstLayer, seaice: seaIceLayer, wind: windLayer, ozone: ozoneLayer, so2: so2Layer, himawari: himawariLayer, meteosat: meteosatLayer };
   const el = document.getElementById(`toggle-${which}`);
   if (el && layers[which]) {
     el.checked ? map.addLayer(layers[which]) : map.removeLayer(layers[which]);
@@ -3911,62 +3926,6 @@ function toggleLayer(which) {
     else { _windAbort?.abort(); windData = []; windLayer?.clearLayers(); }
   }
   updateMapCount();
-}
-
-/* ══════════════════════════════════════════════════════
-   REALEARTH — Custom tile layer for query-param URLs
-══════════════════════════════════════════════════════ */
-const RealEarthTileLayer = L.TileLayer.extend({
-  getTileUrl(coords) {
-    return `https://realearth.ssec.wisc.edu/api/image` +
-      `?products=${this.options.productId}` +
-      `&x=${coords.x}&y=${coords.y}&z=${coords.z}` +
-      `&time=${this.options.timestamp}`;
-  }
-});
-
-async function loadRealEarth() {
-  try {
-    const response = await fetch('https://realearth.ssec.wisc.edu/api/products');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const products = await response.json();
-
-    const configs = [
-      {
-        id:        'Met11-SEVIRI-FD-BAND09',
-        varKey:    'meteosatLayer',
-        toggle:    'toggle-meteosat',
-        label:     'Meteosat-11 IR (Europe/Indian Ocean)',
-        attrib:    'Meteosat-11 &copy; <a href="https://realearth.ssec.wisc.edu/" target="_blank">SSEC RealEarth</a>',
-      },
-    ];
-
-    for (const cfg of configs) {
-      const product   = products.find(entry => entry.id === cfg.id);
-      const timestamp = product?.times?.slice(-1)[0];
-      if (!timestamp) continue;
-
-      const wasOnMap = window[cfg.varKey] && map.hasLayer(window[cfg.varKey]);
-      if (window[cfg.varKey]) map.removeLayer(window[cfg.varKey]);
-
-      window[cfg.varKey] = new RealEarthTileLayer('', {
-        productId:     cfg.id,
-        timestamp,
-        attribution:   cfg.attrib,
-        opacity:       0.75,
-        maxNativeZoom: 7,
-        zIndex:        4
-      });
-
-      if (wasOnMap || document.getElementById(cfg.toggle)?.checked) {
-        window[cfg.varKey].addTo(map);
-      }
-    }
-    // Sync module-level var after window assignment
-    meteosatLayer = window['meteosatLayer'];
-  } catch (err) {
-    console.warn('RealEarth fetch failed:', err.message);
-  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -7344,7 +7303,6 @@ function refreshAll() {
   loadMeteoalarm();
   loadWMO();
   loadRainviewer();
-  loadRealEarth();
 }
 
 // Init map first, then load all data
@@ -7382,7 +7340,6 @@ map.on('moveend', () => {
   _windDebounce = setTimeout(loadWind, 600);
 });
 setInterval(loadRainviewer,   300_000);  // RainViewer refreshes frames ~every 5 min
-setInterval(loadRealEarth,  1_800_000); // RealEarth (Meteosat only) — refresh its timestamp
 setInterval(() => { buildGlobalSummary(); }, 60_000);   // Re-evaluate 1-hour window every minute
 </script>
 </body>
