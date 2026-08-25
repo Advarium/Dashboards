@@ -1625,6 +1625,83 @@
     .btn-sm:hover { color: var(--text); border-color: var(--accent); }
     .btn-sm.active { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
 
+    /* ── Map search — addresses/places (Photon) + live events ── */
+    .map-search {
+      position: relative;
+      flex: 1 1 auto;
+      max-width: 330px;
+      min-width: 110px;
+      margin-left: auto;          /* sit next to the satellite button */
+    }
+    .map-search-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      padding: 3px 22px 3px 24px;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .map-search-input::placeholder { color: var(--muted); }
+    .map-search-input:focus { border-color: var(--accent); }
+    .map-search-icon {
+      position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--muted); pointer-events: none;
+    }
+    .map-search-clear {
+      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--muted);
+      font-size: 13px; line-height: 1; padding: 0 3px; cursor: pointer; display: none;
+    }
+    .map-search-clear:hover { color: var(--text); }
+    .map-search.has-text .map-search-clear { display: block; }
+
+    .map-search-results {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      max-height: 330px; overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,.55);
+      display: none; z-index: 1200;
+    }
+    .map-search-results.open { display: block; }
+    .map-search-group {
+      padding: 4px 9px; font-size: 8.5px; font-weight: 700;
+      letter-spacing: .5px; text-transform: uppercase;
+      color: var(--muted); background: var(--surface);
+      position: sticky; top: 0;
+    }
+    .map-search-item {
+      display: flex; gap: 7px; align-items: baseline;
+      padding: 6px 9px; cursor: pointer;
+      border-bottom: 1px solid rgba(71,82,88,.35);
+    }
+    .map-search-item:last-child { border-bottom: none; }
+    .map-search-item:hover,
+    .map-search-item.active { background: var(--surface2); }
+    .map-search-badge {
+      flex-shrink: 0; font-size: 8px; font-weight: 700;
+      padding: 1px 5px; border-radius: 3px;
+      letter-spacing: .3px; text-transform: uppercase;
+      color: var(--badge-text, #1a2227);
+    }
+    .map-search-text { flex: 1; min-width: 0; }
+    .map-search-name {
+      font-size: 11.5px; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .map-search-sub {
+      font-size: 9.5px; color: var(--muted); margin-top: 1px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .map-search-state { padding: 8px 10px; font-size: 10.5px; color: var(--muted); }
+
+    @media (max-width: 1100px) { .map-search { max-width: 200px; } }
+
     /* ── Filter bar ─────────────────────────────────── */
     .filter-bar {
       display: flex;
@@ -2322,6 +2399,11 @@
               <span class="layer-dot" style="background:#e69875;clip-path:polygon(50% 0%,100% 100%,0% 100%)"></span>
               Volcanism
             </label>
+            <label class="layer-toggle">
+              <input type="checkbox" id="toggle-wind" onchange="toggleLayer('wind')">
+              <span class="layer-dot" style="background:#83c092;border-radius:2px"></span>
+              Surface Wind
+            </label>
           </div>
         </details>
 
@@ -2395,6 +2477,11 @@
               <input type="checkbox" id="toggle-dwd-radar" onchange="toggleLayer('dwd-radar')">
               <span class="layer-dot" style="background:#4fc3f7;border-radius:2px"></span>
               DWD Radar (Germany)
+            </label>
+            <label class="layer-toggle">
+              <input type="checkbox" id="toggle-fmi-radar" onchange="toggleLayer('fmi-radar')">
+              <span class="layer-dot" style="background:#64b5f6;border-radius:2px"></span>
+              FMI Radar (Finland)
             </label>
           </div>
         </details>
@@ -2472,6 +2559,26 @@
               <span class="layer-dot" style="background:#e69875;border-radius:2px"></span>
               SMAP Surface
             </label>
+            <label class="layer-toggle">
+              <input type="checkbox" id="toggle-sst" onchange="toggleLayer('sst')">
+              <span class="layer-dot" style="background:linear-gradient(90deg,#3b4cc0,#dbbc7f,#e67e80);border-radius:2px"></span>
+              Sea Surface Temp
+            </label>
+            <label class="layer-toggle">
+              <input type="checkbox" id="toggle-seaice" onchange="toggleLayer('seaice')">
+              <span class="layer-dot" style="background:#cfe8f3;border-radius:2px"></span>
+              Sea Ice Concentration
+            </label>
+            <label class="layer-toggle">
+              <input type="checkbox" id="toggle-ozone" onchange="toggleLayer('ozone')">
+              <span class="layer-dot" style="background:linear-gradient(90deg,#5e4fa2,#edee93,#9e0142);border-radius:2px"></span>
+              Total Column Ozone
+            </label>
+            <label class="layer-toggle">
+              <input type="checkbox" id="toggle-so2" onchange="toggleLayer('so2')">
+              <span class="layer-dot" style="background:linear-gradient(90deg,#082864,#6eafd6,#f7fbff);border-radius:2px"></span>
+              Sulfur Dioxide (SO&#8322;)
+            </label>
           </div>
         </details>
 
@@ -2490,6 +2597,14 @@
       <div class="map-title">
         Events
         <span class="badge" id="map-count">—</span>
+      </div>
+      <div class="map-search" id="map-search">
+        <span class="map-search-icon">🔍</span>
+        <input type="text" id="map-search-input" class="map-search-input"
+               placeholder="Search address, place, or live event…"
+               autocomplete="off" spellcheck="false" aria-label="Search the map">
+        <button class="map-search-clear" id="map-search-clear" title="Clear search" aria-label="Clear search">×</button>
+        <div class="map-search-results" id="map-search-results"></div>
       </div>
       <button class="btn-sm" id="sat-toggle" onclick="toggleSatellite()" title="Toggle satellite basemap">🛰️ Satellite</button>
     </div>
@@ -2823,6 +2938,72 @@
             <div class="mls-gradient-bar" style="background:linear-gradient(to right,#c03000,#e08030,#f0d050,#80c040,#20a0e0,#0040b8)"></div>
             <div class="mls-scale-labels"><span>0.02</span><span>0.1</span><span>0.2</span><span>0.35</span><span>0.5 m³/m³</span></div>
             <div class="mls-note">Red = very dry · Yellow = dry · Green = moderate · Blue = wet / near-saturation</div>
+          </div>
+        </details>
+
+        <!-- Sea Surface Temperature -->
+        <details class="mls-section">
+          <summary><span>Sea Surface Temp</span><span class="mls-chevron">▾</span></summary>
+          <div class="mls-content">
+            <div class="mls-desc">NASA/JPL MUR (Multi-scale Ultra-high Resolution) L4 sea surface temperature — a 1 km daily gap-free analysis blending infrared and microwave satellite retrievals with in-situ observations. Land and sea ice are masked out (shown black). Via NASA GIBS.</div>
+            <div class="mls-sub">Temperature (°C)</div>
+            <div class="mls-gradient-bar" style="background:linear-gradient(to right,#2b001a 0%,#550249 6%,#750775 14%,#390a56 21%,#1e1e60 28%,#204291 36%,#266ebe 42%,#2ea3ef 50%,#19a735 57%,#99de00 64%,#ffd900 72%,#ff8900 79%,#e84c00 86%,#b51d00 93%,#6b0200 100%)"></div>
+            <div class="mls-scale-labels"><span>0</span><span>8</span><span>16</span><span>24</span><span>32 °C</span></div>
+            <div class="mls-note">Dark maroon/magenta = near freezing (0–5 °C) · purple to blue = cold · cyan = cool · green/yellow = temperate · orange to dark red = warm. The 26 °C+ orange band is the rough threshold for tropical cyclone fuel.</div>
+          </div>
+        </details>
+
+        <!-- Sea Ice Concentration -->
+        <details class="mls-section">
+          <summary><span>Sea Ice Concentration</span><span class="mls-chevron">▾</span></summary>
+          <div class="mls-content">
+            <div class="mls-desc">NASA/JPL MUR sea ice concentration, the companion mask to the MUR SST analysis. Shows the fraction of each cell covered by ice. Best viewed at polar latitudes. Via NASA GIBS.</div>
+            <div class="mls-sub">Ice Cover (%)</div>
+            <div class="mls-gradient-bar" style="background:linear-gradient(to right,#111111 0%,#630063 6%,#dc00dc 13%,#9c00ff 21%,#2a00ff 28%,#005aff 35%,#00e6ff 42%,#00de9c 49%,#00b115 57%,#62cb00 64%,#e1f500 71%,#ffa300 78%,#ff1c00 86%,#ff6f6f 93%,#ffffff 100%)"></div>
+            <div class="mls-scale-labels"><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div>
+            <div class="mls-note">Near-black = open water · purple/blue = sparse drift ice · cyan/green = broken pack · yellow/orange = dense pack · red to pink = near-solid · white = 100% consolidated.</div>
+          </div>
+        </details>
+
+        <!-- Total Column Ozone -->
+        <details class="mls-section">
+          <summary><span>Total Column Ozone</span><span class="mls-chevron">▾</span></summary>
+          <div class="mls-content">
+            <div class="mls-desc">NASA OMPS aboard Suomi NPP — total column ozone, the full amount of ozone in a vertical column of atmosphere, measured in Dobson Units. Built from roughly 14 orbits per day, which together cover the whole sunlit globe. The composite is assembled as orbits downlink, so this layer is pinned two UTC days back, where coverage is complete.</div>
+            <div class="mls-sub">Ozone (Dobson Units)</div>
+            <div class="mls-gradient-bar" style="background:linear-gradient(to right,#5e4fa2 0%,#4ca4b1 7%,#6bc4a4 16%,#90d2a4 24%,#b6e2a1 33%,#d7ef9b 41%,#edee93 49%,#fbe28c 58%,#fdcb79 66%,#fdae61 75%,#f78a50 83%,#ef6744 92%,#9e0142 100%)"></div>
+            <div class="mls-scale-labels"><span>100</span><span>200</span><span>300</span><span>400</span><span>500 DU</span></div>
+            <div class="mls-note">Purple/teal = depleted · green/yellow = typical (about 300 DU) · orange/red = ozone-rich. Below roughly 220 DU is the conventional threshold for &ldquo;ozone hole&rdquo; conditions, seen over Antarctica in austral spring.</div>
+          </div>
+        </details>
+
+        <!-- Sulfur Dioxide -->
+        <details class="mls-section">
+          <summary><span>Sulfur Dioxide (SO&#8322;)</span><span class="mls-chevron">▾</span></summary>
+          <div class="mls-content">
+            <div class="mls-desc">NASA OMI aboard Aura — sulfur dioxide in the lower troposphere, in Dobson Units. Picks out volcanic degassing and eruption plumes as well as industrial emissions. Daily polar-orbiter product pinned to the previous UTC day; swath gaps are normal.</div>
+            <div class="mls-sub">SO&#8322; (Dobson Units)</div>
+            <div class="mls-gradient-bar" style="background:linear-gradient(to right,#082864 0%,#084b93 8%,#1460a8 17%,#2474b6 25%,#3a8ac2 33%,#539ecd 42%,#6eafd6 50%,#90c2de 58%,#add0e6 67%,#c7dbef 75%,#d7e6f4 83%,#e7f0f9 92%,#f7fbff 100%)"></div>
+            <div class="mls-scale-labels"><span>2</span><span>10</span><span>17</span><span>25</span><span>32 DU</span></div>
+            <div class="mls-note">Brighter means more SO&#8322;: dark navy = background levels · mid blue = elevated · pale blue to white = heavy loading, typically a volcanic plume. Pairs well with the Volcanism layer for spotting which volcano is degassing.</div>
+            <div class="mls-note" style="margin-top:5px">Faint dashes and stripes scattered over open ocean and land are <b>retrieval noise, not plumes</b> — they sit at 2–3 DU, the very bottom of the scale, where this product has poor signal-to-noise. OMI has also carried a known row anomaly since 2007 (part of the detector's field of view is obstructed), which shows up as banding along the orbit tracks. A genuine plume is bright and spatially coherent, reaching 20 DU and above.</div>
+          </div>
+        </details>
+
+        <!-- Surface Wind -->
+        <details class="mls-section">
+          <summary><span>Surface Wind</span><span class="mls-chevron">▾</span></summary>
+          <div class="mls-content">
+            <div class="mls-desc">Standard meteorological wind barbs at 10 m above ground, sampled on a grid across the current view and re-sampled when you pan or zoom. Analysis winds via Open-Meteo. Click any barb for speed, gusts, and direction.</div>
+            <div class="mls-sub">Reading a barb</div>
+            <div class="mls-note">The staff points <b>into</b> the wind (the direction it is blowing from). Half barb = 5 kt · full barb = 10 kt · solid pennant = 50 kt · open circle = calm.</div>
+            <div class="mls-sub">Speed (knots)</div>
+            <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#a7c080"></span> Light — under 11 kt</div>
+            <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#dbbc7f"></span> Moderate — 11–21 kt</div>
+            <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#e69875"></span> Strong — 22–33 kt</div>
+            <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#e67e80"></span> Gale — 34–47 kt</div>
+            <div class="mls-swatch-row"><span class="mls-swatch sq" style="background:#d699b6"></span> Storm force — 48 kt+</div>
+            <div class="mls-note">Barbs carry a dark outline so they stay readable over both the dark basemap and satellite imagery.</div>
           </div>
         </details>
 
@@ -3326,10 +3507,35 @@ function relTime(ms) {
   return `${Math.floor(ageSeconds/86400)}d ago`;
 }
 
+// Daily swath composites are assembled orbit-by-orbit as data downlinks, so a
+// day stays incomplete for a while after it ends. Measured tile coverage at z3:
+// today 10/24, yesterday 21/24, two days back 24/24. Pin to 2 for full coverage.
+const GIBS_DAILY_OFFSET = 2;
+
+// GIBS daily products want a YYYY-MM-DD date.
+function gibsDayOffsetUTC(daysBack) {
+  const d = new Date(Date.now() - daysBack * 86400_000);
+  return d.toISOString().slice(0, 10);
+}
+
+// If the page is left open across a UTC midnight the pinned date goes stale,
+// so re-point the daily layers when the target date changes.
+function refreshGibsDailyLayers() {
+  const day = gibsDayOffsetUTC(GIBS_DAILY_OFFSET);
+  const swap = (layer, product) => {
+    if (!layer) return;
+    const url = `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${product}` +
+                `/default/${day}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png`;
+    if (layer._url !== url) layer.setUrl(url);
+  };
+  swap(ozoneLayer, 'OMPS_Ozone_Total_Column');
+  swap(so2Layer,   'OMI_SO2_Lower_Troposphere');
+}
+
 /* ══════════════════════════════════════════════════════
    MAP  —  Leaflet + CartoDB Dark Matter
 ══════════════════════════════════════════════════════ */
-let map, baseDark, baseSat, eqLayer, easLayer, eonetLayer, droughtLayer, lsrLayer, gaugeLayer, volcLayer, gdacsLayer, meteoalarmLayer, wmoLayer, spcD1Layer, spcD2Layer, spcD3Layer, fwxD1Layer, fwxD2Layer, mscLayer, bomLayer, radarLayer, rainviewerLayer, imergLayer, goesWLayer, goesELayer, meteosatLayer, himawariLayer, graceLayer, smapRootLayer, smapSurfLayer, dwdRadarLayer;
+let map, baseDark, baseSat, eqLayer, easLayer, eonetLayer, droughtLayer, lsrLayer, gaugeLayer, volcLayer, gdacsLayer, meteoalarmLayer, wmoLayer, spcD1Layer, spcD2Layer, spcD3Layer, fwxD1Layer, fwxD2Layer, mscLayer, bomLayer, radarLayer, rainviewerLayer, imergLayer, goesWLayer, goesELayer, meteosatLayer, himawariLayer, graceLayer, smapRootLayer, smapSurfLayer, dwdRadarLayer, fmiRadarLayer, sstLayer, seaIceLayer, windLayer, ozoneLayer, so2Layer;
 
 function initMap() {
   map = L.map('map', {
@@ -3384,6 +3590,9 @@ function initMap() {
   // Note: GIBS WMTS uses TileMatrix/TileRow/TileCol → {z}/{y}/{x} in Leaflet template
   const _gibsBase = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best';
   const _gibsTms  = 'GoogleMapsCompatible_Level6';
+  // Some GIBS products are published at a deeper tile matrix set — using the
+  // wrong one returns 404s that Leaflet swallows silently (blank layer).
+  const _gibsTms7 = 'GoogleMapsCompatible_Level7';
   imergLayer = L.tileLayer(
     `${_gibsBase}/IMERG_Precipitation_Rate/default/default/${_gibsTms}/{z}/{y}/{x}.png`,
     {
@@ -3449,9 +3658,58 @@ function initMap() {
     }
   );
 
-  // DWD German radar reflectivity (WMS)
+  // NASA GIBS — GHRSST MUR sea surface temperature (1 km, daily L4 analysis)
+  sstLayer = L.tileLayer(
+    `${_gibsBase}/GHRSST_L4_MUR_Sea_Surface_Temperature/default/default/${_gibsTms7}/{z}/{y}/{x}.png`,
+    {
+      attribution: 'SST &copy; <a href="https://podaac.jpl.nasa.gov/" target="_blank">NASA/JPL MUR</a> via NASA GIBS',
+      opacity: 0.75,
+      maxNativeZoom: 7,
+      zIndex: 3
+    }
+  );
+
+  // NASA GIBS — GHRSST MUR sea ice concentration (companion product to SST)
+  seaIceLayer = L.tileLayer(
+    `${_gibsBase}/GHRSST_L4_MUR_Sea_Ice_Concentration/default/default/${_gibsTms7}/{z}/{y}/{x}.png`,
+    {
+      attribution: 'Sea Ice &copy; <a href="https://podaac.jpl.nasa.gov/" target="_blank">NASA/JPL MUR</a> via NASA GIBS',
+      opacity: 0.8,
+      maxNativeZoom: 7,
+      // above sstLayer (3) so ice always draws on top of the water beneath it
+      zIndex: 4
+    }
+  );
+
+  // ── Atmospheric composition (daily polar-orbiter products) ──
+  // These are swath-based and assembled progressively, so recent days have
+  // ragged western coverage. See GIBS_DAILY_OFFSET for the measured numbers.
+  ozoneLayer = L.tileLayer(
+    `${_gibsBase}/OMPS_Ozone_Total_Column/default/${gibsDayOffsetUTC(GIBS_DAILY_OFFSET)}/${_gibsTms}/{z}/{y}/{x}.png`,
+    {
+      attribution: 'Ozone &copy; <a href="https://ozoneaq.gsfc.nasa.gov/" target="_blank">NASA OMPS / Suomi NPP</a> via NASA GIBS',
+      opacity: 0.7,
+      maxNativeZoom: 6,
+      zIndex: 3
+    }
+  );
+
+  so2Layer = L.tileLayer(
+    `${_gibsBase}/OMI_SO2_Lower_Troposphere/default/${gibsDayOffsetUTC(GIBS_DAILY_OFFSET)}/${_gibsTms}/{z}/{y}/{x}.png`,
+    {
+      attribution: 'SO&#8322; &copy; <a href="https://aura.gsfc.nasa.gov/" target="_blank">NASA OMI / Aura</a> via NASA GIBS',
+      opacity: 0.75,
+      maxNativeZoom: 6,
+      zIndex: 3
+    }
+  );
+
+  // DWD German radar composite (WMS, 1x1 km, 5-min analysis).
+  // NB: the old 'dwd:RX-Produkt' layer was retired — DWD's WAF answers requests
+  // for it with a 403 HTML page rather than a WMS ServiceException, so the layer
+  // failed silently and simply looked like permanently clear skies.
   dwdRadarLayer = L.tileLayer.wms('https://maps.dwd.de/geoserver/dwd/wms', {
-    layers: 'dwd:RX-Produkt',
+    layers: 'dwd:Radar_wn-analysis_1x1km_ger',
     format: 'image/png',
     transparent: true,
     opacity: 0.65,
@@ -3459,7 +3717,18 @@ function initMap() {
     zIndex: 5,
   });
 
+  // FMI Finnish national radar dBZ composite (WMS, 5-min cadence)
+  fmiRadarLayer = L.tileLayer.wms('https://openwms.fmi.fi/geoserver/wms', {
+    layers: 'Radar:suomi_dbz_eureffin',
+    format: 'image/png',
+    transparent: true,
+    opacity: 0.65,
+    attribution: 'Radar &copy; <a href="https://en.ilmatieteenlaitos.fi/" target="_blank">FMI</a>',
+    zIndex: 5,
+  });
+
   // All overlay layers start hidden — user enables what they want
+  windLayer       = L.layerGroup();
   droughtLayer    = L.layerGroup();
   spcD2Layer      = L.layerGroup();
   spcD3Layer      = L.layerGroup();
@@ -3609,10 +3878,15 @@ function toggleLayer(which) {
     updateMapCount();
     return;
   }
-  const layers = { eq: eqLayer, eas: easLayer, lsr: lsrLayer, eonet: eonetLayer, drought: droughtLayer, gauge: gaugeLayer, volc: volcLayer, gdacs: gdacsLayer, meteoalarm: meteoalarmLayer, wmo: wmoLayer, 'spc-d1': spcD1Layer, 'spc-d2': spcD2Layer, 'spc-d3': spcD3Layer, 'fwx-d1': fwxD1Layer, 'fwx-d2': fwxD2Layer, msc: mscLayer, bom: bomLayer, radar: radarLayer, imerg: imergLayer, goesw: goesWLayer, goese: goesELayer, grace: graceLayer, 'smap-root': smapRootLayer, 'smap-surf': smapSurfLayer, 'dwd-radar': dwdRadarLayer };
+  const layers = { eq: eqLayer, eas: easLayer, lsr: lsrLayer, eonet: eonetLayer, drought: droughtLayer, gauge: gaugeLayer, volc: volcLayer, gdacs: gdacsLayer, meteoalarm: meteoalarmLayer, wmo: wmoLayer, 'spc-d1': spcD1Layer, 'spc-d2': spcD2Layer, 'spc-d3': spcD3Layer, 'fwx-d1': fwxD1Layer, 'fwx-d2': fwxD2Layer, msc: mscLayer, bom: bomLayer, radar: radarLayer, imerg: imergLayer, goesw: goesWLayer, goese: goesELayer, grace: graceLayer, 'smap-root': smapRootLayer, 'smap-surf': smapSurfLayer, 'dwd-radar': dwdRadarLayer, 'fmi-radar': fmiRadarLayer, sst: sstLayer, seaice: seaIceLayer, wind: windLayer, ozone: ozoneLayer, so2: so2Layer };
   const el = document.getElementById(`toggle-${which}`);
   if (el && layers[which]) {
     el.checked ? map.addLayer(layers[which]) : map.removeLayer(layers[which]);
+  }
+  // Wind is fetched per-viewport, so it needs data the moment it's switched on
+  if (which === 'wind') {
+    if (el?.checked) loadWind();
+    else { _windAbort?.abort(); windData = []; windLayer?.clearLayers(); }
   }
   updateMapCount();
 }
@@ -4385,6 +4659,24 @@ async function loadLSR() {
   }
 }
 
+// Format an SPC storm report's magnitude for display.
+// Units are SPC's own, not metric: hail Size is in HUNDREDTHS OF AN INCH
+// (100 = 1.00", the size of a quarter) and wind Speed is already in mph
+// (verified against reports whose comments quote the measured gust).
+// Tornado reports carry an EF/F scale string. Any of the three may be 'UNK'.
+function lsrMagnitudeLabel(report) {
+  const raw = (report.magnitude || '').trim();
+  if (!raw || raw.toUpperCase() === 'UNK') return '';
+  const value = parseFloat(raw);
+  if (report.type === 'hail') {
+    return Number.isFinite(value) ? ` · ${(value / 100).toFixed(2)}"` : '';
+  }
+  if (report.type === 'wind') {
+    return Number.isFinite(value) ? ` · ${value} mph` : '';
+  }
+  return ` · ${raw}`;   // tornado EF/F scale
+}
+
 function plotLSR() {
   if (!map) return;
   lsrLayer.clearLayers();
@@ -4392,9 +4684,7 @@ function plotLSR() {
     const color = LSR_COLORS[report.type] || '#859289';
     const icon  = LSR_ICONS[report.type]  || '⚡';
     const label = LSR_LABELS[report.type] || 'Storm Report';
-    const magStr = report.magnitude
-      ? (report.type === 'hail' ? ` · ${report.magnitude}"` : report.type === 'wind' ? ` · ${report.magnitude} mph` : ` · ${report.magnitude}`)
-      : '';
+    const magStr = lsrMagnitudeLabel(report);
     L.circleMarker([report.lat, report.lon], {
       radius: 5, color, fillColor: color, fillOpacity: 0.8, weight: 1.5
     })
@@ -5054,6 +5344,423 @@ async function loadFireWx() {
   } catch (err) {
     console.warn('Fire weather outlook load failed:', err.message);
   }
+}
+
+/* ══════════════════════════════════════════════════════
+   MAP SEARCH — Photon geocoder (addresses/places) + live events
+   Photon is keyless and CORS-open, handles house-number addresses
+   from partial input, and is biased toward the current map centre so
+   bare place names resolve near where the user is already looking.
+══════════════════════════════════════════════════════ */
+let _searchAbort    = null;
+let _searchDebounce = null;
+let _searchItems    = [];   // flat list of selectable rows, in render order
+let _searchActive   = -1;   // keyboard cursor into _searchItems
+
+// OSM key/value → short badge label + colour
+function searchBadge(props) {
+  const value = props.osm_value || '';
+  const key   = props.osm_key   || '';
+  if (props.housenumber || value === 'house' || value === 'building')
+    return { label: 'Address', color: '#7fbbb3' };
+  if (key === 'highway' || value === 'street')  return { label: 'Street',  color: '#7fbbb3' };
+  if (value === 'city'   || value === 'town')   return { label: 'City',    color: '#a7c080' };
+  if (value === 'village'|| value === 'hamlet' || value === 'locality')
+    return { label: 'Town', color: '#a7c080' };
+  if (value === 'suburb' || value === 'neighbourhood' || value === 'quarter')
+    return { label: 'Area', color: '#a7c080' };
+  if (value === 'state'  || value === 'province' || value === 'region')
+    return { label: 'Region',  color: '#dbbc7f' };
+  if (value === 'country')                      return { label: 'Country', color: '#dbbc7f' };
+  if (value === 'aerodrome' || value === 'airport') return { label: 'Airport', color: '#d699b6' };
+  if (value === 'peak' || value === 'volcano')  return { label: value === 'volcano' ? 'Volcano' : 'Peak', color: '#e69875' };
+  return { label: value ? value.replace(/_/g, ' ').slice(0, 12) : 'Place', color: '#859289' };
+}
+
+// Sensible zoom when a feature has no bounding box to fit
+function searchZoomFor(props) {
+  const value = props.osm_value || '';
+  if (props.housenumber || value === 'house' || value === 'building') return 17;
+  if (value === 'street')                                             return 16;
+  if (value === 'suburb' || value === 'neighbourhood')                return 14;
+  if (value === 'village' || value === 'hamlet')                      return 13;
+  if (value === 'town')                                               return 12;
+  if (value === 'city')                                               return 11;
+  if (value === 'state' || value === 'province' || value === 'region') return 7;
+  if (value === 'country')                                            return 5;
+  return 13;
+}
+
+// Human-readable second line for a Photon hit
+function searchSubtitle(props) {
+  return [props.street && props.housenumber ? `${props.housenumber} ${props.street}`
+            : props.street,
+          props.city, props.state, props.country]
+    .filter(Boolean).join(', ');
+}
+
+/* ── Live-event search over data already loaded in the dashboard ── */
+function searchLiveEvents(query) {
+  const q = query.toLowerCase();
+  const hits = [];
+  const add  = (badge, color, name, sub, action) => hits.push({ badge, color, name, sub, action });
+
+  for (const quake of eqData) {
+    if (hits.length >= 6) break;
+    const place = quake.properties?.place || '';
+    if (place.toLowerCase().includes(q)) {
+      add('Quake', '#dbbc7f',
+          `M${(quake.properties.mag ?? 0).toFixed(1)} — ${place}`,
+          fmtTime(new Date(quake.properties.time).toISOString()),
+          () => flyToEq(quake.id));
+    }
+  }
+  for (const alert of easData) {
+    if (hits.length >= 10) break;
+    const props = alert.properties || alert;
+    const text  = `${props.event || ''} ${props.areaDesc || ''}`.toLowerCase();
+    if (text.includes(q)) {
+      add('Alert', '#e67e80', props.event || 'Alert',
+          (props.areaDesc || '').split(';')[0].trim(), () => flyToAlert(alert.id));
+    }
+  }
+  for (const event of gdacsData) {
+    if (hits.length >= 13) break;
+    if (`${event.name || ''} ${event.country || ''}`.toLowerCase().includes(q)) {
+      add('GDACS', '#a7c080', event.name || event.type,
+          event.country || '', () => flyToGDACS(event.guid));
+    }
+  }
+  for (const volcano of vhpData) {
+    if (hits.length >= 16) break;
+    if ((volcano.volcano_name || '').toLowerCase().includes(q) && volcano.latitude != null) {
+      add('Volcano', '#e69875', volcano.volcano_name, volcano.obs_fullname || '',
+          () => flyToVolc(`vhp-${volcano.vnum}`, volcano.latitude, volcano.longitude));
+    }
+  }
+  return hits;
+}
+
+/* ── Photon geocode, biased toward the current view ── */
+async function searchGeocode(query, signal) {
+  const params = new URLSearchParams({ q: query, limit: '6' });
+  if (map) {
+    const center = map.getCenter();
+    params.set('lat', center.lat.toFixed(4));
+    params.set('lon', center.lng.toFixed(4));
+  }
+  const response = await fetch(`https://photon.komoot.io/api/?${params}`, { signal });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const payload = await response.json();
+  return (payload.features || []).filter(feature => feature.geometry?.coordinates);
+}
+
+function renderSearchResults(liveHits, places, { loading = false, failed = false } = {}) {
+  const box = document.getElementById('map-search-results');
+  if (!box) return;
+  _searchItems = [];
+  let html = '';
+
+  if (liveHits.length) {
+    html += `<div class="map-search-group">On the map now</div>`;
+    for (const hit of liveHits) {
+      html += `<div class="map-search-item" data-idx="${_searchItems.length}">
+        <span class="map-search-badge" style="background:${hit.color}">${esc(hit.badge)}</span>
+        <div class="map-search-text">
+          <div class="map-search-name">${esc(hit.name)}</div>
+          ${hit.sub ? `<div class="map-search-sub">${esc(hit.sub)}</div>` : ''}
+        </div>
+      </div>`;
+      _searchItems.push(hit.action);
+    }
+  }
+
+  if (places.length) {
+    html += `<div class="map-search-group">Places</div>`;
+    for (const feature of places) {
+      const props = feature.properties || {};
+      const badge = searchBadge(props);
+      const [lon, lat] = feature.geometry.coordinates;
+      const extent = props.extent;   // [minLon, maxLat, maxLon, minLat] when present
+      html += `<div class="map-search-item" data-idx="${_searchItems.length}">
+        <span class="map-search-badge" style="background:${badge.color}">${esc(badge.label)}</span>
+        <div class="map-search-text">
+          <div class="map-search-name">${esc(props.name || props.street || 'Unnamed')}</div>
+          <div class="map-search-sub">${esc(searchSubtitle(props))}</div>
+        </div>
+      </div>`;
+      _searchItems.push(() => {
+        // extent is [minLon, maxLat, maxLon, minLat] when the feature has one
+        if (Array.isArray(extent) && extent.length === 4 && extent.every(Number.isFinite)) {
+          map.flyToBounds([[extent[3], extent[0]], [extent[1], extent[2]]],
+                          { padding: [40, 40], maxZoom: 16, duration: 1 });
+        } else if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          map.flyTo([lat, lon], searchZoomFor(props), { duration: 1 });
+        }
+      });
+    }
+  }
+
+  if (!html) {
+    html = `<div class="map-search-state">${
+      loading ? 'Searching…' : failed ? 'Search unavailable — try again' : 'No matches'
+    }</div>`;
+  }
+
+  box.innerHTML = html;
+  box.classList.add('open');
+  _searchActive = -1;
+}
+
+function highlightSearchItem(delta) {
+  const rows = [...document.querySelectorAll('.map-search-item')];
+  if (!rows.length) return;
+  _searchActive = (_searchActive + delta + rows.length) % rows.length;
+  rows.forEach((row, i) => row.classList.toggle('active', i === _searchActive));
+  rows[_searchActive].scrollIntoView({ block: 'nearest' });
+}
+
+function closeSearchResults() {
+  document.getElementById('map-search-results')?.classList.remove('open');
+  _searchActive = -1;
+}
+
+function runSearchItem(index) {
+  const action = _searchItems[index];
+  if (!action) return;
+  // Leaflet throws on a zero-size map container (hidden tab) and on malformed
+  // geocoder geometry. Either way the dropdown must still close, or it strands.
+  try { action(); }
+  catch (err) { console.warn('Search navigation failed:', err.message); }
+  closeSearchResults();
+  document.getElementById('map-search-input')?.blur();
+}
+
+async function performSearch(query) {
+  const liveHits = searchLiveEvents(query);
+  renderSearchResults(liveHits, [], { loading: true });
+
+  _searchAbort?.abort();
+  _searchAbort = new AbortController();
+  try {
+    const places = await searchGeocode(query, _searchAbort.signal);
+    renderSearchResults(liveHits, places);
+  } catch (err) {
+    if (err.name === 'AbortError') return;         // superseded by a newer keystroke
+    console.warn('Geocode failed:', err.message);
+    renderSearchResults(liveHits, [], { failed: true });
+  }
+}
+
+function initMapSearch() {
+  const wrap  = document.getElementById('map-search');
+  const input = document.getElementById('map-search-input');
+  const clear = document.getElementById('map-search-clear');
+  const box   = document.getElementById('map-search-results');
+  if (!wrap || !input || !box) return;
+
+  input.addEventListener('input', () => {
+    const query = input.value.trim();
+    wrap.classList.toggle('has-text', query.length > 0);
+    clearTimeout(_searchDebounce);
+    if (query.length < 2) { _searchAbort?.abort(); closeSearchResults(); return; }
+    _searchDebounce = setTimeout(() => performSearch(query), 250);
+  });
+
+  input.addEventListener('keydown', event => {
+    if (event.key === 'ArrowDown')      { event.preventDefault(); highlightSearchItem(1); }
+    else if (event.key === 'ArrowUp')   { event.preventDefault(); highlightSearchItem(-1); }
+    else if (event.key === 'Enter')     { event.preventDefault(); runSearchItem(_searchActive >= 0 ? _searchActive : 0); }
+    else if (event.key === 'Escape')    { closeSearchResults(); input.blur(); }
+  });
+
+  input.addEventListener('focus', () => {
+    if (input.value.trim().length >= 2 && _searchItems.length) box.classList.add('open');
+  });
+
+  box.addEventListener('click', event => {
+    const row = event.target.closest('.map-search-item');
+    if (row) runSearchItem(+row.dataset.idx);
+  });
+
+  clear?.addEventListener('click', () => {
+    input.value = '';
+    wrap.classList.remove('has-text');
+    _searchAbort?.abort();
+    closeSearchResults();
+    input.focus();
+  });
+
+  // Dismiss when clicking anywhere else
+  document.addEventListener('click', event => {
+    if (!wrap.contains(event.target)) closeSearchResults();
+  });
+
+  // Leaflet swallows keystrokes that reach the map container
+  L.DomEvent.disableClickPropagation(wrap);
+  L.DomEvent.disableScrollPropagation(wrap);
+}
+
+/* ══════════════════════════════════════════════════════
+   SURFACE WIND — station barbs via Open-Meteo (no key, CORS)
+   Samples a grid across the current viewport, so density stays
+   usable at every zoom instead of being fixed to a city list.
+══════════════════════════════════════════════════════ */
+let windData = [];
+let _windAbort = null;      // cancels an in-flight fetch when the view moves again
+let _windDebounce = null;
+
+// Speed → colour ramp (knots), matching the dashboard's severity palette
+function windColor(knots) {
+  if (knots >= 48) return '#d699b6';  // storm force
+  if (knots >= 34) return '#e67e80';  // gale
+  if (knots >= 22) return '#e69875';  // strong
+  if (knots >= 11) return '#dbbc7f';  // moderate
+  return '#a7c080';                   // light
+}
+
+/**
+ * Standard meteorological wind barb as an SVG divIcon.
+ * Half barb = 5 kt, full barb = 10 kt, pennant = 50 kt; calm = open circle.
+ * The staff points INTO the wind (the direction it blows FROM).
+ *
+ * Every shape is drawn twice — a wide dark stroke underneath and a narrow
+ * coloured stroke on top. That halo is what keeps the glyph legible over both
+ * the dark basemap and the bright ArcGIS satellite imagery, where a single
+ * flat colour would disappear against clouds, snow, or desert.
+ */
+function windBarbIcon(knots, dirDeg) {
+  const cx = 22, cy = 22, tipY = 5;
+  const color = windColor(knots);
+  let shapes = '';
+
+  if (knots < 2) {
+    // Calm — open circle, no staff
+    shapes = `<circle cx="${cx}" cy="${cy}" r="4.5" fill="none"/>`;
+  } else {
+    shapes += `<line x1="${cx}" y1="${cy}" x2="${cx}" y2="${tipY}"/>`;
+    let remaining = Math.round(knots / 5) * 5;
+    let y = tipY;
+    while (remaining >= 50) {                       // pennants
+      shapes += `<polygon points="${cx},${y} ${cx - 10},${y + 2.4} ${cx},${y + 4.8}"/>`;
+      remaining -= 50; y += 6.0;
+    }
+    while (remaining >= 10) {                       // full barbs
+      shapes += `<line x1="${cx}" y1="${y}" x2="${cx - 10}" y2="${y - 3.0}"/>`;
+      remaining -= 10; y += 4.3;
+    }
+    if (remaining >= 5) {                           // half barb
+      // Nudge inward if it would sit on the very tip of a bare staff
+      if (y === tipY) y += 4.3;
+      shapes += `<line x1="${cx}" y1="${y}" x2="${cx - 5.2}" y2="${y - 1.6}"/>`;
+    }
+    shapes += `<circle cx="${cx}" cy="${cy}" r="1.9" fill="none"/>`;
+  }
+
+  const g = (stroke, width, fill) =>
+    `<g stroke="${stroke}" stroke-width="${width}" fill="${fill}" ` +
+    `stroke-linecap="round" stroke-linejoin="round">${shapes}</g>`;
+
+  const html =
+    `<svg width="44" height="44" viewBox="0 0 44 44" style="overflow:visible">` +
+      `<g transform="rotate(${dirDeg} ${cx} ${cy})">` +
+        g('rgba(0,0,0,0.85)', 4.0, 'rgba(0,0,0,0.85)') +   // halo
+        g(color, 1.6, color) +                             // glyph
+      `</g>` +
+    `</svg>`;
+
+  return L.divIcon({
+    html,
+    className:  'leaflet-marker-emoji',
+    iconSize:   [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor:[0, -16],
+  });
+}
+
+// Build a lat/lon sample grid across the visible map, clamped to valid ranges
+function windGridForView() {
+  const bounds = map.getBounds();
+  const south = Math.max(bounds.getSouth(), -82);
+  const north = Math.min(bounds.getNorth(),  82);
+  const west  = bounds.getWest();
+  const east  = bounds.getEast();
+  if (north <= south || east <= west) return [];
+
+  const COLS = 7, ROWS = 5;                 // 35 points → one batched request
+  const points = [];
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const lat = south + ((row + 0.5) / ROWS) * (north - south);
+      let   lon = west  + ((col + 0.5) / COLS) * (east  - west);
+      lon = ((lon + 180) % 360 + 360) % 360 - 180;   // normalise across the antimeridian
+      points.push([+lat.toFixed(3), +lon.toFixed(3)]);
+    }
+  }
+  return points;
+}
+
+async function loadWind() {
+  if (!map || !windLayer) return;
+  // Only fetch when the layer is actually switched on
+  if (!document.getElementById('toggle-wind')?.checked) return;
+
+  const points = windGridForView();
+  if (!points.length) return;
+
+  _windAbort?.abort();
+  _windAbort = new AbortController();
+
+  const params = new URLSearchParams({
+    latitude:  points.map(p => p[0]).join(','),
+    longitude: points.map(p => p[1]).join(','),
+    current:   'wind_speed_10m,wind_direction_10m,wind_gusts_10m',
+    wind_speed_unit: 'kn',
+  });
+  try {
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`,
+      { signal: _windAbort.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    // Open-Meteo returns a bare object for one point, an array for many
+    windData = (Array.isArray(payload) ? payload : [payload])
+      .filter(entry => entry?.current?.wind_speed_10m != null);
+    plotWind();
+    markUpdated('wind-updated');
+  } catch (err) {
+    if (err.name !== 'AbortError') console.warn('Wind load failed:', err.message);
+  }
+}
+
+function plotWind() {
+  if (!windLayer) return;
+  windLayer.clearLayers();
+  for (const entry of windData) {
+    const current = entry.current;
+    const knots   = current.wind_speed_10m;
+    const dir     = current.wind_direction_10m ?? 0;
+    const gust    = current.wind_gusts_10m;
+    const marker  = L.marker([entry.latitude, entry.longitude], {
+      icon: windBarbIcon(knots, dir),
+      interactive: true,
+      zIndexOffset: 300,
+    });
+    marker.bindPopup(`<div class="popup-inner">
+      <div class="popup-title">💨 Surface Wind</div>
+      <div class="popup-sub">${entry.latitude.toFixed(2)}°, ${entry.longitude.toFixed(2)}°</div>
+      <div class="popup-row"><span>Speed</span><span style="color:${windColor(knots)};font-weight:600">${knots.toFixed(0)} kt</span></div>
+      <div class="popup-row"><span>Direction</span><span>${Math.round(dir)}° (${compassPoint(dir)})</span></div>
+      ${gust != null ? `<div class="popup-row"><span>Gusts</span><span>${gust.toFixed(0)} kt</span></div>` : ''}
+      <div class="popup-row" style="font-size:10px;color:var(--muted)">Barb points into the wind · 10 m above ground</div>
+    </div>`);
+    windLayer.addLayer(marker);
+  }
+}
+
+// Degrees → 16-point compass abbreviation
+function compassPoint(deg) {
+  const points = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return points[Math.round(((deg % 360) / 22.5)) % 16];
 }
 
 /* ══════════════════════════════════════════════════════
@@ -6630,6 +7337,7 @@ function refreshAll() {
 initMap();
 requestAnimationFrame(() => map.invalidateSize());
 buildAlertBar(); // render empty bar immediately
+initMapSearch();
 refreshAll();
 
 // Staggered auto-refresh intervals
@@ -6649,6 +7357,16 @@ setInterval(loadBOMPanel,     300_000);  // Australia BOM warnings — 5 min ref
 setInterval(loadGDACS,        600_000);  // GDACS global disasters — 10 min refresh
 setInterval(loadMeteoalarm,   600_000);  // Meteoalarm Europe — 10 min refresh
 setInterval(loadWMO,          600_000);  // WMO SWIC global alerts — 10 min refresh
+setInterval(loadWind,         600_000);  // Surface wind barbs — 10 min (no-ops while layer is off)
+setInterval(refreshGibsDailyLayers, 3600_000);  // re-point daily GIBS layers after a UTC date rollover
+
+// Re-sample wind whenever the view settles somewhere new (debounced so a drag
+// or a pinch-zoom fires one request, not one per animation frame)
+map.on('moveend', () => {
+  if (!document.getElementById('toggle-wind')?.checked) return;
+  clearTimeout(_windDebounce);
+  _windDebounce = setTimeout(loadWind, 600);
+});
 setInterval(loadRainviewer,   300_000);  // RainViewer refreshes frames ~every 5 min
 setInterval(loadRealEarth,  1_800_000); // RealEarth (Meteosat/Himawari) update ~hourly
 setInterval(() => { buildGlobalSummary(); }, 60_000);   // Re-evaluate 1-hour window every minute
