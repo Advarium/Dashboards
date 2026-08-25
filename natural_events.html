@@ -6781,6 +6781,7 @@ function normalizeWMO(data) {
     expires:  alert.expires,
     centLat:  alert.centLat,
     centLon:  alert.centLon,
+    certainty: WMO_CERTAINTY[alert.certainty] || null,
     flyFn:    alert.centLat != null ? `flyToWMO('${alert.id.replace(/'/g,"\\'")}')` : null,
   }));
 }
@@ -6854,6 +6855,8 @@ function buildCountryPanel(country, alerts) {
         <span class="geo-source-tag" style="background:${sourceStyle.bg};color:${sourceStyle.color}">${sourceStyle.label}</span>
       </div>
       ${alert.areaDesc ? `<div class="alert-sub">${esc(alert.areaDesc)}</div>` : ''}
+      ${alert.certainty && alert.certainty !== 'Observed'
+        ? `<div class="alert-sub" style="opacity:.7">${esc(alert.certainty)} — forecast, not observed</div>` : ''}
       <div class="alert-meta">
         ${alert.onset   ? `<span>${fmtTime(alert.onset)}</span>`        : ''}
         ${alert.expires ? `<span>Exp: ${fmtTime(alert.expires)}</span>` : ''}
@@ -7203,6 +7206,26 @@ function flyToMeteo(id) {
 const WMO_SEV_COLOR = ['#859289', '#a7c080', '#dbbc7f', '#e69875', '#e67e80'];
 const WMO_SEV_LABEL = ['Unknown', 'Minor', 'Moderate', 'Severe', 'Extreme'];
 
+/* CAP urgency/certainty, which the WFS exposes as the numeric `u` and `c`
+   columns. Mapping confirmed by fetching the source CAP files and comparing:
+   u 4=Immediate 3=Expected 2=Future 0=Unknown, c 4=Observed 3=Likely
+   2=Possible 0=Unknown.
+
+   Certainty is the field that separates "this hazard is happening" from
+   "conditions make it likely". It matters because several services publish
+   risk forecasts under an event name that reads like an active event —
+   Kazakhstan's fire-danger warnings arrive as event "Forestfire", severity
+   Extreme, certainty Likely, with no description text to disambiguate. */
+const WMO_URGENCY   = { 0:'Unknown', 1:'Past', 2:'Future', 3:'Expected', 4:'Immediate' };
+const WMO_CERTAINTY = { 0:'Unknown', 1:'Unlikely', 2:'Possible', 3:'Likely', 4:'Observed' };
+
+// Plain-language gloss so the CAP term isn't left to interpretation
+function wmoCertaintyNote(code) {
+  if (code === 4) return 'observed — hazard reported';
+  if (code === 3 || code === 2) return 'forecast — not yet observed';
+  return null;
+}
+
 // Extract 2-letter ISO country code from capurl prefix (e.g. "cn-cma-xx/..." → "cn")
 const WMO_ISO2_NAME = {
   af:'Afghanistan', al:'Albania', dz:'Algeria', ao:'Angola', ar:'Argentina',
@@ -7288,6 +7311,8 @@ async function loadWMO() {
         areadesc: props.areadesc || '',
         event:    props.event    || '',
         sev:      props.s ?? 0,
+        urgency:   props.u ?? 0,
+        certainty: props.c ?? 0,
         onset:    props.onset    || props.effective || props.sent || '',
         expires:  props.expires  || props.chk_expires || '',
         geometry: feature.geometry || null,
@@ -7329,6 +7354,7 @@ function renderWMO() {
         <span class="alert-event">${esc(alert.event || 'Weather Alert')}</span>
       </div>
       <div class="alert-sub">${esc(alert.areadesc)}${alert.country ? ' · ' + esc(alert.country) : ''}</div>
+      ${alert.certainty !== 4 ? `<div class="alert-sub" style="opacity:.75">${esc(WMO_CERTAINTY[alert.certainty] || 'Unknown')} — forecast, not observed</div>` : ''}
       <div class="alert-meta">
         ${alert.onset   ? `<span>${fmtTime(alert.onset)}</span>`            : ''}
         ${alert.expires ? `<span>Exp: ${fmtTime(alert.expires)}</span>`     : ''}
@@ -7359,6 +7385,9 @@ function plotWMO() {
     const popup = `<div class="popup-inner">
       <div class="popup-title">⚠️ ${esc(alert.event || 'Weather Alert')}</div>
       <div class="popup-row"><span>Severity</span><span style="color:${col};font-weight:600">${esc(WMO_SEV_LABEL[alert.sev] ?? '')}</span></div>
+      <div class="popup-row"><span>Certainty</span><span>${esc(WMO_CERTAINTY[alert.certainty] || 'Unknown')}${
+        wmoCertaintyNote(alert.certainty) ? ` <span style="color:var(--muted)">(${esc(wmoCertaintyNote(alert.certainty))})</span>` : ''}</span></div>
+      <div class="popup-row"><span>Urgency</span><span>${esc(WMO_URGENCY[alert.urgency] || 'Unknown')}</span></div>
       ${alert.areadesc ? `<div class="popup-row"><span>Area</span><span>${esc(alert.areadesc)}</span></div>` : ''}
       ${alert.country  ? `<div class="popup-row"><span>Country</span><span>${esc(alert.country)}</span></div>` : ''}
       ${alert.onset    ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(alert.onset)}</span></div>` : ''}
