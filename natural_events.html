@@ -6073,7 +6073,44 @@ function buildGlobalSummary() {
    ALERT DETAIL BAR — 5-panel NWS story scroller
 ══════════════════════════════════════════════════════ */
 let adbAlerts    = [];
-let adbActiveIdx = 0;
+let adbActiveIdx = 0;      // index into adbAlerts of the alert being scrolled
+let _adbWindowStart = 0;   // index of the first alert occupying a panel slot
+
+/* The breakpoints hide trailing panels with CSS (5 → 3 → 2), but the rotation
+   is driven by JS. Without a window the detail bar would narrate alerts whose
+   panel is off-screen, with no panel highlighted at all. So the panels show a
+   sliding window over adbAlerts, and it slides once the last visible alert has
+   finished scrolling. Measured from the DOM so it always matches the CSS. */
+function _adbVisibleCount() {
+  const panels = [...document.querySelectorAll('.adb-panel')];
+  if (!panels.length) return Math.min(5, adbAlerts.length || 5);
+  const shown = panels.filter(p => getComputedStyle(p).display !== 'none').length;
+  return Math.max(1, Math.min(shown || 5, adbAlerts.length || 1));
+}
+
+/* Advance to the next alert, sliding the window when we reach its end.
+   The window slides by the number of visible slots, clamped so the last
+   window still ends on the final alert — so with 5 alerts and 2 slots it
+   slides 2, then 1. Every alert is shown exactly once per cycle, and when
+   all 5 are visible (desktop) maxStart is 0, so nothing slides at all. */
+function _adbAdvance() {
+  const total = adbAlerts.length;
+  if (!total) return;
+  const visible   = _adbVisibleCount();
+  const maxStart  = Math.max(0, total - visible);
+  const windowEnd = Math.min(_adbWindowStart + visible - 1, total - 1);
+
+  if (adbActiveIdx < windowEnd) { adbActiveIdx++; return; }
+
+  if (_adbWindowStart >= maxStart) {
+    _adbWindowStart = 0;                                   // wrap to the start
+    adbActiveIdx    = 0;
+  } else {
+    _adbWindowStart = Math.min(_adbWindowStart + visible, maxStart);
+    // skip any alert the previous window already showed
+    adbActiveIdx    = Math.min(Math.max(_adbWindowStart, adbActiveIdx + 1), total - 1);
+  }
+}
 let adbAnim      = null;
 
 // ── Colour + label helpers ──────────────────────────
@@ -6266,6 +6303,9 @@ function buildAlertBar() {
 function _adbBuildNow() {
   adbAlerts = adbGatherItems();
   if (adbActiveIdx >= adbAlerts.length) adbActiveIdx = 0;
+  const _maxStart = Math.max(0, adbAlerts.length - _adbVisibleCount());
+  if (_adbWindowStart > _maxStart) _adbWindowStart = 0;
+  if (adbActiveIdx < _adbWindowStart) _adbWindowStart = 0;
 
   // If a rAF loop is already running (either the measure frame or the step loop),
   // leave it alone and just silently refresh the inactive panels.
@@ -6291,11 +6331,12 @@ function adbPanelMarkup(item) {
 
 // Update only the inactive panels — never touches the active one or its animation
 function _adbRefreshInactive() {
-  for (let i = 0; i < 5; i++) {
-    if (i === adbActiveIdx) continue;
-    const panel = document.getElementById(`adb-panel-${i}`);
+  for (let slot = 0; slot < 5; slot++) {
+    const alertIdx = _adbWindowStart + slot;
+    if (alertIdx === adbActiveIdx) continue;
+    const panel = document.getElementById(`adb-panel-${slot}`);
     if (!panel) continue;
-    const item    = adbAlerts[i];
+    const item    = adbAlerts[alertIdx];
     const flyable = !!(item?.flyId);
     panel.className = 'adb-panel' + (flyable ? ' flyable' : '');
     if (flyable) { panel.dataset.flySrc = item.src; panel.dataset.flyId = item.flyId; }
@@ -6319,11 +6360,12 @@ function _adbRenderAll() {
     return;
   }
 
-  for (let i = 0; i < 5; i++) {
+  for (let slot = 0; slot < 5; slot++) {
     const panel    = document.createElement('div');
-    panel.id       = `adb-panel-${i}`;
-    const item     = adbAlerts[i];
-    const isActive = (i === adbActiveIdx);
+    panel.id       = `adb-panel-${slot}`;
+    const alertIdx = _adbWindowStart + slot;      // slot → alert via the window
+    const item     = adbAlerts[alertIdx];
+    const isActive = (alertIdx === adbActiveIdx);
     const flyable  = !!(item?.flyId);
     panel.className = 'adb-panel' + (isActive ? ' active' : '') + (flyable ? ' flyable' : '');
     if (flyable) {
@@ -6345,6 +6387,7 @@ function _adbRenderAll() {
 
 // Manual rAF scroll — guaranteed constant speed, no easing curves
 const ADB_SPEED  = 215; // px per second
+const ADB_TAIL_GAP = 5; // px from the left edge at which the panel hands over
 let _adbRafId    = null; // handle for the active step() loop
 let _adbMeasureId = null; // handle for the one-frame measurement rAF
 
@@ -6368,7 +6411,10 @@ function _adbAnimate() {
     _adbMeasureId = null;
     const barW  = innerEl.offsetWidth;
     const textW = detailEl.scrollWidth;
-    const total = barW + textW;
+    // Hand over once the text's trailing edge is ADB_TAIL_GAP from the left
+    // edge of the bar, so the panel change lands as the description clears
+    // rather than after a beat of empty bar.
+    const total = barW + textW - ADB_TAIL_GAP;
     let startTime = null;
 
     function step(ts) {
@@ -6377,9 +6423,10 @@ function _adbAnimate() {
       detailEl.style.transform = `translateX(${barW - px}px)`;
 
       if (px >= total) {
-        // Finished — advance to next panel
+        // Finished — advance, sliding the panel window if this was the last
+        // visible alert (see _adbAdvance)
         _adbRafId = null;
-        adbActiveIdx = (adbActiveIdx + 1) % adbAlerts.length;
+        _adbAdvance();
         _adbRenderAll();
         requestAnimationFrame(_adbAnimate);
       } else {
