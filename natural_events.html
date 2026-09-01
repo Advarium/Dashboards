@@ -2190,11 +2190,49 @@
       :root { --sidebar-w: 300px; }
     }
 
+    /* ── Narrow laptop ──────────────────────────────── */
+    @media (min-width: 641px) and (max-width: 1200px) {
+      /* Legend starts collapsed here too (see applyResponsiveSidebars) */
+      .adb-panel:nth-child(n+4) { display: none; }   /* 5 panels → 3 */
+      .map-search { max-width: 190px; }
+    }
+
     /* ── Mobile ─────────────────────────────────────── */
     @media (max-width: 640px) {
-      .workspace { height: 55vh; }
+      .workspace { height: 58vh; }
       .panel-grid { grid-template-columns: 1fr; }
       .panel-grid .panel { height: 320px; }
+
+      /* The layers (190px) and legend (240px) sidebars together demand 430px —
+         wider than the viewport, which is why the map was reduced to a sliver.
+         They start collapsed to their 28px strips, and when opened they float
+         OVER the map instead of taking layout width from it. */
+      .map-panel { position: relative; }
+      .map-layers-sidebar:not(.collapsed),
+      .map-legend-sidebar:not(.collapsed) {
+        position: absolute; top: 0; bottom: 0;
+        width: 84vw; min-width: 0; z-index: 900;
+        box-shadow: 0 0 24px rgba(0,0,0,.55);
+      }
+      .map-layers-sidebar:not(.collapsed) { left: 0; }
+      .map-legend-sidebar:not(.collapsed) { right: 0; }
+
+      /* Five ticker panels across ~390px is ~78px each — unreadable stubs.
+         Show two; the rotation still cycles through all five over time.
+         The "Happening Now" label also claimed ~43% of the row, so it goes —
+         the alert content speaks for itself. */
+      .adb-panel:nth-child(n+3) { display: none; }
+      .adb-label { display: none; }
+
+      /* Header wraps instead of overflowing; the per-source badges go, since
+         the three severity pills carry the signal that matters on a phone. */
+      header { height: auto; min-height: var(--header-h); flex-wrap: wrap; padding: 6px 10px; }
+      .summary-counts { flex-shrink: 1; flex-wrap: wrap; border-right: none; padding-right: 0; }
+      .sc-source, .sc-divider { display: none; }
+      .header-right { padding-left: 0; gap: 10px; }
+
+      .map-panel-header { padding: 0 8px; gap: 6px; }
+      .map-search { max-width: 46vw; min-width: 0; }
     }
   </style>
 </head>
@@ -3337,6 +3375,32 @@ function proxyUrl(url) {
 /* ══════════════════════════════════════════════════════
    CLOCK
 ══════════════════════════════════════════════════════ */
+/* The sidebars' collapse mechanism already exists and works — it is simply
+   never invoked automatically. On narrow viewports their combined 430px of
+   fixed width leaves no room for the map, so collapse them on load. The
+   toggle strips still open them; mobile CSS then floats them over the map. */
+let _respTimer = null;
+function applyResponsiveSidebars() {
+  if (!window.matchMedia('(max-width: 1200px)').matches) return;
+  const narrow  = window.matchMedia('(max-width: 640px)').matches;
+  const targets = [document.querySelector('.map-legend-sidebar')];
+  if (narrow) targets.push(document.querySelector('.map-layers-sidebar'));
+
+  for (const el of targets) {
+    if (!el || el.classList.contains('collapsed')) continue;
+    // The sidebars animate `width`, but collapsing them programmatically at
+    // boot has no stable starting width to animate FROM — the transition then
+    // latches at the pre-collapse value and the element never reaches 28px.
+    // Suppress the transition for this one change, then restore it so the
+    // user's own toggle still animates.
+    el.style.transition = 'none';
+    el.classList.add('collapsed');
+    el.offsetWidth;                    // force reflow so the change is committed
+    requestAnimationFrame(() => { el.style.transition = ''; });
+  }
+  map?.invalidateSize?.();
+}
+
 function toggleMapLayers() {
   document.getElementById('map-layers-sidebar').classList.toggle('collapsed');
   setTimeout(() => { if (map) map.invalidateSize(); }, 300);
@@ -7467,6 +7531,11 @@ initMap();
 requestAnimationFrame(() => map.invalidateSize());
 buildAlertBar(); // render empty bar immediately
 initMapSearch();
+applyResponsiveSidebars();
+addEventListener('resize', () => {
+  clearTimeout(_respTimer);
+  _respTimer = setTimeout(applyResponsiveSidebars, 250);
+});
 refreshAll();
 
 // Staggered auto-refresh intervals
