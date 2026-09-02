@@ -106,6 +106,6 @@ redistribution.
   is always fully assembled; see `GIBS_DAILY_OFFSET`.
 - This project is not affiliated with or endorsed by any of the agencies above.
 
-##License
+## License
 
 This project is subject to the GNU GPLv3.
