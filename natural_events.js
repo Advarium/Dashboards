@@ -255,7 +255,7 @@ function toggleGeoSection(name, headerEl) {
    MAP  —  Leaflet + Esri basemaps + overlay layers
 ══════════════════════════════════════════════════════ */
 
-let map, baseDark, baseSat, eqLayer, easLayer, eonetLayer, droughtLayer, lsrLayer, gaugeLayer, volcLayer, gdacsLayer, meteoalarmLayer, wmoLayer, spcD1Layer, spcD2Layer, spcD3Layer, fwxD1Layer, fwxD2Layer, mscLayer, bomLayer, radarLayer, rainviewerLayer, imergLayer, goesWLayer, goesELayer, meteosatLayer, himawariLayer, graceLayer, smapRootLayer, smapSurfLayer, dwdRadarLayer, fmiRadarLayer, sstLayer, seaIceLayer, windLayer, ozoneLayer, so2Layer;
+let map, baseDark, baseSat, eqLayer, easLayer, eonetLayer, droughtLayer, lsrLayer, gaugeLayer, volcLayer, gdacsLayer, meteoalarmLayer, wmoLayer, spcD1Layer, spcD2Layer, spcD3Layer, fwxD1Layer, fwxD2Layer, mscLayer, radarLayer, rainviewerLayer, imergLayer, goesWLayer, goesELayer, meteosatLayer, himawariLayer, graceLayer, smapRootLayer, smapSurfLayer, dwdRadarLayer, fmiRadarLayer, sstLayer, seaIceLayer, windLayer, ozoneLayer, so2Layer;
 
 // Daily swath composites are assembled orbit-by-orbit as data downlinks, so a
 // day stays incomplete for a while after it ends. Measured tile coverage at z3:
@@ -372,10 +372,9 @@ function initMap() {
   );
 
   // EUMETSAT EUMETView — MTG-I FCI IR 10.5 µm full disk (0°), 10-min cadence.
-  // Replaces SSEC RealEarth, whose anonymous /api/image allowance stamped
-  // "Size limit exceeded" into tiles. EUMETView is the operator's own service:
-  // CORS-enabled, no key, no quota. Omitting `time` serves the latest frame,
-  // and style_02 is the enhanced-IR ramp that matches the GOES/Himawari look.
+  // The operator's own service: CORS-enabled, no key, no quota. Omitting
+  // `time` serves the latest frame, and style_02 is the enhanced-IR ramp that
+  // matches the GOES/Himawari look.
   meteosatLayer = L.tileLayer.wms('https://view.eumetsat.int/geoserver/wms', {
     layers:      'mtg_fd:ir105_hrfi',
     styles:      'mtg_fd:mtg_fd_ir105_hrfi_style_02',
@@ -386,10 +385,8 @@ function initMap() {
     attribution: 'Meteosat MTG-I FCI &copy; <a href="https://www.eumetsat.int/" target="_blank">EUMETSAT</a>',
   });
 
-  // NASA GIBS — Himawari AHI Band 13 Clean Infrared (East Asia / W Pacific).
-  // Moved off SSEC RealEarth: its anonymous /api/image allowance stamps
-  // "Size limit exceeded" into tiles once a session pulls enough imagery.
-  // GIBS serves the same Band 13 product at the same 10-minute cadence.
+  // NASA GIBS — Himawari AHI Band 13 Clean Infrared (East Asia / W Pacific),
+  // 10-minute cadence.
   himawariLayer = L.tileLayer(
     `${_gibsBase}/Himawari_AHI_Band13_Clean_Infrared/default/default/${_gibsTms}/{z}/{y}/{x}.png`,
     {
@@ -512,9 +509,8 @@ function initMap() {
   volcLayer       = L.layerGroup();
   gdacsLayer      = L.layerGroup();
   meteoalarmLayer = L.layerGroup();
-  wmoLayer        = L.layerGroup();
+  wmoLayer        = L.layerGroup([], { attribution: 'Alerts via <a href="https://severeweather.wmo.int/" target="_blank">WMO SWIC</a>; Australia &copy; <a href="http://www.bom.gov.au/" target="_blank">Bureau of Meteorology</a>' });
   mscLayer        = L.layerGroup();
-  bomLayer        = L.layerGroup();
   easLayer        = L.layerGroup();
   eonetLayer      = L.layerGroup();
   eqLayer         = L.layerGroup();
@@ -551,7 +547,7 @@ function toggleLayer(which) {
     updateMapCount();
     return;
   }
-  const layers = { eq: eqLayer, eas: easLayer, lsr: lsrLayer, eonet: eonetLayer, drought: droughtLayer, gauge: gaugeLayer, volc: volcLayer, gdacs: gdacsLayer, meteoalarm: meteoalarmLayer, wmo: wmoLayer, 'spc-d1': spcD1Layer, 'spc-d2': spcD2Layer, 'spc-d3': spcD3Layer, 'fwx-d1': fwxD1Layer, 'fwx-d2': fwxD2Layer, msc: mscLayer, bom: bomLayer, radar: radarLayer, imerg: imergLayer, goesw: goesWLayer, goese: goesELayer, grace: graceLayer, 'smap-root': smapRootLayer, 'smap-surf': smapSurfLayer, 'dwd-radar': dwdRadarLayer, 'fmi-radar': fmiRadarLayer, sst: sstLayer, seaice: seaIceLayer, wind: windLayer, ozone: ozoneLayer, so2: so2Layer, himawari: himawariLayer, meteosat: meteosatLayer };
+  const layers = { eq: eqLayer, eas: easLayer, lsr: lsrLayer, eonet: eonetLayer, drought: droughtLayer, gauge: gaugeLayer, volc: volcLayer, gdacs: gdacsLayer, meteoalarm: meteoalarmLayer, wmo: wmoLayer, 'spc-d1': spcD1Layer, 'spc-d2': spcD2Layer, 'spc-d3': spcD3Layer, 'fwx-d1': fwxD1Layer, 'fwx-d2': fwxD2Layer, msc: mscLayer, radar: radarLayer, imerg: imergLayer, goesw: goesWLayer, goese: goesELayer, grace: graceLayer, 'smap-root': smapRootLayer, 'smap-surf': smapSurfLayer, 'dwd-radar': dwdRadarLayer, 'fmi-radar': fmiRadarLayer, sst: sstLayer, seaice: seaIceLayer, wind: windLayer, ozone: ozoneLayer, so2: so2Layer, himawari: himawariLayer, meteosat: meteosatLayer };
   const el = document.getElementById(`toggle-${which}`);
   if (el && layers[which]) {
     el.checked ? map.addLayer(layers[which]) : map.removeLayer(layers[which]);
@@ -2498,138 +2494,6 @@ function flyToMSC(identifier) {
 }
 
 /* ══════════════════════════════════════════════════════
-   AUSTRALIA — Bureau of Meteorology
-══════════════════════════════════════════════════════ */
-
-let bomData = [];
-
-const BOM_TYPE = {
-  tropical_cyclone_warning: { label: 'Tropical Cyclone Warning', color: '#d699b6' },
-  flood_watch:              { label: 'Flood Watch',              color: '#a7c080' },
-  flood_warning:            { label: 'Flood Warning',            color: '#a7c080' },
-  fire_weather_warning:     { label: 'Fire Weather Warning',     color: '#e69875' },
-  severe_thunderstorm_warning:{ label: 'Severe Thunderstorm Warning', color: '#dbbc7f' },
-  marine_wind_warning:      { label: 'Marine Wind Warning',      color: '#7fbbb3' },
-  road_weather_alert:       { label: 'Road Weather Alert',       color: '#859289' },
-};
-
-// State/territory approximate centroids for flyTo (BOM warnings carry no geometry)
-const AUS_STATE_CENTER = {
-  ACT: [-35.47, 149.01], NSW: [-32.16, 147.02], NT: [-19.49, 134.36],
-  QLD: [-22.57, 144.43], SA:  [-30.00, 135.76], TAS: [-42.02, 146.59],
-  VIC: [-37.02, 144.97], WA:  [-25.33, 122.18],
-};
-
-async function loadBOMPanel() {
-  showLoading('bom-body');
-  bomData = [];
-  await loadBOM();
-  renderBOMPanel();
-  plotBOM();
-  markUpdated('bom-updated');
-  buildGlobalSummary();
-}
-
-async function loadBOM() {
-  try {
-    const response = await fetch('https://api.weather.bom.gov.au/v1/warnings', { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    bomData = payload.data || [];
-  } catch (err) { console.warn('BOM load failed:', err.message); }
-}
-
-function renderBOMPanel() {
-  const body = document.getElementById('bom-body');
-  if (!body) return;
-
-  const items = bomData.map(warning => {
-    const typeInfo = BOM_TYPE[warning.type] || { label: warning.type?.replace(/_/g,' ') || 'Warning', color: '#859289' };
-    const states   = warning.states?.length ? warning.states : warning.state ? [warning.state] : [];
-    return {
-      color:   typeInfo.color,
-      title:   warning.short_title || typeInfo.label,
-      sub:     states.join(', '),
-      flyState: states[0] || '',     // first state for flyTo
-      time:    warning.issue_time,
-      expires: warning.expiry_time,
-    };
-  });
-
-  document.getElementById('bom-count').textContent = items.length;
-
-  if (!items.length) {
-    body.innerHTML = '<div class="state muted">No active Australian warnings</div>';
-    return;
-  }
-
-  items.sort((itemA, itemB) => new Date(itemB.time) - new Date(itemA.time));
-
-  body.innerHTML = items.map(item => `
-    <div class="alert-item${item.flyState ? ' clickable' : ''}" style="border-left-color:${item.color}"
-         ${item.flyState ? `onclick="flyToBOM('${esc(item.flyState)}')" title="Click to locate on map"` : ''}>
-      <div class="alert-row">
-        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">AU</span>
-        <span class="alert-event">${esc(item.title)}</span>
-      </div>
-      ${item.sub ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
-      <div class="alert-meta">
-        <span>${fmtTime(item.time)}</span>
-        ${item.expires ? `<span>Exp: ${fmtTime(item.expires)}</span>` : ''}
-      </div>
-    </div>`).join('');
-}
-
-// Plot catchment polygons for the currently ACTIVE BOM flood warnings only.
-// The National Flood Gauge Network layers are the full static catchment
-// reference set — querying them with where=1=1 draws every catchment in
-// Australia. Instead we match layer 1 (Flood Warning Catchments) against the
-// product ids of active warnings from the BOM warnings API (loadBOM must have
-// populated bomData first). Layer 0 (Flood Watch Catchments) has no product_id
-// field to join on, so watches appear in the panel list but not as polygons.
-async function plotBOM() {
-  if (!bomLayer) return;
-  bomLayer.clearLayers();
-
-  // Product ids of active warnings, sanitized for the ArcGIS where clause
-  const activeProductIds = bomData
-    .map(warning => warning.id)
-    .filter(id => /^[A-Za-z0-9_]+$/.test(id || ''));
-  if (!activeProductIds.length) return;  // nothing active → nothing to draw
-
-  const base = 'https://hosting.wsapi.cloud.bom.gov.au/arcgis/rest/services/flood/National_Flood_Gauge_Network/FeatureServer';
-  const whereClause = `product_id IN (${activeProductIds.map(id => `'${id}'`).join(',')})`;
-  const query = new URLSearchParams({ where: whereClause, outFields: '*', f: 'geojson' });
-  try {
-    const warningGeojson = await fetch(proxyUrl(`${base}/1/query?${query}`), { signal: AbortSignal.timeout(15000) })
-      .then(response => response.ok ? response.json() : null);
-    if (!warningGeojson?.features?.length) return;
-
-    L.geoJSON(warningGeojson, {
-      style: { color: '#e67e80', weight: 1.5, opacity: 0.85, fillColor: '#e67e80', fillOpacity: 0.22 },
-      onEachFeature(feature, layer) {
-        const props = feature.properties;
-        layer._bomState = props.state_code;
-        layer.bindPopup(`<div class="popup-inner">
-          <div class="popup-title">🇦🇺 Flood Warning</div>
-          <div class="popup-row"><span>Area</span><span>${esc(props.dist_name || '')}</span></div>
-          <div class="popup-row"><span>State</span><span>${esc(props.state_code || '')}</span></div>
-          <div class="popup-row"><span>Product</span><span>${esc(props.product_id || '')}</span></div>
-        </div>`);
-      },
-    }).addTo(bomLayer);
-  } catch (err) { console.warn('BOM flood layer failed:', err.message); }
-}
-
-function flyToBOM(state) {
-  ensureLayerOn('bom');
-  if (!map || !state) return;
-  const center = AUS_STATE_CENTER[state.toUpperCase().trim()];
-  if (center) map.flyTo(center, Math.max(map.getZoom(), 5), { duration: 1 });
-  else map.flyTo([-25.27, 133.78], 4, { duration: 1 }); // whole-country fallback
-}
-
-/* ══════════════════════════════════════════════════════
    GDACS — Global Disaster Alert and Coordination System
    Feed: https://www.gdacs.org/xml/rss.xml  (via CORS proxy)
 ══════════════════════════════════════════════════════ */
@@ -3026,30 +2890,77 @@ function wmoCountryFromCapurl(capurl) {
   return WMO_ISO2_NAME[iso2] || iso2.toUpperCase();
 }
 
+/* ── Australia via WMO SWIC ──────────────────────────────────────
+   The Bureau of Meteorology publishes its CAP warnings into SWIC under the
+   "au-bom-en" prefix, so Australia is served from the same WFS as the rest
+   of the world rather than from BOM's own (undocumented) app API. BOM tags
+   most of those alerts with CAP severity 0 or 1, including active Severe
+   Weather Warnings, so the global "s>=2" filter would drop nearly all of
+   them and the fixed severity would mis-rank the rest. They are fetched
+   with a separate query and re-graded from the event name and description. */
+const WMO_BOM_PREFIX = 'au-bom-en/';
+
+function bomCapSeverity(props) {
+  const s     = props.s ?? 0;
+  const event = (props.event || '').toLowerCase();
+  const text  = `${props.headline || ''} ${props.description || ''}`.toLowerCase();
+  if (/tsunami|tropical cyclone/.test(event))   return 4;
+  if (/flood/.test(event))                       return /major flooding/.test(text) ? 3 : /moderate flooding/.test(text) ? 2 : 1;
+  if (/heat/.test(event))                        return /extreme heatwave/.test(text) ? 4 : /severe heatwave/.test(text) ? 3 : 2;
+  if (/fire/.test(event))                        return /catastrophic/.test(text) ? 4 : 3;
+  if (/^weather$|thunderstorm/.test(event))      return Math.max(s, 3);   // BOM only issues these as "Severe ..." warnings
+  if (/sheep|grazier|frost|road/.test(event))    return 1;
+  return Math.max(s, 1);
+}
+
+// BOM's CAP event names are terse ("Weather", "Riverine Flood"); restore the
+// product names Australians know from the warnings themselves.
+function bomCapEvent(props) {
+  const event = (props.event || '').trim();
+  const text  = `${props.headline || ''} ${props.description || ''}`.toLowerCase();
+  if (/^weather$/i.test(event))        return 'Severe Weather Warning';
+  if (/thunderstorm/i.test(event))     return 'Severe Thunderstorm Warning';
+  if (/flood/i.test(event)) {
+    const level = /major flooding/.test(text) ? 'Major' : /moderate flooding/.test(text) ? 'Moderate' : 'Minor';
+    return `${level} Flood Warning`;
+  }
+  if (/^wind$/i.test(event))           return 'Wind Warning';
+  if (/fire/i.test(event))             return 'Fire Weather Warning';
+  return event || 'Weather Warning';
+}
+
 async function loadWMO() {
   wmoData = [];
-  // Fetch severe+ land alerts with polygon geometry, server-side filtered + sorted
   const base = 'https://severeweather.wmo.int/f/ows';
-  const params = new URLSearchParams({
+  const wfs = (cql, extra = {}) => new URLSearchParams({
     service:      'WFS',
     version:      '1.1.0',
     request:      'GetFeature',
     typeName:     'local_postgis:postgis_geojsons',
     outputFormat: 'application/json',
-    CQL_FILTER:   "s>=2 AND marine='0' AND row_type<>'BOUNDARY'",
-    maxFeatures:  '250',
-    sortBy:       's D',
+    CQL_FILTER:   cql,
+    ...extra,
   });
+  // Global: severe+ land alerts, server-side filtered + sorted.
+  // Australia: every land alert from BOM, re-graded client-side (see above).
+  const globalParams = wfs("s>=2 AND marine='0' AND row_type<>'BOUNDARY'", { maxFeatures: '250', sortBy: 's D' });
+  const bomParams    = wfs(`capurl LIKE '${WMO_BOM_PREFIX}%' AND marine='0' AND row_type<>'BOUNDARY'`, { maxFeatures: '200' });
   try {
-    const response = await fetch(proxyUrl(`${base}?${params}`), { signal: AbortSignal.timeout(20000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const geojson = await response.json();
+    const [globalRes, bomRes] = await Promise.all([
+      fetch(proxyUrl(`${base}?${globalParams}`), { signal: AbortSignal.timeout(20000) }),
+      fetch(proxyUrl(`${base}?${bomParams}`),    { signal: AbortSignal.timeout(20000) })
+        .then(response => response.ok ? response.json() : null)
+        .catch(() => null),   // Australia is additive; a failure must not sink the global feed
+    ]);
+    if (!globalRes.ok) throw new Error(`HTTP ${globalRes.status}`);
+    const geojson = await globalRes.json();
     if (!Array.isArray(geojson.features)) throw new Error('Unexpected response shape');
+    const features = [...geojson.features, ...(bomRes?.features || [])];
 
     // Deduplicate by capurl — keep best geometry type (POLYGON/MULTIPOLYGON > POINT)
     const geomRank = { POLYGON: 2, MULTIPOLYGON: 2, POINT: 1 };
     const seen = new Map();
-    for (const feature of geojson.features) {
+    for (const feature of features) {
       const props = feature.properties;
       const key = props.capurl || feature.id;
       const rank = geomRank[props.row_type] ?? 0;
@@ -3068,13 +2979,16 @@ async function loadWMO() {
         centLon = (feature.bbox[0] + feature.bbox[2]) / 2;
         centLat = (feature.bbox[1] + feature.bbox[3]) / 2;
       }
+      const fromBom = (props.capurl || '').startsWith(WMO_BOM_PREFIX);
       return {
         id:       feature.id,
         capurl:   props.capurl || '',
         country:  wmoCountryFromCapurl(props.capurl),
         areadesc: props.areadesc || '',
-        event:    props.event    || '',
-        sev:      props.s ?? 0,
+        event:    fromBom ? bomCapEvent(props)    : (props.event || ''),
+        sev:      fromBom ? bomCapSeverity(props) : (props.s ?? 0),
+        source:   fromBom ? 'bom' : 'wmo',
+        credit:   fromBom ? 'Bureau of Meteorology via WMO SWIC' : '',
         urgency:   props.u ?? 0,
         certainty: props.c ?? 0,
         onset:    props.onset    || props.effective || props.sent || '',
@@ -3089,7 +3003,10 @@ async function loadWMO() {
   }
   plotWMO();
   noteDataLoaded();
-  AlertStore.push('wmo', normalizeWMO(wmoData));
+  // Two store sources so BOM keeps its own tag, header count and stale-sweep
+  const normalized = normalizeWMO(wmoData);
+  AlertStore.push('wmo', normalized.filter(alert => alert.source === 'wmo'));
+  AlertStore.push('bom', normalized.filter(alert => alert.source === 'bom'));
 }
 
 function plotWMO() {
@@ -3121,6 +3038,7 @@ function plotWMO() {
       ${alert.country  ? `<div class="popup-row"><span>Country</span><span>${esc(alert.country)}</span></div>` : ''}
       ${alert.onset    ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(alert.onset)}</span></div>` : ''}
       ${alert.expires  ? `<div class="popup-row"><span>Expires</span><span>${fmtTime(alert.expires)}</span></div>` : ''}
+      ${alert.credit   ? `<div class="popup-row"><span>Source</span><span>${esc(alert.credit)}</span></div>` : ''}
     </div>`;
     if (layer.bindPopup) {
       layer.bindPopup(popup);
@@ -3369,7 +3287,7 @@ function normalizeWMO(data) {
   const sevRank = [0, 1, 2, 3, 4];   // index = WMO sev number
   return data.map(alert => ({
     id:       `wmo-${alert.id}`,
-    source:   'wmo',
+    source:   alert.source || 'wmo',
     country:  countryNameToSlug(alert.country || ''),
     title:    alert.event || 'Weather Alert',
     severity: WMO_SEV_LABEL[alert.sev] || 'Unknown',
@@ -3562,7 +3480,7 @@ function buildGlobalSummary() {
   let extreme = 0, severe = 0, moderate = 0;
   const srcCounts = { nws:0, meteoalarm:0, wmo:0, gdacs:0, msc:0, bom:0 };
 
-  // AlertStore sources (meteoalarm, wmo, gdacs — and future msc/bom)
+  // AlertStore sources (meteoalarm, wmo, gdacs, bom)
   for (const country of AlertStore.countries()) {
     for (const alert of AlertStore.getCountry(country)) {
       if (alert._sevRank >= 3) extreme++;
@@ -3588,9 +3506,6 @@ function buildGlobalSummary() {
     else if (label === 'Watch')   severe++;
     else if (label === 'Advisory') moderate++;
   }
-
-  // BOM (not in AlertStore — all items counted, no severity mapping)
-  srcCounts.bom += bomData.length;
 
   const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value || '—'; };
   set('sc-extreme-count',  extreme  || '—');
@@ -3975,9 +3890,10 @@ function adbFlyTo(src, id) {
   else if (src === 'eonet')       flyToEonet(id);
   else if (src === 'meteoalarm')  flyToMeteo(id);
   else if (src === 'wmo')         flyToWMO(id);
+  else if (src === 'bom')         flyToWMO(id);   // BOM alerts live in the WMO layer
   else if (src === 'gdacs')       flyToGDACS(id);
   else if (src === 'msc')         flyToMSC(id);
-  // SWPC, FEMA, BOM have no map markers
+  // SWPC and FEMA have no map markers
 }
 
 // Event delegation — alert detail bar panels
@@ -4003,7 +3919,6 @@ function refreshAll() {
   loadGauges();
   loadVolcanism();
   loadMSCPanel();
-  loadBOMPanel();
   loadGDACS();
   loadMeteoalarm();
   loadWMO();
@@ -4037,7 +3952,6 @@ setInterval(loadFireWx,     1800_000);  // SPC fire weather outlook — updates 
 setInterval(loadGauges,       300_000);  // NWPS river gauges — 5 min refresh
 setInterval(loadVolcanism,    600_000);  // VHP + GeoNet — 10 min (data changes slowly)
 setInterval(loadMSCPanel,     300_000);  // Canada MSC alerts — 5 min refresh
-setInterval(loadBOMPanel,     300_000);  // Australia BOM warnings — 5 min refresh
 setInterval(loadGDACS,        600_000);  // GDACS global disasters — 10 min refresh
 setInterval(loadMeteoalarm,   600_000);  // Meteoalarm Europe — 10 min refresh
 setInterval(loadWMO,          600_000);  // WMO SWIC global alerts — 10 min refresh
