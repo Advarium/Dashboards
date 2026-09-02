@@ -19,9 +19,8 @@ overlays, with no build step and no backend beyond a tiny CORS relay.
   across every feed.
 - **Search** for addresses and places (Photon geocoder) or for live events
   already loaded in the dashboard.
-- **Themes.** Several colour and typography presets, remembered per browser.
-- **Auto-refresh** on a per-source cadence, from one minute (NWS alerts) to
-  one hour (daily satellite composites).
+- **Themes.** Several colour and typography presets, remembered per browser. Some are just for fun and not terribly readable.
+- **Auto-refresh** on a per-source cadence.
 
 ## Files
 
