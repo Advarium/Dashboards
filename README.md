@@ -30,6 +30,7 @@ overlays, with no build step and no backend beyond a tiny CORS relay.
 | `index.html` | Page markup: header, alert bar, map, layers panel, legend, sidebar panels. |
 | `natural_events.css` | All styling and theme variables. |
 | `natural_events.js` | Application code, organised one section per data source (state, load, parse, render, plot, fly-to). |
+| `cors-proxy-worker.js` | Cloudflare worker code for personal setup (preferred) |
 
 ## CORS relay
 
