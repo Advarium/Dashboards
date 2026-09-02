@@ -2,6 +2,7 @@
    CORS PROXY
    cors-proxy-worker.js.  Leave empty to disable proxied sources.
 ══════════════════════════════════════════════════════ */
+
 const PROXY_BASE = 'https://relay.advarium.workers.dev';
 
 /** Wrap a URL through the CORS proxy if PROXY_BASE is set, else return as-is */
@@ -11,164 +12,8 @@ function proxyUrl(url) {
 }
 
 /* ══════════════════════════════════════════════════════
-   CLOCK
+   HELPERS — formatting, panel states, live indicator
 ══════════════════════════════════════════════════════ */
-/* The sidebars' collapse mechanism already exists and works — it is simply
-   never invoked automatically. On narrow viewports their combined 430px of
-   fixed width leaves no room for the map, so collapse them on load. The
-   toggle strips still open them; mobile CSS then floats them over the map. */
-let _respTimer = null;
-function applyResponsiveSidebars() {
-  if (!window.matchMedia('(max-width: 1200px)').matches) return;
-  const narrow  = window.matchMedia('(max-width: 640px)').matches;
-  const targets = [document.querySelector('.map-legend-sidebar')];
-  if (narrow) targets.push(document.querySelector('.map-layers-sidebar'));
-
-  for (const el of targets) {
-    if (!el || el.classList.contains('collapsed')) continue;
-    // The sidebars animate `width`, but collapsing them programmatically at
-    // boot has no stable starting width to animate FROM — the transition then
-    // latches at the pre-collapse value and the element never reaches 28px.
-    // Suppress the transition for this one change, then restore it so the
-    // user's own toggle still animates.
-    el.style.transition = 'none';
-    el.classList.add('collapsed');
-    el.offsetWidth;                    // force reflow so the change is committed
-    requestAnimationFrame(() => { el.style.transition = ''; });
-  }
-  map?.invalidateSize?.();
-}
-
-function toggleMapLayers() {
-  document.getElementById('map-layers-sidebar').classList.toggle('collapsed');
-  setTimeout(() => { if (map) map.invalidateSize(); }, 300);
-}
-
-function toggleMapLegend() {
-  document.getElementById('map-legend-sidebar').classList.toggle('collapsed');
-  setTimeout(() => { if (map) map.invalidateSize(); }, 300);
-}
-
-let _satActive = false;
-function toggleSatellite() {
-  _satActive = !_satActive;
-  if (_satActive) {
-    map.removeLayer(baseDark);
-    baseSat.addTo(map);
-    baseSat.bringToBack();
-  } else {
-    map.removeLayer(baseSat);
-    baseDark.addTo(map);
-    baseDark.bringToBack();
-  }
-  const btn = document.getElementById('sat-toggle');
-  if (btn) btn.classList.toggle('active', _satActive);
-}
-
-function updateClock() {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hourCycle: 'h23' });
-  const tzAbbr  = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop();
-  document.getElementById('clock').textContent = `${timeStr} ${tzAbbr}`;
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-/* ══════════════════════════════════════════════════════
-   THEME SYSTEM
-══════════════════════════════════════════════════════ */
-const THEMES = [
-  // Design
-  { id: '',                    label: 'Everforest' },
-  { id: 'theme-nord',          label: 'Nord' },
-  { id: 'theme-dracula',       label: 'Dracula' },
-  { id: 'theme-solarized',     label: 'Solarized' },
-  { id: 'theme-catppuccin',    label: 'Catppuccin' },
-  { id: 'theme-high-contrast', label: 'High Contrast' },
-  // Styled
-  { id: 'theme-terminal',      label: 'Terminal' },
-  { id: 'theme-amber',         label: 'Amber CRT' },
-  { id: 'theme-blueprint',     label: 'Blueprint' },
-  { id: 'theme-industrial',    label: 'Industrial' },
-  { id: 'theme-military',      label: 'Military' },
-  // Atmospheric
-  { id: 'theme-synthwave',     label: 'Synthwave' },
-  { id: 'theme-deepsea',       label: 'Deep Sea' },
-  { id: 'theme-volcanic',      label: 'Volcanic' },
-  { id: 'theme-vaporwave',     label: 'Vaporwave' },
-  { id: 'theme-arctic',        label: 'Arctic' },
-  { id: 'theme-midnight',      label: 'Midnight City' },
-  // Character
-  { id: 'theme-brutalist',     label: 'Brutalist' },
-  { id: 'theme-espresso',      label: 'Espresso' },
-  { id: 'theme-cyberpunk',     label: 'Cyberpunk' },
-  { id: 'theme-autumn',        label: 'Autumn' },
-  { id: 'theme-rosegold',      label: 'Rose Gold' },
-  { id: 'theme-desert',        label: 'Desert' },
-  // Glass
-  { id: 'theme-glass',         label: 'Glass' },
-];
-
-function setTheme(themeId) {
-  // Remove all theme classes from <html>
-  for (const theme of THEMES) {
-    if (theme.id) document.documentElement.classList.remove(theme.id);
-  }
-  // Apply new theme
-  if (themeId) document.documentElement.classList.add(themeId);
-  localStorage.setItem('dashboard-theme', themeId);
-  // Update active indicator in menu
-  document.querySelectorAll('.theme-option').forEach(el => {
-    el.classList.toggle('active', el.dataset.theme === themeId);
-  });
-  // Update font — each theme may set a different --font
-  document.body.style.fontFamily = getComputedStyle(document.documentElement).getPropertyValue('--font').trim();
-  // Close menu
-  document.getElementById('theme-menu')?.classList.remove('open');
-}
-
-function toggleThemeMenu() {
-  document.getElementById('theme-menu')?.classList.toggle('open');
-}
-
-/* ── Collapsible geo sections ───────────────────────── */
-function toggleGeoSection(name, headerEl) {
-  const section = document.getElementById(`geo-section-${name}`);
-  if (!section) return;
-  const collapsed = section.classList.toggle('collapsed');
-  headerEl.classList.toggle('collapsed', collapsed);
-}
-
-// Close theme menu on outside click
-document.addEventListener('click', event => {
-  const selector = document.getElementById('theme-selector');
-  if (selector && !selector.contains(event.target)) {
-    document.getElementById('theme-menu')?.classList.remove('open');
-  }
-});
-
-// Restore saved theme on load
-(function restoreTheme() {
-  const saved = localStorage.getItem('dashboard-theme') || '';
-  if (saved) {
-    document.documentElement.classList.add(saved);
-    document.body.style.fontFamily = getComputedStyle(document.documentElement).getPropertyValue('--font').trim();
-  }
-  document.querySelectorAll('.theme-option').forEach(el => {
-    el.classList.toggle('active', el.dataset.theme === saved);
-  });
-})();
-
-/* ══════════════════════════════════════════════════════
-   HELPERS
-══════════════════════════════════════════════════════ */
-// Timezone abbreviation handled inline by toLocaleString({timeZoneName:'short'})
-
-// SWPC returns "YYYY-MM-DD HH:MM:SS" with no timezone — always UTC
-function swpcUTC(datetimeStr) {
-  if (!datetimeStr) return 0;
-  return new Date(String(datetimeStr).trim().replace(' ', 'T') + 'Z').getTime();
-}
 
 function fmtTime(iso) {
   if (!iso) return '—';
@@ -252,6 +97,166 @@ function relTime(ms) {
   return `${Math.floor(ageSeconds/86400)}d ago`;
 }
 
+/* ══════════════════════════════════════════════════════
+   THEME SYSTEM
+══════════════════════════════════════════════════════ */
+
+const THEMES = [
+  // Design
+  { id: '',                    label: 'Everforest' },
+  { id: 'theme-nord',          label: 'Nord' },
+  { id: 'theme-dracula',       label: 'Dracula' },
+  { id: 'theme-solarized',     label: 'Solarized' },
+  { id: 'theme-catppuccin',    label: 'Catppuccin' },
+  { id: 'theme-high-contrast', label: 'High Contrast' },
+  // Styled
+  { id: 'theme-terminal',      label: 'Terminal' },
+  { id: 'theme-amber',         label: 'Amber CRT' },
+  { id: 'theme-blueprint',     label: 'Blueprint' },
+  { id: 'theme-industrial',    label: 'Industrial' },
+  { id: 'theme-military',      label: 'Military' },
+  // Atmospheric
+  { id: 'theme-synthwave',     label: 'Synthwave' },
+  { id: 'theme-deepsea',       label: 'Deep Sea' },
+  { id: 'theme-volcanic',      label: 'Volcanic' },
+  { id: 'theme-vaporwave',     label: 'Vaporwave' },
+  { id: 'theme-arctic',        label: 'Arctic' },
+  { id: 'theme-midnight',      label: 'Midnight City' },
+  // Character
+  { id: 'theme-brutalist',     label: 'Brutalist' },
+  { id: 'theme-espresso',      label: 'Espresso' },
+  { id: 'theme-cyberpunk',     label: 'Cyberpunk' },
+  { id: 'theme-autumn',        label: 'Autumn' },
+  { id: 'theme-rosegold',      label: 'Rose Gold' },
+  { id: 'theme-desert',        label: 'Desert' },
+  // Glass
+  { id: 'theme-glass',         label: 'Glass' },
+];
+
+function setTheme(themeId) {
+  // Remove all theme classes from <html>
+  for (const theme of THEMES) {
+    if (theme.id) document.documentElement.classList.remove(theme.id);
+  }
+  // Apply new theme
+  if (themeId) document.documentElement.classList.add(themeId);
+  localStorage.setItem('dashboard-theme', themeId);
+  // Update active indicator in menu
+  document.querySelectorAll('.theme-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.theme === themeId);
+  });
+  // Update font — each theme may set a different --font
+  document.body.style.fontFamily = getComputedStyle(document.documentElement).getPropertyValue('--font').trim();
+  // Close menu
+  document.getElementById('theme-menu')?.classList.remove('open');
+}
+
+function toggleThemeMenu() {
+  document.getElementById('theme-menu')?.classList.toggle('open');
+}
+
+// Close theme menu on outside click
+document.addEventListener('click', event => {
+  const selector = document.getElementById('theme-selector');
+  if (selector && !selector.contains(event.target)) {
+    document.getElementById('theme-menu')?.classList.remove('open');
+  }
+});
+
+// Restore saved theme on load
+(function restoreTheme() {
+  const saved = localStorage.getItem('dashboard-theme') || '';
+  if (saved) {
+    document.documentElement.classList.add(saved);
+    document.body.style.fontFamily = getComputedStyle(document.documentElement).getPropertyValue('--font').trim();
+  }
+  document.querySelectorAll('.theme-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.theme === saved);
+  });
+})();
+
+/* ══════════════════════════════════════════════════════
+   UI — clock, responsive sidebars, header toggles
+══════════════════════════════════════════════════════ */
+
+function updateClock() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hourCycle: 'h23' });
+  const tzAbbr  = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop();
+  document.getElementById('clock').textContent = `${timeStr} ${tzAbbr}`;
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+
+/* The sidebars' collapse mechanism already exists and works — it is simply
+   never invoked automatically. On narrow viewports their combined 430px of
+   fixed width leaves no room for the map, so collapse them on load. The
+   toggle strips still open them; mobile CSS then floats them over the map. */
+let _respTimer = null;
+
+function applyResponsiveSidebars() {
+  if (!window.matchMedia('(max-width: 1200px)').matches) return;
+  const narrow  = window.matchMedia('(max-width: 640px)').matches;
+  const targets = [document.querySelector('.map-legend-sidebar')];
+  if (narrow) targets.push(document.querySelector('.map-layers-sidebar'));
+
+  for (const el of targets) {
+    if (!el || el.classList.contains('collapsed')) continue;
+    // The sidebars animate `width`, but collapsing them programmatically at
+    // boot has no stable starting width to animate FROM — the transition then
+    // latches at the pre-collapse value and the element never reaches 28px.
+    // Suppress the transition for this one change, then restore it so the
+    // user's own toggle still animates.
+    el.style.transition = 'none';
+    el.classList.add('collapsed');
+    el.offsetWidth;                    // force reflow so the change is committed
+    requestAnimationFrame(() => { el.style.transition = ''; });
+  }
+  map?.invalidateSize?.();
+}
+
+function toggleMapLayers() {
+  document.getElementById('map-layers-sidebar').classList.toggle('collapsed');
+  setTimeout(() => { if (map) map.invalidateSize(); }, 300);
+}
+
+function toggleMapLegend() {
+  document.getElementById('map-legend-sidebar').classList.toggle('collapsed');
+  setTimeout(() => { if (map) map.invalidateSize(); }, 300);
+}
+
+let _satActive = false;
+
+function toggleSatellite() {
+  _satActive = !_satActive;
+  if (_satActive) {
+    map.removeLayer(baseDark);
+    baseSat.addTo(map);
+    baseSat.bringToBack();
+  } else {
+    map.removeLayer(baseSat);
+    baseDark.addTo(map);
+    baseDark.bringToBack();
+  }
+  const btn = document.getElementById('sat-toggle');
+  if (btn) btn.classList.toggle('active', _satActive);
+}
+
+/* ── Collapsible geo sections ───────────────────────── */
+function toggleGeoSection(name, headerEl) {
+  const section = document.getElementById(`geo-section-${name}`);
+  if (!section) return;
+  const collapsed = section.classList.toggle('collapsed');
+  headerEl.classList.toggle('collapsed', collapsed);
+}
+
+/* ══════════════════════════════════════════════════════
+   MAP  —  Leaflet + Esri basemaps + overlay layers
+══════════════════════════════════════════════════════ */
+
+let map, baseDark, baseSat, eqLayer, easLayer, eonetLayer, droughtLayer, lsrLayer, gaugeLayer, volcLayer, gdacsLayer, meteoalarmLayer, wmoLayer, spcD1Layer, spcD2Layer, spcD3Layer, fwxD1Layer, fwxD2Layer, mscLayer, bomLayer, radarLayer, rainviewerLayer, imergLayer, goesWLayer, goesELayer, meteosatLayer, himawariLayer, graceLayer, smapRootLayer, smapSurfLayer, dwdRadarLayer, fmiRadarLayer, sstLayer, seaIceLayer, windLayer, ozoneLayer, so2Layer;
+
 // Daily swath composites are assembled orbit-by-orbit as data downlinks, so a
 // day stays incomplete for a while after it ends. Measured tile coverage at z3:
 // today 10/24, yesterday 21/24, two days back 24/24. Pin to 2 for full coverage.
@@ -277,11 +282,6 @@ function refreshGibsDailyLayers() {
   swap(so2Layer,   'OMI_SO2_Lower_Troposphere');
 }
 
-/* ══════════════════════════════════════════════════════
-   MAP  —  Leaflet + CartoDB Dark Matter
-══════════════════════════════════════════════════════ */
-let map, baseDark, baseSat, eqLayer, easLayer, eonetLayer, droughtLayer, lsrLayer, gaugeLayer, volcLayer, gdacsLayer, meteoalarmLayer, wmoLayer, spcD1Layer, spcD2Layer, spcD3Layer, fwxD1Layer, fwxD2Layer, mscLayer, bomLayer, radarLayer, rainviewerLayer, imergLayer, goesWLayer, goesELayer, meteosatLayer, himawariLayer, graceLayer, smapRootLayer, smapSurfLayer, dwdRadarLayer, fmiRadarLayer, sstLayer, seaIceLayer, windLayer, ozoneLayer, so2Layer;
-
 function initMap() {
   map = L.map('map', {
     center: [20, 10],
@@ -306,12 +306,8 @@ function initMap() {
   map.on('resize', _updateMinZoom);
 
   // Basemap layers — swappable via header toggle
-  // Esri Dark Gray Canvas. Replaced CARTO's dark_all, which as of their
-  // 2026-08-26 basemap terms update requires an API key and stamps
-  // "API KEY REQUIRED" into the tile image itself — the tiles still return
-  // HTTP 200 as valid PNGs, so only looking at the pixels reveals it.
-  // Esri needs no key, is already the provider behind baseSat, and its
-  // tile path is {z}/{y}/{x} with no file extension.
+  // Esri Dark Gray Canvas: keyless, same provider as baseSat. Tile path is
+  // {z}/{y}/{x} with no file extension.
   baseDark = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank">Esri</a> &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
     maxZoom: 19
@@ -484,9 +480,6 @@ function initMap() {
   );
 
   // DWD German radar composite (WMS, 1x1 km, 5-min analysis).
-  // NB: the old 'dwd:RX-Produkt' layer was retired — DWD's WAF answers requests
-  // for it with a 403 HTML page rather than a WMS ServiceException, so the layer
-  // failed silently and simply looked like permanently clear skies.
   dwdRadarLayer = L.tileLayer.wms('https://maps.dwd.de/geoserver/dwd/wms', {
     layers: 'dwd:Radar_wn-analysis_1x1km_ger',
     format: 'image/png',
@@ -527,105 +520,6 @@ function initMap() {
   eqLayer         = L.layerGroup();
 
   // Legend is the collapsible right-side sidebar (#map-legend-sidebar) — no Leaflet control needed
-}
-
-// Magnitude → fill color (Everforest palette)
-function magFillColor(m) {
-  if (m >= 7.0) return '#e67e80';  // red
-  if (m >= 6.0) return '#e69875';  // orange
-  if (m >= 5.0) return '#dbbc7f';  // yellow
-  if (m >= 4.0) return '#a7c080';  // green
-  return '#83c092';                // aqua
-}
-
-// Plot earthquake circle markers
-function plotEarthquakes() {
-  if (!map) return;
-  eqLayer.clearLayers();
-  const minMag = parseFloat(document.getElementById('eq-minmag').value) || 0;
-
-  for (const quake of eqData) {
-    const props = quake.properties;
-    const mag = props.mag ?? 0;
-    if (mag < minMag) continue;
-    if (!quake.geometry?.coordinates) continue;
-
-    const [lon, lat, depth] = quake.geometry.coordinates;
-    const color  = magFillColor(mag);
-    const radius = Math.max(4, mag * 3.8);
-    const isRecent = (Date.now() - (props.time || 0)) < 3600_000; // < 1 hour
-
-    const marker = L.circleMarker([lat, lon], {
-      radius,
-      fillColor:   color,
-      color:       isRecent ? '#fff' : color,
-      weight:      isRecent ? 1.5   : 0.6,
-      opacity:     0.9,
-      fillOpacity: 0.5
-    });
-
-    marker.bindPopup(`
-      <div class="popup-inner">
-        <div class="popup-title">M${mag.toFixed(1)} — ${esc(props.place || 'Unknown location')}</div>
-        <div class="popup-sub">${fmtTime(new Date(props.time).toISOString())} ${isRecent ? '· <b style="color:#50fa7b">Recent</b>' : ''}</div>
-        <div class="popup-row"><span>Depth</span><span>${depth != null ? depth.toFixed(1)+' km' : '—'}</span></div>
-        <div class="popup-row"><span>Scale</span><span>${magLabel(mag)}</span></div>
-        ${props.felt != null ? `<div class="popup-row"><span>Felt reports</span><span>${props.felt.toLocaleString()}</span></div>` : ''}
-        ${props.url ? `<a class="popup-link" href="${esc(props.url)}" target="_blank" rel="noopener">View on USGS ↗</a>` : ''}
-      </div>
-    `);
-
-    // Highlight matching row on click
-    marker.on('click', () => highlightEqRow(quake.id));
-
-    eqLayer.addLayer(marker);
-  }
-  updateMapCount();
-}
-
-// Plot NWS alert polygons
-function plotAlerts() {
-  if (!map) return;
-  easLayer.clearLayers();
-
-  const sevColor = { Extreme:'#e67e80', Severe:'#e69875', Moderate:'#dbbc7f' };
-
-  for (const alert of easData) {
-    if (!alert.geometry) continue;
-    const props     = alert.properties || alert;
-    const eventName = (props.event || '').toLowerCase();
-    // Event-type overrides take priority over severity colour
-    let color;
-    if (eventName.includes('flood')) color = '#a7c080'; // green — matches standard NWS flood colour
-    else                             color = sevColor[props.severity] || '#aaa';
-
-    try {
-      const layer = L.geoJSON(alert.geometry, {
-        style: {
-          color,
-          weight:      1.5,
-          opacity:     0.85,
-          fillColor:   color,
-          fillOpacity: 0.12
-        }
-      });
-      layer._alertId = alert.id;
-
-      layer.bindPopup(`
-        <div class="popup-inner">
-          <div class="popup-title">${esc(props.event || 'Alert')}</div>
-          <div class="popup-sub" style="color:${color}">${esc(props.severity || '')} · ${esc(props.urgency || '')}</div>
-          <div class="popup-row"><span>Area</span><span style="max-width:140px;text-align:right;white-space:normal">${esc((props.areaDesc||'').substring(0,60))}${(props.areaDesc||'').length>60?'…':''}</span></div>
-          <div class="popup-row"><span>Issued</span><span>${fmtTime(props.sent||props.effective||'')}</span></div>
-          <div class="popup-row"><span>Expires</span><span>${fmtTime(props.expires||props.ends||'')}</span></div>
-          ${props['@id']||props.id ? `<a class="popup-link" href="${esc(props['@id']||props.id)}" target="_blank" rel="noopener">Bulletin ↗</a>` : ''}
-        </div>
-      `);
-
-      easLayer.addLayer(layer);
-    } catch(_) { /* skip malformed geometry */ }
-  }
-  updateMapCount();
 }
 
 function updateMapCount() {
@@ -673,6 +567,7 @@ function toggleLayer(which) {
 /* ══════════════════════════════════════════════════════
    RAINVIEWER — Global radar tiles
 ══════════════════════════════════════════════════════ */
+
 async function loadRainviewer() {
   try {
     const response = await fetch('https://api.rainviewer.com/public/weather-maps.json');
@@ -702,1382 +597,13 @@ async function loadRainviewer() {
   }
 }
 
-// Pan map to a given earthquake row
-function highlightEqRow(id) {
-  const row = document.querySelector(`tr[data-id="${id}"]`);
-  if (row) {
-    row.scrollIntoView({ behavior:'smooth', block:'nearest' });
-    row.style.outline = '1px solid var(--accent)';
-    setTimeout(() => row.style.outline = '', 1800);
-  }
-}
-
-// Pan map to earthquake when row is clicked
-function flyToEq(id) {
-  ensureLayerOn('eq');
-  const quake = eqData.find(entry => entry.id === id);
-  if (!quake?.geometry?.coordinates) return;
-  const [lon, lat] = quake.geometry.coordinates;
-  map.flyTo([lat, lon], Math.max(map.getZoom(), 5), { duration: 1 });
-  // open its popup
-  eqLayer.eachLayer(marker => {
-    if (marker.getLatLng) {
-      const pos = marker.getLatLng();
-      if (Math.abs(pos.lat - lat) < 0.001 && Math.abs(pos.lng - lon) < 0.001) {
-        marker.openPopup();
-      }
-    }
-  });
-}
-
-// Pan map to EONET event when sidebar row is clicked
-function flyToEonet(id) {
-  ensureLayerOn('eonet');
-  const event = eonetData.find(entry => entry.id === id);
-  if (!event) return;
-  const geo = event.geometry?.[event.geometry.length - 1];
-  if (!geo?.coordinates) return;
-  const [lon, lat] = geo.coordinates;
-  map.flyTo([lat, lon], Math.max(map.getZoom(), 5), { duration: 1 });
-  eonetLayer.eachLayer(marker => {
-    if (marker._eonetId === id) marker.openPopup();
-  });
-}
-
-// Zone geometry cache — fire/weather zones don't change, so cache indefinitely
-const _zoneCache = {};
-async function _fetchZoneGeom(url) {
-  if (_zoneCache[url]) return _zoneCache[url];
-  try {
-    const response = await fetch(url, { headers: { Accept: 'application/geo+json' }, signal: AbortSignal.timeout(6000) });
-    if (!response.ok) return null;
-    const payload = await response.json();
-    _zoneCache[url] = payload.geometry || null;
-    return _zoneCache[url];
-  } catch(_) { return null; }
-}
-
-// Pan map to NWS alert when sidebar row is clicked
-async function flyToAlert(id) {
-  ensureLayerOn('eas');
-  const alert = easData.find(entry => entry.id === id);
-  if (!alert) return;
-
-  // Case 1: alert has direct geometry already plotted — find its layer
-  let found = false;
-  easLayer.eachLayer(layer => {
-    if (layer._alertId !== id) return;
-    try {
-      const bounds = layer.getBounds();
-      map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
-      layer.openPopup();
-      found = true;
-    } catch(_) {}
-  });
-  if (found) return;
-
-  // Case 2: no direct geometry — fetch first affectedZone polygon on demand
-  const zones = alert.properties?.affectedZones;
-  if (!zones?.length) return;
-  const geom = await _fetchZoneGeom(zones[0]);
-  if (!geom) return;
-  try {
-    const bounds = L.geoJSON(geom).getBounds();
-    map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
-    const props = alert.properties || alert;
-    const color = { Extreme:'#e67e80', Severe:'#e69875', Moderate:'#dbbc7f' }[props.severity] || '#aaa';
-    L.popup()
-      .setLatLng(bounds.getCenter())
-      .setContent(`
-        <div class="popup-inner">
-          <div class="popup-title">${esc(props.event || 'Alert')}</div>
-          <div class="popup-sub" style="color:${color}">${esc(props.severity||'')} · ${esc(props.urgency||'')}</div>
-          <div class="popup-row"><span>Area</span><span style="max-width:140px;text-align:right;white-space:normal">${esc((props.areaDesc||'').substring(0,60))}${(props.areaDesc||'').length>60?'…':''}</span></div>
-          <div class="popup-row"><span>Issued</span><span>${fmtTime(props.sent||props.effective||'')}</span></div>
-          <div class="popup-row"><span>Expires</span><span>${fmtTime(props.expires||props.ends||'')}</span></div>
-          ${props['@id']||props.id ? `<a class="popup-link" href="${esc(props['@id']||props.id)}" target="_blank" rel="noopener">Bulletin ↗</a>` : ''}
-        </div>
-      `)
-      .openOn(map);
-  } catch(_) {}
-}
-
-/* ══════════════════════════════════════════════════════
-   EARTHQUAKES  —  USGS
-══════════════════════════════════════════════════════ */
-let eqData = [];
-
-async function loadEarthquakes() {
-  showLoading('eq-body');
-  const feed = document.getElementById('eq-feed').value;
-  try {
-    let url;
-    if (feed === 'all_12h') {
-      const start = new Date(Date.now() - 12*3600*1000).toISOString();
-      url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${start}&orderby=time`;
-    } else {
-      url = `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${feed}.geojson`;
-    }
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    eqData = (payload.features || []).sort((quakeA, quakeB) => quakeB.properties.mag - quakeA.properties.mag);
-    markUpdated('eq-updated');
-    renderEarthquakes();
-  } catch (err) {
-    showState('eq-body','⚠️', `Failed: ${err.message}`);
-  }
-}
-
-function magClass(m) {
-  if (m >= 8) return 'mag-great';
-  if (m >= 7) return 'mag-major';
-  if (m >= 6) return 'mag-strong';
-  if (m >= 5) return 'mag-moderate';
-  if (m >= 4) return 'mag-light';
-  return 'mag-minor';
-}
-
-function magLabel(m) {
-  if (m >= 8) return 'Great';
-  if (m >= 7) return 'Major';
-  if (m >= 6) return 'Strong';
-  if (m >= 5) return 'Moderate';
-  if (m >= 4) return 'Light';
-  if (m >= 3) return 'Minor';
-  return 'Micro';
-}
-
-function renderEarthquakes() {
-  const minMag   = parseFloat(document.getElementById('eq-minmag').value) || 0;
-  const filtered = eqData.filter(quake => (quake.properties.mag || 0) >= minMag);
-  document.getElementById('eq-count').textContent = filtered.length;
-
-  if (!filtered.length) {
-    showState('eq-body','🟢','No events match filters.');
-    plotEarthquakes();
-    return;
-  }
-
-  let html = `<table>
-    <thead><tr>
-      <th>Mag</th><th>Location</th><th>Depth</th><th>Time (Local)</th>
-    </tr></thead><tbody>`;
-
-  for (const quake of filtered) {
-    const props = quake.properties;
-    const mag   = props.mag != null ? props.mag.toFixed(1) : '?';
-    const depth = quake.geometry?.coordinates?.[2];
-    const timeStr = props.time ? fmtTime(new Date(props.time).toISOString()) : '—';
-    const cls   = magClass(parseFloat(mag));
-    const isRecent = (Date.now() - (props.time||0)) < 3600_000;
-
-    html += `<tr data-id="${esc(quake.id)}" onclick="flyToEq('${esc(quake.id)}')" title="Click to locate on map">
-      <td><span class="mag ${cls}" data-tip="${magLabel(parseFloat(mag))}">${mag}</span></td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-        ${isRecent ? '<span style="color:var(--green);font-weight:700;margin-right:3px">●</span>' : ''}
-        ${esc(props.place || 'Unknown')}
-      </td>
-      <td style="white-space:nowrap;color:var(--muted)">${depth != null ? depth.toFixed(0)+' km' : '—'}</td>
-      <td style="white-space:nowrap;color:var(--muted);font-size:10px">${timeStr}</td>
-    </tr>`;
-  }
-
-  html += '</tbody></table>';
-  document.getElementById('eq-body').innerHTML = html;
-  plotEarthquakes();
-  buildGlobalSummary();
-
-  buildAlertBar();
-}
-
-/* ══════════════════════════════════════════════════════
-   EAS / NWS ALERTS
-══════════════════════════════════════════════════════ */
-let easData = [];
-
-async function loadAlerts() {
-  showLoading('eas-body');
-  const region = document.getElementById('eas-region').value;
-  const sevParam = 'severity=Extreme,Severe,Moderate';
-  const base = 'https://api.weather.gov/alerts/active';
-  const url  = region ? `${base}?${region}&${sevParam}` : `${base}?${sevParam}`;
-
-  try {
-    const response = await fetch(url, { headers:{ 'Accept':'application/geo+json' } });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    const sevOrder = { Extreme:0, Severe:1, Moderate:2, Unknown:3 };
-    easData = (payload.features || []).sort((alertA, alertB) => {
-      const propsA = alertA.properties || alertA, propsB = alertB.properties || alertB;
-      return (sevOrder[propsA.severity]??4) - (sevOrder[propsB.severity]??4);
-    });
-    markUpdated('eas-updated');
-    renderAlerts();
-  } catch (err) {
-    showState('eas-body','⚠️',`Failed: ${err.message}`);
-  }
-}
-
-function sevClass(severity) {
-  return { Extreme:'sev-extreme', Severe:'sev-severe', Moderate:'sev-moderate' }[severity] || 'sev-unknown';
-}
-
-function renderAlerts() {
-  const sevFilter = document.getElementById('eas-sev').value;
-  const filtered  = easData.filter(alert => {
-    const props = alert.properties || alert;
-    return sevFilter === 'all' || props.severity === sevFilter;
-  });
-
-  document.getElementById('eas-count').textContent = filtered.length;
-
-  if (!filtered.length) {
-    document.getElementById('eas-body').innerHTML =
-      `<div class="all-clear">✅ No active alerts.</div>`;
-    plotAlerts();
-    return;
-  }
-
-  let html = '<div class="alert-list">';
-  for (const alert of filtered) {
-    const props = alert.properties || alert;
-    const evt  = props.event || 'Unknown Alert';
-    const sev  = props.severity || 'Unknown';
-    const area = props.areaDesc || '';
-    const sent = props.sent || props.effective || '';
-    const exp  = props.expires || props.ends || '';
-    const url  = props['@id'] || props.id || '';
-
-    html += `<div class="alert-item" onclick="flyToAlert('${alert.id}')" title="Click to locate on map">
-      <div class="alert-top">
-        <span class="alert-event">${esc(evt)}</span>
-        <span class="sev-tag ${sevClass(sev)}">${esc(sev)}</span>
-      </div>
-      ${area ? `<div class="alert-area" title="${esc(area)}">${esc(area)}</div>` : ''}
-      <div class="alert-times">
-        ${sent ? `<span><b>Issued:</b> ${fmtTime(sent)}</span>` : ''}
-        ${exp  ? `<span><b>Exp:</b> ${fmtTime(exp)}</span>` : ''}
-        ${url  ? `<span><a class="link-btn" href="${esc(url)}" target="_blank" rel="noopener">Bulletin ↗</a></span>` : ''}
-      </div>
-    </div>`;
-  }
-  html += '</div>';
-  document.getElementById('eas-body').innerHTML = html;
-  plotAlerts();
-  buildGlobalSummary();
-
-  buildAlertBar();
-}
-
-/* ══════════════════════════════════════════════════════
-   SPACE WEATHER  —  NOAA SWPC
-══════════════════════════════════════════════════════ */
-let swAlerts = [];
-let kpCurrent = null;
-
-async function loadSpaceWeather() {
-  showLoading('sw-body');
-  try {
-    const [alertsRes, kpRes] = await Promise.allSettled([
-      fetch('https://services.swpc.noaa.gov/products/alerts.json'),
-      fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json')
-    ]);
-
-    if (alertsRes.status === 'fulfilled' && alertsRes.value.ok) {
-      const raw = await alertsRes.value.json();
-      const cutoff = Date.now() - 7*24*3600*1000;
-      swAlerts = raw
-        .filter(alert => alert.message && swpcUTC(alert.issue_datetime) >= cutoff)
-        .sort((alertA, alertB) => swpcUTC(alertB.issue_datetime) - swpcUTC(alertA.issue_datetime));
-    }
-
-    if (kpRes.status === 'fulfilled' && kpRes.value.ok) {
-      const kpSeries = await kpRes.value.json();
-      // Official 3-hour Kp product: array of objects { Kp, a_running, station_count, time_tag }
-      // Find the last entry with a valid (non-null) Kp reading
-      if (kpSeries?.length) {
-        const latestReading = [...kpSeries].reverse().find(entry => entry.Kp != null && entry.Kp !== '');
-        if (latestReading) kpCurrent = parseFloat(latestReading.Kp);
-      }
-    }
-
-    markUpdated('sw-updated');
-    renderSpaceWeather();
-  } catch (err) {
-    showState('sw-body','⚠️',`Failed: ${err.message}`);
-  }
-}
-
-const SW_PRODUCT_URLS = {
-  geo:   'https://www.swpc.noaa.gov/products/planetary-k-index',
-  solar: 'https://www.swpc.noaa.gov/products/solar-radiation-storm',
-  radio: 'https://www.swpc.noaa.gov/products/radio-blackout',
-  other: 'https://www.swpc.noaa.gov/products/alerts-watches-and-warnings'
-};
-
-function parseSWCategory(msg) {
-  const upper = msg.toUpperCase();
-  if (upper.includes('GEOMAGNETIC') || upper.includes('K-INDEX') || upper.includes('KP'))
-    return { key:'geo',   cls:'cat-geo',   label:'Geomagnetic' };
-  if (upper.includes('SOLAR RADIATION') || upper.includes('PROTON'))
-    return { key:'solar', cls:'cat-solar', label:'Solar Radiation' };
-  if (upper.includes('RADIO BLACKOUT') || upper.includes('X-RAY'))
-    return { key:'radio', cls:'cat-radio', label:'Radio Blackout' };
-  return { key:'other', cls:'cat-other', label:'Space Weather' };
-}
-
-function parseProductTitle(msg) {
-  const titleMatch = msg.match(/^([A-Z][A-Z \-]+)\n/);
-  if (titleMatch) return titleMatch[1].trim();
-  const first = msg.split('\n')[0].trim();
-  return first.length < 58 ? first : first.slice(0,55)+'…';
-}
-
-function renderSpaceWeather() {
-  const catFilter = document.getElementById('sw-cat-filter').value;
-  const filtered  = swAlerts.filter(alert =>
-    catFilter === 'all' || parseSWCategory(alert.message).key === catFilter
-  );
-
-  document.getElementById('sw-count').textContent = filtered.length;
-  let html = '';
-
-  // Kp gauge
-  if (kpCurrent !== null) {
-    const kp      = kpCurrent;
-    const kpColor = kp>=9?'#e67e80': kp>=7?'#e69875': kp>=5?'#dbbc7f': kp>=4?'#a7c080':'#83c092';
-    const kpLabel = kp>=9?'G5 Extreme': kp>=7?'G3–G4 Severe': kp>=5?'G1–G2 Storm': kp>=4?'Active':'Quiet';
-    html += `<div class="kp-bar-row">
-      <div class="kp-label">
-        <span style="color:var(--muted)">Planetary K-Index (Kp)</span>
-        <span style="font-weight:600;color:${kpColor}">${kpLabel}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span class="kp-value" style="color:${kpColor}">${kp.toFixed(1)}</span>
-        <div style="flex:1">
-          <div class="kp-scale">
-            ${[0,1,2,3,4,5,6,7,8,9].map(segment => {
-              const segColor = segment>=9?'#e67e80': segment>=7?'#e69875': segment>=5?'#dbbc7f': segment>=4?'#a7c080':'#83c092';
-              return `<div class="kp-seg ${kp>=segment?'active':''}" style="background:${segColor}" data-tip="Kp${segment}"></div>`;
-            }).join('')}
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px">
-            <span>0</span><span>5</span><span>9</span>
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  if (!filtered.length) {
-    html += `<div class="all-clear">✅ No space weather alerts (7-day window).</div>`;
-    document.getElementById('sw-body').innerHTML = html;
-    return;
-  }
-
-  html += '<div class="sw-alert-list">';
-  for (const alert of filtered) {
-    const cat   = parseSWCategory(alert.message);
-    const title = parseProductTitle(alert.message);
-    const body  = alert.message.replace(/\r?\n/g,' ').trim();
-    const issued= alert.issue_datetime || null;
-    const link  = SW_PRODUCT_URLS[cat.key];
-    html += `<div class="sw-item">
-      <div class="sw-top">
-        <span class="sw-type">${esc(title)}</span>
-        <span class="sw-cat ${cat.cls}">${esc(cat.label)}</span>
-      </div>
-      <div class="sw-body">${esc(body)}</div>
-      <div class="sw-time">
-        ${issued ? `<span>Issued: ${fmtTime(new Date(swpcUTC(issued)).toISOString())}</span>` : ''}
-        ${link ? `<span><a class="link-btn" href="${esc(link)}" target="_blank" rel="noopener">Bulletin ↗</a></span>` : ''}
-      </div>
-    </div>`;
-  }
-  html += '</div>';
-  document.getElementById('sw-body').innerHTML = html;
-  buildGlobalSummary();
-
-  buildAlertBar();
-}
-
-/* ══════════════════════════════════════════════════════
-   NASA EONET — Active Natural Events
-══════════════════════════════════════════════════════ */
-let eonetData = [];
-
-const EONET_CATS = {
-  wildfires:    { icon:'🔥', color:'#e69875', label:'Wildfire'      },
-  volcanoes:    { icon:'🌋', color:'#d699b6', label:'Volcano'       },
-  severeStorms: { icon:'🌀', color:'#7fbbb3', label:'Severe Storm'  },
-  seaLakeIce:   { icon:'🧊', color:'#83c092', label:'Sea/Lake Ice'  },
-  snow:         { icon:'❄️', color:'#d3c6aa', label:'Snow'          },
-  dustHaze:     { icon:'💨', color:'#859289', label:'Dust/Haze'     },
-  floods:       { icon:'🌊', color:'#7fbbb3', label:'Flood'         },
-  drought:      { icon:'🏜️', color:'#dbbc7f', label:'Drought'       },
-  manmade:      { icon:'⚠️', color:'#e67e80', label:'Manmade'       },
-};
-
-/* EONET events normally carry a title. If one is ever missing, say so plainly
-   rather than falling back to the category name: that fallback made the ticker
-   print the category twice (once as the tag, once as the location) and read as
-   though the category were the event's actual name. The EONET id is appended
-   so an untitled event is still traceable back to the source. */
-function eonetTitle(event) {
-  const title = (event?.title || '').trim();
-  if (title) return title;
-  return `Untitled event${event?.id ? ` · ${event.id}` : ''}`;
-}
-
-function eonetCatInfo(event) {
-  const catId = event.categories?.[0]?.id || 'manmade';
-  return EONET_CATS[catId] || { icon:'🌐', color:'#859289', label: event.categories?.[0]?.title || 'Event' };
-}
-
-async function loadEonet() {
-  showLoading('eonet-body');
-  try {
-    const response = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    eonetData = payload.events || [];
-    markUpdated('eonet-updated');
-    renderEonet();
-  } catch (err) {
-    showState('eonet-body','⚠️',`Failed: ${err.message}`);
-  }
-}
-
-function renderEonet() {
-  const catFilter = document.getElementById('eonet-cat').value;
-  const eonetCutoff48 = Date.now() - 48 * 3_600_000;
-  const filtered  = eonetData.filter(event => {
-    if (catFilter !== 'all' && !event.categories?.some(cat => cat.id === catFilter)) return false;
-    const geo = event.geometry?.[event.geometry.length - 1];
-    const updatedAt = geo?.date ? new Date(geo.date).getTime() : 0;
-    return updatedAt >= eonetCutoff48;
-  });
-
-  document.getElementById('eonet-count').textContent = filtered.length;
-
-  if (!filtered.length) {
-    document.getElementById('eonet-body').innerHTML =
-      `<div class="all-clear">✅ No active natural events.</div>`;
-    plotEonet();
-    return;
-  }
-
-  let html = '';
-  for (const event of filtered) {
-    const cat   = eonetCatInfo(event);
-    const geo   = event.geometry?.[event.geometry.length - 1];
-    const mag   = geo?.magnitudeValue != null
-      ? `${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit || ''}`
-      : null;
-    const date  = geo?.date ? fmtTime(geo.date) : '—';
-    const src   = event.sources?.[0]?.url || event.link || '';
-
-    html += `<div class="hazard-item" onclick="flyToEonet('${event.id}')" title="Click to locate on map">
-      <div class="hazard-top">
-        <span style="font-size:13px">${cat.icon}</span>
-        <span class="hazard-title">${esc(eonetTitle(event))}</span>
-        <span class="hazard-cat" style="background:${cat.color}22;color:${cat.color}">${esc(cat.label)}</span>
-      </div>
-      <div class="hazard-meta">
-        <span><b>Updated:</b> ${date}</span>
-        ${mag ? `<span><b>Size:</b> ${esc(mag)}</span>` : ''}
-        ${src ? `<span><a class="link-btn" href="${esc(src)}" target="_blank" rel="noopener">Source ↗</a></span>` : ''}
-      </div>
-    </div>`;
-  }
-  document.getElementById('eonet-body').innerHTML = html;
-  plotEonet();
-  buildGlobalSummary();
-
-  buildAlertBar();
-}
-
-function plotEonet() {
-  if (!map) return;
-  eonetLayer.clearLayers();
-  const catFilter = document.getElementById('eonet-cat').value;
-
-  const eonetMapCutoff = Date.now() - 48 * 3_600_000;
-
-  for (const event of eonetData) {
-    if (catFilter !== 'all' && !event.categories?.some(cat => cat.id === catFilter)) continue;
-    const geo = event.geometry?.[event.geometry.length - 1];
-    if (!geo?.coordinates) continue;
-    const updatedAt = geo.date ? new Date(geo.date).getTime() : 0;
-    if (!updatedAt || updatedAt < eonetMapCutoff) continue;
-
-    const [lon, lat] = geo.coordinates;
-    const cat   = eonetCatInfo(event);
-    const isWildfire = event.categories?.some(cat => cat.id === 'wildfires');
-
-    let marker;
-    if (isWildfire) {
-      marker = L.marker([lat, lon], {
-        icon: L.divIcon({
-          html: '<span style="font-size:18px;line-height:1">🔥</span>',
-          className: 'leaflet-marker-emoji',
-          iconSize:   [22, 22],
-          iconAnchor: [11, 11],
-          popupAnchor:[0, -12]
-        })
-      });
-    } else {
-      marker = L.circleMarker([lat, lon], {
-        radius:      7,
-        fillColor:   cat.color,
-        color:       cat.color,
-        weight:      1.5,
-        opacity:     1,
-        fillOpacity: 0.35,
-        dashArray:   '4 3'
-      });
-    }
-
-    marker._eonetId = event.id;
-    marker.bindPopup(`
-      <div class="popup-inner">
-        <div class="popup-title">${cat.icon} ${esc(eonetTitle(event))}</div>
-        <div class="popup-sub" style="color:${cat.color}">${esc(cat.label)}</div>
-        ${geo.magnitudeValue != null
-          ? `<div class="popup-row"><span>Size</span><span>${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit||''}</span></div>`
-          : ''}
-        <div class="popup-row"><span>Updated</span><span>${fmtTime(geo.date)}</span></div>
-        ${event.sources?.[0]?.url
-          ? `<a class="popup-link" href="${esc(event.sources[0].url)}" target="_blank" rel="noopener">Source ↗</a>`
-          : ''}
-      </div>
-    `);
-    eonetLayer.addLayer(marker);
-  }
-  updateMapCount();
-}
-
-/* ══════════════════════════════════════════════════════
-   FEMA — Disaster Declarations
-══════════════════════════════════════════════════════ */
-let femaData = [];
-
-const FEMA_ICONS = {
-  'Fire':'🔥', 'Flood':'🌊', 'Hurricane':'🌀', 'Tornado':'🌪️',
-  'Earthquake':'📡', 'Tsunami':'🌊', 'Winter Storm':'❄️',
-  'Snow':'❄️', 'Drought':'🏜️', 'Severe Storm':'⛈️',
-  'Severe Ice Storm':'🧊', 'Typhoon':'🌀', 'Chemical':'☣️',
-  'Biological':'🦠', 'Dam/Levee Break':'🌊', 'Mud/Landslide':'⛰️',
-  'Volcano':'🌋',
-};
-
-const FEMA_TYPE_LABELS = { DR:'Major Disaster', EM:'Emergency', FM:'Fire Mgmt', FS:'Fire Suppression' };
-
-async function loadFema() {
-  showLoading('fema-body');
-  try {
-    const sixMonthsAgo = new Date(Date.now() - 180*24*3600*1000).toISOString();
-    const url = `https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries`
-              + `?$orderby=declarationDate%20desc&$top=50`
-              + `&$filter=declarationDate%20gt%20'${sixMonthsAgo}'`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    // FEMA returns data under its own key, not OData's 'value'
-    femaData = payload.DisasterDeclarationsSummaries || payload.value || [];
-    markUpdated('fema-updated');
-    renderFema();
-  } catch (err) {
-    showState('fema-body','⚠️',`Failed: ${err.message}`);
-  }
-}
-
-function renderFema() {
-  const typeFilter = document.getElementById('fema-type').value;
-  const filtered   = femaData.filter(decl =>
-    typeFilter === 'all' || decl.incidentType === typeFilter
-  );
-
-  document.getElementById('fema-count').textContent = filtered.length;
-
-  if (!filtered.length) {
-    document.getElementById('fema-body').innerHTML =
-      `<div class="all-clear">✅ No declarations match filter.</div>`;
-    return;
-  }
-
-  let html = '';
-  for (const decl of filtered) {
-    const icon      = FEMA_ICONS[decl.incidentType] || '⚠️';
-    const typeLabel = FEMA_TYPE_LABELS[decl.declarationType] || decl.declarationType;
-    const declId    = decl.femaDeclarationString || `DR-${decl.disasterNumber}`;
-    const link      = decl.disasterNumber
-      ? `https://www.fema.gov/disaster/${decl.disasterNumber}`
-      : '';
-
-    html += `<div class="hazard-item">
-      <div class="hazard-top">
-        <span style="font-size:13px">${icon}</span>
-        <span class="hazard-title">${esc(decl.declarationTitle || decl.incidentType)}</span>
-        <span class="hazard-cat" style="background:#2a3528;color:#a7c080">${esc(typeLabel)}</span>
-      </div>
-      <div class="hazard-meta">
-        <span><b>${esc(declId)}</b></span>
-        <span><b>State:</b> ${esc(decl.state || decl.stateCode || '—')}</span>
-        <span><b>Type:</b> ${esc(decl.incidentType || '—')}</span>
-        <span><b>Declared:</b> ${decl.declarationDate ? fmtTime(decl.declarationDate) : '—'}</span>
-        ${link ? `<span><a class="link-btn" href="${esc(link)}" target="_blank" rel="noopener">FEMA ↗</a></span>` : ''}
-      </div>
-    </div>`;
-  }
-  document.getElementById('fema-body').innerHTML = html;
-  buildGlobalSummary();
-
-  buildAlertBar();
-}
-
-/* ══════════════════════════════════════════════════════
-   NWS LOCAL STORM REPORTS — SPC daily storm data
-══════════════════════════════════════════════════════ */
-let lsrData = [];
-
-const LSR_COLORS = { torn: '#e67e80', hail: '#dbbc7f', wind: '#83c092' };
-const LSR_ICONS  = { torn: '🌪️', hail: '🌨️', wind: '💨' };
-const LSR_LABELS = { torn: 'Tornado', hail: 'Hail', wind: 'Wind Damage' };
-
-function parseSpcCsv(text, type) {
-  // SPC CSV header: Time,F-Scale|Size|Speed,Location,County,State,Lat,Lon,Comments
-  return text.trim().split('\n').slice(1).map(line => {
-    const cols = line.split(',');
-    if (cols.length < 7) return null;
-    const lat = parseFloat(cols[5]), lon = parseFloat(cols[6]);
-    if (isNaN(lat) || isNaN(lon)) return null;
-    return {
-      type,
-      time:      cols[0].trim(),
-      magnitude: cols[1].trim(),
-      location:  cols[2].trim(),
-      county:    cols[3].trim(),
-      state:     cols[4].trim(),
-      lat, lon,
-      comments:  cols.slice(7).join(',').trim()
-    };
-  }).filter(Boolean);
-}
-
-async function loadLSR() {
-  try {
-    const base = 'https://www.spc.noaa.gov/climo/reports/today_filtered_';
-    const [tornRes, hailRes, windRes] = await Promise.all([
-      fetch(base + 'torn.csv'),
-      fetch(base + 'hail.csv'),
-      fetch(base + 'wind.csv'),
-    ]);
-    const reports = [];
-    if (tornRes.ok) reports.push(...parseSpcCsv(await tornRes.text(), 'torn'));
-    if (hailRes.ok) reports.push(...parseSpcCsv(await hailRes.text(), 'hail'));
-    if (windRes.ok) reports.push(...parseSpcCsv(await windRes.text(), 'wind'));
-    lsrData = reports;
-    plotLSR();
-  } catch (err) {
-    console.warn('LSR load failed:', err.message);
-  }
-}
-
-// Format an SPC storm report's magnitude for display.
-// Units are SPC's own, not metric: hail Size is in HUNDREDTHS OF AN INCH
-// (100 = 1.00", the size of a quarter) and wind Speed is already in mph
-// (verified against reports whose comments quote the measured gust).
-// Tornado reports carry an EF/F scale string. Any of the three may be 'UNK'.
-function lsrMagnitudeLabel(report) {
-  const raw = (report.magnitude || '').trim();
-  if (!raw || raw.toUpperCase() === 'UNK') return '';
-  const value = parseFloat(raw);
-  if (report.type === 'hail') {
-    return Number.isFinite(value) ? ` · ${(value / 100).toFixed(2)}"` : '';
-  }
-  if (report.type === 'wind') {
-    return Number.isFinite(value) ? ` · ${value} mph` : '';
-  }
-  return ` · ${raw}`;   // tornado EF/F scale
-}
-
-function plotLSR() {
-  if (!map) return;
-  lsrLayer.clearLayers();
-  for (const report of lsrData) {
-    const color = LSR_COLORS[report.type] || '#859289';
-    const icon  = LSR_ICONS[report.type]  || '⚡';
-    const label = LSR_LABELS[report.type] || 'Storm Report';
-    const magStr = lsrMagnitudeLabel(report);
-    L.circleMarker([report.lat, report.lon], {
-      radius: 5, color, fillColor: color, fillOpacity: 0.8, weight: 1.5
-    })
-    .bindPopup(`<div class="popup-inner">
-      <div class="popup-title">${icon} ${esc(label)}${esc(magStr)}</div>
-      <div class="popup-sub">${esc(report.location)}, ${esc(report.county)} Co., ${esc(report.state)}</div>
-      <div class="popup-row">UTC ${esc(report.time)} · NWS LSR</div>
-      ${report.comments ? `<div class="popup-row">${esc(report.comments)}</div>` : ''}
-    </div>`)
-    .addTo(lsrLayer);
-  }
-}
-
-/* ══════════════════════════════════════════════════════
-   SPC CONVECTIVE OUTLOOK — spc.noaa.gov GeoJSON
-══════════════════════════════════════════════════════ */
-const SPC_RISK = {
-  TSTM: { label: 'General Thunderstorms', color: '#a7c080', order: 1 },
-  MRGL: { label: 'Marginal Risk',          color: '#83c092', order: 2 },
-  SLGT: { label: 'Slight Risk',            color: '#dbbc7f', order: 3 },
-  ENH:  { label: 'Enhanced Risk',          color: '#e69875', order: 4 },
-  MDT:  { label: 'Moderate Risk',          color: '#e67e80', order: 5 },
-  HIGH: { label: 'High Risk',              color: '#d699b6', order: 6 },
-};
-
-function _buildSpcLayer(geojson, layer) {
-  layer.clearLayers();
-  if (!geojson?.features?.length) return;
-  // Sort lowest→highest risk so higher risk renders on top
-  const features = [...geojson.features].sort((featA, featB) => {
-    const orderA = SPC_RISK[featA.properties.LABEL]?.order ?? 0;
-    const orderB = SPC_RISK[featB.properties.LABEL]?.order ?? 0;
-    return orderA - orderB;
-  });
-  L.geoJSON({ type: 'FeatureCollection', features }, {
-    style(feature) {
-      const risk = SPC_RISK[feature.properties.LABEL];
-      const col  = risk?.color ?? '#859289';
-      return { color: col, weight: 1.5, opacity: 0.9, fillColor: col, fillOpacity: 0.18 };
-    },
-    onEachFeature(feature, lyr) {
-      const p    = feature.properties;
-      const risk = SPC_RISK[p.LABEL];
-      lyr.bindPopup(`<div class="popup-inner">
-        <div class="popup-title">⛈️ SPC ${esc(p.LABEL2 || p.LABEL)}</div>
-        <div class="popup-row"><span>Valid</span><span>${fmtTime(p.VALID_ISO)}</span></div>
-        <div class="popup-row"><span>Expires</span><span>${fmtTime(p.EXPIRE_ISO)}</span></div>
-        <div class="popup-row"><span>Issued</span><span>${fmtTime(p.ISSUE_ISO)}</span></div>
-        <div class="popup-row"><span>Forecaster</span><span>${esc(p.FORECASTER || '—')}</span></div>
-      </div>`);
-    }
-  }).addTo(layer);
-}
-
-async function loadSPC() {
-  const base = 'https://www.spc.noaa.gov/products/outlook/';
-  try {
-    const [d1, d2, d3] = await Promise.all([
-      fetch(base + 'day1otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(response => response.ok ? response.json() : null),
-      fetch(base + 'day2otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(response => response.ok ? response.json() : null),
-      fetch(base + 'day3otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(response => response.ok ? response.json() : null),
-    ]);
-    if (spcD1Layer) _buildSpcLayer(d1, spcD1Layer);
-    if (spcD2Layer) _buildSpcLayer(d2, spcD2Layer);
-    if (spcD3Layer) _buildSpcLayer(d3, spcD3Layer);
-  } catch (err) {
-    console.warn('SPC outlook load failed:', err.message);
-  }
-}
-
-/* ══════════════════════════════════════════════════════
-   INTERNATIONAL ALERTS — MSC (Canada) + BOM (Australia)
-══════════════════════════════════════════════════════ */
-let mscData = [], bomData = [], geonetVALData = [], vhpData = [], vonaData = [];
-let gdacsData = [], meteoalarmData = [], wmoData = [];
-
-// Classify MSC alert severity from the alert_type field ("warning" / "watch" /
-// "advisory" / "statement"), falling back to matching on free text
-function mscSeverity(alertType) {
-  const type = (alertType || '').toLowerCase();
-  if (type.includes('warning'))  return { color: '#e67e80', label: 'Warning' };
-  if (type.includes('watch'))    return { color: '#e69875', label: 'Watch' };
-  if (type.includes('advisory')) return { color: '#dbbc7f', label: 'Advisory' };
-  return { color: '#7fbbb3', label: 'Statement' };
-}
-
-// Title-case a lowercase MSC alert name ("air quality warning" → "Air Quality Warning")
-function mscTitleCase(name) {
-  return (name || '').replace(/\b\w/g, ch => ch.toUpperCase());
-}
-
-const BOM_TYPE = {
-  tropical_cyclone_warning: { label: 'Tropical Cyclone Warning', color: '#d699b6' },
-  flood_watch:              { label: 'Flood Watch',              color: '#a7c080' },
-  flood_warning:            { label: 'Flood Warning',            color: '#a7c080' },
-  fire_weather_warning:     { label: 'Fire Weather Warning',     color: '#e69875' },
-  severe_thunderstorm_warning:{ label: 'Severe Thunderstorm Warning', color: '#dbbc7f' },
-  marine_wind_warning:      { label: 'Marine Wind Warning',      color: '#7fbbb3' },
-  road_weather_alert:       { label: 'Road Weather Alert',       color: '#859289' },
-};
-
-async function loadMSC() {
-  try {
-    // GeoMet OGC API — Features (the old GeoMet WFS "ALERTS" layer was retired
-    // and now returns an XML exception). Serves CORS-enabled GeoJSON directly.
-    const url = 'https://api.weather.gc.ca/collections/weather-alerts/items?f=json&limit=500';
-    const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const geojson = await response.json();
-    mscData = geojson.features || [];
-    plotMSC();
-  } catch (err) { console.warn('MSC load failed:', err.message); }
-}
-
-function plotMSC() {
-  if (!map) return;
-  mscLayer.clearLayers();
-  L.geoJSON({ type: 'FeatureCollection', features: mscData }, {
-    style(feature) {
-      const severity = mscSeverity(feature.properties.alert_type);
-      return { color: severity.color, weight: 1, opacity: 0.8, fillColor: severity.color, fillOpacity: 0.12, dashArray: '3 4' };
-    },
-    onEachFeature(feature, layer) {
-      const props    = feature.properties;
-      const severity = mscSeverity(props.alert_type);
-      const alertText = props.alert_text_en || '';
-      layer._mscId = feature.id;
-      layer.bindPopup(`<div class="popup-inner">
-        <div class="popup-title">🇨🇦 ${esc(mscTitleCase(props.alert_name_en) || 'MSC Alert')}</div>
-        <div class="popup-sub">${esc(props.feature_name_en || props.province || '')}</div>
-        <div class="popup-row" style="margin-top:4px">
-          <span style="background:${severity.color};color:var(--badge-text, #1a2227);padding:1px 6px;border-radius:3px;font-size:11px;font-weight:700">${severity.label}</span>
-        </div>
-        <div class="popup-row" style="margin-top:6px;line-height:1.4;font-size:11px;color:var(--muted)">${esc(alertText.slice(0, 300))}${alertText.length > 300 ? '…' : ''}</div>
-        <div class="popup-row"><span>Effective</span><span>${fmtTime(props.validity_datetime || props.publication_datetime)}</span></div>
-        <div class="popup-row"><span>Expires</span><span>${fmtTime(props.expiration_datetime)}</span></div>
-      </div>`);
-    }
-  }).addTo(mscLayer);
-}
-
-function flyToMSC(identifier) {
-  ensureLayerOn('msc');
-  if (!map || !identifier) return;
-  // mscLayer contains one L.geoJSON group; individual polygon layers are one level deeper
-  mscLayer.eachLayer(group => {
-    (group.eachLayer ? group : { eachLayer: visit => visit(group) }).eachLayer(polygonLayer => {
-      if (polygonLayer._mscId !== identifier) return;
-      try {
-        const bounds = polygonLayer.getBounds?.();
-        if (bounds?.isValid()) map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
-      } catch {}
-      polygonLayer.openPopup();
-    });
-  });
-}
-
-async function loadBOM() {
-  try {
-    const response = await fetch('https://api.weather.bom.gov.au/v1/warnings', { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    bomData = payload.data || [];
-  } catch (err) { console.warn('BOM load failed:', err.message); }
-}
-
-const GEONET_VAL_COLOR = { 0:'#859289', 1:'#a7c080', 2:'#dbbc7f', 3:'#e69875', 4:'#e67e80', 5:'#d699b6' };
-
-async function loadGeoNetVAL() {
-  try {
-    const response = await fetch('https://api.geonet.org.nz/volcano/val', { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    geonetVALData = payload.features || [];
-  } catch (err) { console.warn('GeoNet VAL load failed:', err.message); }
-}
-
-const VHP_ALERT_COLOR = { NORMAL:'#859289', ADVISORY:'#dbbc7f', WATCH:'#e69875', WARNING:'#e67e80' };
-
-async function loadVHP() {
-  try {
-    const [elevated, vonas] = await Promise.all([
-      fetch('https://volcanoes.usgs.gov/hans-public/api/volcano/getElevatedVolcanoes', { signal: AbortSignal.timeout(10000) }).then(response => response.json()),
-      fetch('https://volcanoes.usgs.gov/hans-public/api/notice/getVonasWithinLastYear',  { signal: AbortSignal.timeout(10000) }).then(response => response.json()),
-    ]);
-    const elevArr = Array.isArray(elevated) ? elevated : [];
-    vonaData = Array.isArray(vonas) ? vonas : [];
-
-    // Enrich each elevated volcano with lat/lon via getVolcano/{vnum}
-    vhpData = await Promise.all(
-      elevArr.map(async volcano => {
-        try {
-          const detail = await fetch(
-            `https://volcanoes.usgs.gov/hans-public/api/volcano/getVolcano/${volcano.vnum}`,
-            { signal: AbortSignal.timeout(8000) }
-          ).then(response => response.json());
-          return { ...volcano, latitude: detail.latitude ?? null, longitude: detail.longitude ?? null, elevation_m: detail.elevation_meters ?? null };
-        } catch { return volcano; }
-      })
-    );
-
-    // Build vnum→coords lookup so VONAs can also have coordinates
-    const vnumCoords = {};
-    for (const volcano of vhpData) {
-      if (volcano.vnum && volcano.latitude != null) vnumCoords[volcano.vnum] = { lat: volcano.latitude, lon: volcano.longitude };
-    }
-    // Tag VONAs with coordinates where the volcano is in the elevated list
-    vonaData = vonaData.map(vona => ({ ...vona, ...(vnumCoords[vona.vnum] || {}) }));
-  } catch (err) { console.warn('USGS VHP load failed:', err.message); }
-}
-
-/* ── Volcanism — USGS VHP + GeoNet NZ ── */
-function volcMarkerIcon(color) {
-  return L.divIcon({
-    html: `<div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid ${color};filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))"></div>`,
-    className: 'leaflet-marker-emoji',
-    iconSize:    [14, 13],
-    iconAnchor:  [7,  13],
-    popupAnchor: [0, -14]
-  });
-}
-
-function plotVolcanism() {
-  if (!map) return;
-  volcLayer.clearLayers();
-
-  // GeoNet NZ — GeoJSON Point geometry
-  for (const feature of geonetVALData) {
-    const props = feature.properties;
-    if (!feature.geometry?.coordinates) continue;
-    const [lon, lat] = feature.geometry.coordinates;
-    const col = GEONET_VAL_COLOR[props.level ?? 0] || '#859289';
-    const marker = L.marker([lat, lon], { icon: volcMarkerIcon(col), zIndexOffset: 100 });
-    marker._volcId = `geonet-${props.volcanoID}`;
-    marker.bindPopup(`<div class="popup-inner">
-      <div class="popup-title">🌋 ${esc(props.volcanoTitle)}</div>
-      <div class="popup-sub">GeoNet NZ — Volcanic Alert Level ${props.level ?? 0}</div>
-      ${props.activity ? `<div class="popup-row" style="margin-top:4px;font-size:11px;color:var(--muted)">${esc(props.activity)}</div>` : ''}
-      ${props.hazards  ? `<div class="popup-row" style="font-size:10px;color:var(--muted)">${esc(props.hazards.slice(0,200))}${props.hazards.length>200?'…':''}</div>` : ''}
-      <div class="popup-row"><a href="https://www.geonet.org.nz/volcano/${esc(props.volcanoID)}" target="_blank" style="color:var(--accent)">GeoNet ↗</a></div>
-    </div>`);
-    marker.addTo(volcLayer);
-  }
-
-  // USGS VHP — elevated volcanoes (coordinates enriched in loadVHP)
-  for (const volcano of vhpData) {
-    if (volcano.latitude == null || volcano.longitude == null) continue;
-    const col = VHP_ALERT_COLOR[volcano.alert_level] || '#859289';
-    const marker = L.marker([volcano.latitude, volcano.longitude], { icon: volcMarkerIcon(col), zIndexOffset: 200 });
-    marker._volcId = `vhp-${volcano.vnum}`;
-    marker.bindPopup(`<div class="popup-inner">
-      <div class="popup-title">🌋 ${esc(volcano.volcano_name)}</div>
-      <div class="popup-sub">${esc(volcano.obs_fullname)}</div>
-      <div class="popup-row" style="margin-top:4px">
-        <span style="background:${col};color:var(--badge-text, #1a2227);padding:1px 7px;border-radius:3px;font-size:11px;font-weight:700">${esc(volcano.alert_level)}</span>
-        ${volcano.color_code ? `<span style="margin-left:6px;font-size:11px;color:var(--muted)">Aviation: ${esc(volcano.color_code)}</span>` : ''}
-      </div>
-      ${volcano.notice_url ? `<div class="popup-row"><a href="${esc(volcano.notice_url)}" target="_blank" style="color:var(--accent)">Latest Notice ↗</a></div>` : ''}
-    </div>`);
-    marker.addTo(volcLayer);
-  }
-}
-
-function flyToVolc(id, lat, lon) {
-  ensureLayerOn('volc');
-  if (!map || lat == null || lon == null) return;
-  map.flyTo([lat, lon], Math.max(map.getZoom(), 5), { duration: 1 });
-  volcLayer.eachLayer(marker => { if (marker._volcId === id) marker.openPopup(); });
-}
-
-async function loadVolcanism() {
-  showLoading('vhp-body');
-  showLoading('geonet-body');
-  geonetVALData = []; vhpData = []; vonaData = [];
-  await Promise.all([loadGeoNetVAL(), loadVHP()]);
-  renderVHP();
-  renderGeoNet();
-  plotVolcanism();
-  markUpdated('vhp-updated');
-  markUpdated('geonet-updated');
-}
-
-function renderVHP() {
-  const body = document.getElementById('vhp-body');
-  if (!body) return;
-  const items = [];
-
-  // Coord lookup for VONAs
-  const vhpCoords = {};
-  for (const volcano of vhpData) {
-    if (volcano.vnum && volcano.latitude != null) vhpCoords[volcano.vnum] = { lat: volcano.latitude, lon: volcano.longitude, id: `vhp-${volcano.vnum}` };
-  }
-
-  // USGS VHP — currently elevated volcanoes
-  vhpData.forEach(volcano => {
-    const col = VHP_ALERT_COLOR[volcano.alert_level] || '#859289';
-    const coords = volcano.latitude != null ? { lat: volcano.latitude, lon: volcano.longitude, id: `vhp-${volcano.vnum}` } : null;
-    items.push({
-      source: 'VHP', color: col,
-      title:  `${volcano.volcano_name} — ${volcano.alert_level}`,
-      sub:    `${volcano.obs_fullname} · Aviation: ${volcano.color_code || '—'}`,
-      time:   volcano.sent_utc ? volcano.sent_utc.replace(' ', 'T') + 'Z' : null,
-      desc:   '',
-      url:    volcano.notice_url || null,
-      coords,
-    });
-  });
-
-  // VONAs — last 7 days; coordinates shared via vnum lookup
-  const cutoff = Date.now() - 7 * 86400_000;
-  vonaData
-    .filter(vona => (vona.sent_unixtime * 1000) >= cutoff)
-    .forEach(vona => {
-      const col = VHP_ALERT_COLOR[vona.alert_level] || '#859289';
-      const coords = vhpCoords[vona.vnum] || null;
-      items.push({
-        source: 'VONA', color: col,
-        title:  `${vona.volcano_name} — VONA ${vona.color_code}`,
-        sub:    `${vona.region} · ${vona.nvews_threat || ''}`,
-        time:   vona.sent_utc ? vona.sent_utc.replace(' ', 'T') + 'Z' : null,
-        desc:   (vona.synopsis_complete || '').slice(0, 160),
-        url:    vona.vona_url || null,
-        coords,
-      });
-    });
-
-  document.getElementById('vhp-count').textContent = items.length;
-
-  if (!items.length) {
-    body.innerHTML = '<div class="state muted">No elevated volcanic activity</div>';
-    return;
-  }
-
-  // Timed items first (most recent), then untimed
-  items.sort((itemA, itemB) => {
-    if (itemA.time && itemB.time) return new Date(itemB.time) - new Date(itemA.time);
-    if (itemA.time) return -1;
-    if (itemB.time) return 1;
-    return itemA.source.localeCompare(itemB.source);
-  });
-
-  body.innerHTML = items.map(item => {
-    const flyAttr = item.coords
-      ? `onclick="flyToVolc('${item.coords.id}',${item.coords.lat},${item.coords.lon})" style="border-left-color:${item.color};cursor:pointer"`
-      : `style="border-left-color:${item.color}"`;
-    return `
-    <div class="alert-item" ${flyAttr} title="${item.coords ? 'Click to locate on map' : ''}">
-      <div class="alert-row">
-        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">${esc(item.source)}</span>
-        <span class="alert-event">${esc(item.title)}</span>
-      </div>
-      ${item.sub  ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
-      ${item.desc ? `<div class="alert-sub" style="opacity:.8">${esc(item.desc)}${item.desc.length >= 160 ? '…' : ''}</div>` : ''}
-      <div class="alert-meta">
-        <span>${fmtTime(item.time)}</span>
-        ${item.url ? `<a href="${esc(item.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderGeoNet() {
-  const body = document.getElementById('geonet-body');
-  if (!body) return;
-  const items = [];
-
-  // GeoNet VAL — all NZ volcanoes with their current alert level
-  geonetVALData.forEach(feature => {
-    const props = feature.properties;
-    const col   = GEONET_VAL_COLOR[props.level ?? 0] || '#859289';
-    const coords = feature.geometry?.coordinates
-      ? { lat: feature.geometry.coordinates[1], lon: feature.geometry.coordinates[0], id: `geonet-${props.volcanoID}` }
-      : null;
-    items.push({
-      source: 'NZ', color: col,
-      title:  `${props.volcanoTitle} — VAL ${props.level ?? 0}`,
-      sub:    props.activity || '',
-      time:   null,
-      desc:   props.hazards || '',
-      url:    `https://www.geonet.org.nz/volcano/${props.volcanoID}`,
-      coords,
-    });
-  });
-
-  document.getElementById('geonet-count').textContent = items.length;
-
-  if (!items.length) {
-    body.innerHTML = '<div class="state muted">No elevated volcanic activity</div>';
-    return;
-  }
-
-  body.innerHTML = items.map(item => {
-    const flyAttr = item.coords
-      ? `onclick="flyToVolc('${item.coords.id}',${item.coords.lat},${item.coords.lon})" style="border-left-color:${item.color};cursor:pointer"`
-      : `style="border-left-color:${item.color}"`;
-    return `
-    <div class="alert-item" ${flyAttr} title="${item.coords ? 'Click to locate on map' : ''}">
-      <div class="alert-row">
-        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">${esc(item.source)}</span>
-        <span class="alert-event">${esc(item.title)}</span>
-      </div>
-      ${item.sub  ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
-      ${item.desc ? `<div class="alert-sub" style="opacity:.8">${esc(item.desc)}${item.desc.length >= 160 ? '…' : ''}</div>` : ''}
-      <div class="alert-meta">
-        <span>${fmtTime(item.time)}</span>
-        ${item.url ? `<a href="${esc(item.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-/* ── Canada — Environment & Climate Change Canada MSC ── */
-async function loadMSCPanel() {
-  showLoading('msc-body');
-  mscData = [];
-  await loadMSC();
-  renderMSCPanel();
-  markUpdated('msc-updated');
-  buildGlobalSummary();
-}
-
-function renderMSCPanel() {
-  const body = document.getElementById('msc-body');
-  if (!body) return;
-
-  const items = mscData.map(feature => {
-    const props    = feature.properties;
-    const severity = mscSeverity(props.alert_type);
-    return {
-      id:      feature.id || '',
-      color:   severity.color,
-      title:   mscTitleCase(props.alert_name_en) || 'MSC Alert',
-      sub:     [props.feature_name_en, props.province].filter(Boolean).join(', '),
-      time:    props.validity_datetime || props.publication_datetime,
-      expires: props.expiration_datetime,
-      desc:    (props.alert_text_en || '').slice(0, 160),
-      url:     '',
-    };
-  });
-
-  document.getElementById('msc-count').textContent = items.length;
-
-  if (!items.length) {
-    body.innerHTML = '<div class="state muted">No active Canadian alerts</div>';
-    return;
-  }
-
-  items.sort((itemA, itemB) => new Date(itemB.time) - new Date(itemA.time));
-
-  body.innerHTML = items.map(item => `
-    <div class="alert-item clickable" style="border-left-color:${item.color}"
-         onclick="flyToMSC('${esc(item.id)}')" title="Click to locate on map">
-      <div class="alert-row">
-        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">CA</span>
-        <span class="alert-event">${esc(item.title)}</span>
-      </div>
-      ${item.sub  ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
-      ${item.desc ? `<div class="alert-sub" style="opacity:.8">${esc(item.desc)}${item.desc.length >= 160 ? '…' : ''}</div>` : ''}
-      <div class="alert-meta">
-        <span>${fmtTime(item.time)}</span>
-        ${item.expires ? `<span>Exp: ${fmtTime(item.expires)}</span>` : ''}
-        ${item.url ? `<a href="${esc(item.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
-      </div>
-    </div>`).join('');
-}
-
-/* ── Australia — Bureau of Meteorology ── */
-
-// State/territory approximate centroids for flyTo (BOM warnings carry no geometry)
-const AUS_STATE_CENTER = {
-  ACT: [-35.47, 149.01], NSW: [-32.16, 147.02], NT: [-19.49, 134.36],
-  QLD: [-22.57, 144.43], SA:  [-30.00, 135.76], TAS: [-42.02, 146.59],
-  VIC: [-37.02, 144.97], WA:  [-25.33, 122.18],
-};
-
-// Plot catchment polygons for the currently ACTIVE BOM flood warnings only.
-// The National Flood Gauge Network layers are the full static catchment
-// reference set — querying them with where=1=1 draws every catchment in
-// Australia. Instead we match layer 1 (Flood Warning Catchments) against the
-// product ids of active warnings from the BOM warnings API (loadBOM must have
-// populated bomData first). Layer 0 (Flood Watch Catchments) has no product_id
-// field to join on, so watches appear in the panel list but not as polygons.
-async function plotBOM() {
-  if (!bomLayer) return;
-  bomLayer.clearLayers();
-
-  // Product ids of active warnings, sanitized for the ArcGIS where clause
-  const activeProductIds = bomData
-    .map(warning => warning.id)
-    .filter(id => /^[A-Za-z0-9_]+$/.test(id || ''));
-  if (!activeProductIds.length) return;  // nothing active → nothing to draw
-
-  const base = 'https://hosting.wsapi.cloud.bom.gov.au/arcgis/rest/services/flood/National_Flood_Gauge_Network/FeatureServer';
-  const whereClause = `product_id IN (${activeProductIds.map(id => `'${id}'`).join(',')})`;
-  const query = new URLSearchParams({ where: whereClause, outFields: '*', f: 'geojson' });
-  try {
-    const warningGeojson = await fetch(proxyUrl(`${base}/1/query?${query}`), { signal: AbortSignal.timeout(15000) })
-      .then(response => response.ok ? response.json() : null);
-    if (!warningGeojson?.features?.length) return;
-
-    L.geoJSON(warningGeojson, {
-      style: { color: '#e67e80', weight: 1.5, opacity: 0.85, fillColor: '#e67e80', fillOpacity: 0.22 },
-      onEachFeature(feature, layer) {
-        const props = feature.properties;
-        layer._bomState = props.state_code;
-        layer.bindPopup(`<div class="popup-inner">
-          <div class="popup-title">🇦🇺 Flood Warning</div>
-          <div class="popup-row"><span>Area</span><span>${esc(props.dist_name || '')}</span></div>
-          <div class="popup-row"><span>State</span><span>${esc(props.state_code || '')}</span></div>
-          <div class="popup-row"><span>Product</span><span>${esc(props.product_id || '')}</span></div>
-        </div>`);
-      },
-    }).addTo(bomLayer);
-  } catch (err) { console.warn('BOM flood layer failed:', err.message); }
-}
-
-function flyToBOM(state) {
-  ensureLayerOn('bom');
-  if (!map || !state) return;
-  const center = AUS_STATE_CENTER[state.toUpperCase().trim()];
-  if (center) map.flyTo(center, Math.max(map.getZoom(), 5), { duration: 1 });
-  else map.flyTo([-25.27, 133.78], 4, { duration: 1 }); // whole-country fallback
-}
-
-async function loadBOMPanel() {
-  showLoading('bom-body');
-  bomData = [];
-  await loadBOM();
-  renderBOMPanel();
-  plotBOM();
-  markUpdated('bom-updated');
-  buildGlobalSummary();
-}
-
-function renderBOMPanel() {
-  const body = document.getElementById('bom-body');
-  if (!body) return;
-
-  const items = bomData.map(warning => {
-    const typeInfo = BOM_TYPE[warning.type] || { label: warning.type?.replace(/_/g,' ') || 'Warning', color: '#859289' };
-    const states   = warning.states?.length ? warning.states : warning.state ? [warning.state] : [];
-    return {
-      color:   typeInfo.color,
-      title:   warning.short_title || typeInfo.label,
-      sub:     states.join(', '),
-      flyState: states[0] || '',     // first state for flyTo
-      time:    warning.issue_time,
-      expires: warning.expiry_time,
-    };
-  });
-
-  document.getElementById('bom-count').textContent = items.length;
-
-  if (!items.length) {
-    body.innerHTML = '<div class="state muted">No active Australian warnings</div>';
-    return;
-  }
-
-  items.sort((itemA, itemB) => new Date(itemB.time) - new Date(itemA.time));
-
-  body.innerHTML = items.map(item => `
-    <div class="alert-item${item.flyState ? ' clickable' : ''}" style="border-left-color:${item.color}"
-         ${item.flyState ? `onclick="flyToBOM('${esc(item.flyState)}')" title="Click to locate on map"` : ''}>
-      <div class="alert-row">
-        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">AU</span>
-        <span class="alert-event">${esc(item.title)}</span>
-      </div>
-      ${item.sub ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
-      <div class="alert-meta">
-        <span>${fmtTime(item.time)}</span>
-        ${item.expires ? `<span>Exp: ${fmtTime(item.expires)}</span>` : ''}
-      </div>
-    </div>`).join('');
-}
-
-/* ══════════════════════════════════════════════════════
-   SPC FIRE WEATHER OUTLOOK — NOAA MapServer
-══════════════════════════════════════════════════════ */
-const FWX_RISK = {
-  5:  { label: 'Elevated',           color: '#dbbc7f' },
-  8:  { label: 'Critical',           color: '#e69875' },
-  10: { label: 'Extremely Critical', color: '#e67e80' },
-};
-
-// Parse SPC's compact timestamp format: "202604051700" → ISO string
-function parseSpcTs(compact) {
-  if (!compact || String(compact).length < 12) return null;
-  const ts = String(compact);
-  return new Date(Date.UTC(+ts.slice(0,4), +ts.slice(4,6)-1, +ts.slice(6,8), +ts.slice(8,10), +ts.slice(10,12))).toISOString();
-}
-
-async function _fetchFwxLayer(layerId) {
-  const base = 'https://mapservices.weather.noaa.gov/vector/rest/services/fire_weather/SPC_firewx/MapServer';
-  const params = new URLSearchParams({ where: '1=1', outFields: 'dn,valid,expire', returnGeometry: 'true', f: 'geojson' });
-  const response = await fetch(`${base}/${layerId}/query?${params}`, { signal: AbortSignal.timeout(10000) });
-  if (!response.ok) return null;
-  return response.json();
-}
-
-function _buildFwxLayer(mainGJ, dryGJ, layer) {
-  layer.clearLayers();
-
-  // Main categorical risk (Elevated / Critical / Extremely Critical)
-  if (mainGJ?.features?.length) {
-    const features = [...mainGJ.features]
-      .filter(feature => feature.properties.dn && FWX_RISK[feature.properties.dn])
-      .sort((featA, featB) => (featA.properties.dn ?? 0) - (featB.properties.dn ?? 0));
-    L.geoJSON({ type: 'FeatureCollection', features }, {
-      style(feature) {
-        const risk = FWX_RISK[feature.properties.dn];
-        const col  = risk?.color ?? '#859289';
-        return { color: col, weight: 1.5, opacity: 0.9, fillColor: col, fillOpacity: 0.22 };
-      },
-      onEachFeature(feature, polygonLayer) {
-        const props = feature.properties;
-        const risk  = FWX_RISK[props.dn];
-        polygonLayer.bindPopup(`<div class="popup-inner">
-          <div class="popup-title">🔥 Fire Wx — ${esc(risk?.label ?? 'Unknown')}</div>
-          <div class="popup-row"><span>Valid</span><span>${fmtTime(parseSpcTs(props.valid))}</span></div>
-          <div class="popup-row"><span>Expires</span><span>${fmtTime(parseSpcTs(props.expire))}</span></div>
-        </div>`);
-      }
-    }).addTo(layer);
-  }
-
-  // Dry thunderstorm areas — dashed outline only, no fill
-  if (dryGJ?.features?.length) {
-    const dryFeatures = dryGJ.features.filter(feature => feature.geometry?.coordinates?.length);
-    if (dryFeatures.length) {
-      L.geoJSON({ type: 'FeatureCollection', features: dryFeatures }, {
-        style() {
-          return { color: '#d699b6', weight: 2, opacity: 0.85, dashArray: '6 4', fill: false };
-        },
-        onEachFeature(feature, polygonLayer) {
-          const props = feature.properties;
-          polygonLayer.bindPopup(`<div class="popup-inner">
-            <div class="popup-title">⚡ Dry Thunderstorm Area</div>
-            <div class="popup-row"><span>Valid</span><span>${fmtTime(parseSpcTs(props.valid))}</span></div>
-            <div class="popup-row"><span>Expires</span><span>${fmtTime(parseSpcTs(props.expire))}</span></div>
-          </div>`);
-        }
-      }).addTo(layer);
-    }
-  }
-}
-
-async function loadFireWx() {
-  try {
-    const [d1main, d1dry, d2main, d2dry] = await Promise.all([
-      _fetchFwxLayer(1),
-      _fetchFwxLayer(2),
-      _fetchFwxLayer(4),
-      _fetchFwxLayer(5),
-    ]);
-    if (fwxD1Layer) _buildFwxLayer(d1main, d1dry, fwxD1Layer);
-    if (fwxD2Layer) _buildFwxLayer(d2main, d2dry, fwxD2Layer);
-  } catch (err) {
-    console.warn('Fire weather outlook load failed:', err.message);
-  }
-}
-
 /* ══════════════════════════════════════════════════════
    MAP SEARCH — Photon geocoder (addresses/places) + live events
    Photon is keyless and CORS-open, handles house-number addresses
    from partial input, and is biased toward the current map centre so
    bare place names resolve near where the user is already looking.
 ══════════════════════════════════════════════════════ */
+
 let _searchAbort    = null;
 let _searchDebounce = null;
 let _searchItems    = [];   // flat list of selectable rows, in render order
@@ -2328,10 +854,1114 @@ function initMapSearch() {
 }
 
 /* ══════════════════════════════════════════════════════
+   EARTHQUAKES  —  USGS
+══════════════════════════════════════════════════════ */
+
+let eqData = [];
+
+async function loadEarthquakes() {
+  showLoading('eq-body');
+  const feed = document.getElementById('eq-feed').value;
+  try {
+    let url;
+    if (feed === 'all_12h') {
+      const start = new Date(Date.now() - 12*3600*1000).toISOString();
+      url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${start}&orderby=time`;
+    } else {
+      url = `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${feed}.geojson`;
+    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    eqData = (payload.features || []).sort((quakeA, quakeB) => quakeB.properties.mag - quakeA.properties.mag);
+    markUpdated('eq-updated');
+    renderEarthquakes();
+  } catch (err) {
+    showState('eq-body','⚠️', `Failed: ${err.message}`);
+  }
+}
+
+function magClass(m) {
+  if (m >= 8) return 'mag-great';
+  if (m >= 7) return 'mag-major';
+  if (m >= 6) return 'mag-strong';
+  if (m >= 5) return 'mag-moderate';
+  if (m >= 4) return 'mag-light';
+  return 'mag-minor';
+}
+
+function magLabel(m) {
+  if (m >= 8) return 'Great';
+  if (m >= 7) return 'Major';
+  if (m >= 6) return 'Strong';
+  if (m >= 5) return 'Moderate';
+  if (m >= 4) return 'Light';
+  if (m >= 3) return 'Minor';
+  return 'Micro';
+}
+
+// Magnitude → fill color (Everforest palette)
+function magFillColor(m) {
+  if (m >= 7.0) return '#e67e80';  // red
+  if (m >= 6.0) return '#e69875';  // orange
+  if (m >= 5.0) return '#dbbc7f';  // yellow
+  if (m >= 4.0) return '#a7c080';  // green
+  return '#83c092';                // aqua
+}
+
+function renderEarthquakes() {
+  const minMag   = parseFloat(document.getElementById('eq-minmag').value) || 0;
+  const filtered = eqData.filter(quake => (quake.properties.mag || 0) >= minMag);
+  document.getElementById('eq-count').textContent = filtered.length;
+
+  if (!filtered.length) {
+    showState('eq-body','🟢','No events match filters.');
+    plotEarthquakes();
+    return;
+  }
+
+  let html = `<table>
+    <thead><tr>
+      <th>Mag</th><th>Location</th><th>Depth</th><th>Time (Local)</th>
+    </tr></thead><tbody>`;
+
+  for (const quake of filtered) {
+    const props = quake.properties;
+    const mag   = props.mag != null ? props.mag.toFixed(1) : '?';
+    const depth = quake.geometry?.coordinates?.[2];
+    const timeStr = props.time ? fmtTime(new Date(props.time).toISOString()) : '—';
+    const cls   = magClass(parseFloat(mag));
+    const isRecent = (Date.now() - (props.time||0)) < 3600_000;
+
+    html += `<tr data-id="${esc(quake.id)}" onclick="flyToEq('${esc(quake.id)}')" title="Click to locate on map">
+      <td><span class="mag ${cls}" data-tip="${magLabel(parseFloat(mag))}">${mag}</span></td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        ${isRecent ? '<span style="color:var(--green);font-weight:700;margin-right:3px">●</span>' : ''}
+        ${esc(props.place || 'Unknown')}
+      </td>
+      <td style="white-space:nowrap;color:var(--muted)">${depth != null ? depth.toFixed(0)+' km' : '—'}</td>
+      <td style="white-space:nowrap;color:var(--muted);font-size:10px">${timeStr}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('eq-body').innerHTML = html;
+  plotEarthquakes();
+  buildGlobalSummary();
+
+  buildAlertBar();
+}
+
+// Plot earthquake circle markers
+function plotEarthquakes() {
+  if (!map) return;
+  eqLayer.clearLayers();
+  const minMag = parseFloat(document.getElementById('eq-minmag').value) || 0;
+
+  for (const quake of eqData) {
+    const props = quake.properties;
+    const mag = props.mag ?? 0;
+    if (mag < minMag) continue;
+    if (!quake.geometry?.coordinates) continue;
+
+    const [lon, lat, depth] = quake.geometry.coordinates;
+    const color  = magFillColor(mag);
+    const radius = Math.max(4, mag * 3.8);
+    const isRecent = (Date.now() - (props.time || 0)) < 3600_000; // < 1 hour
+
+    const marker = L.circleMarker([lat, lon], {
+      radius,
+      fillColor:   color,
+      color:       isRecent ? '#fff' : color,
+      weight:      isRecent ? 1.5   : 0.6,
+      opacity:     0.9,
+      fillOpacity: 0.5
+    });
+
+    marker.bindPopup(`
+      <div class="popup-inner">
+        <div class="popup-title">M${mag.toFixed(1)} — ${esc(props.place || 'Unknown location')}</div>
+        <div class="popup-sub">${fmtTime(new Date(props.time).toISOString())} ${isRecent ? '· <b style="color:#50fa7b">Recent</b>' : ''}</div>
+        <div class="popup-row"><span>Depth</span><span>${depth != null ? depth.toFixed(1)+' km' : '—'}</span></div>
+        <div class="popup-row"><span>Scale</span><span>${magLabel(mag)}</span></div>
+        ${props.felt != null ? `<div class="popup-row"><span>Felt reports</span><span>${props.felt.toLocaleString()}</span></div>` : ''}
+        ${props.url ? `<a class="popup-link" href="${esc(props.url)}" target="_blank" rel="noopener">View on USGS ↗</a>` : ''}
+      </div>
+    `);
+
+    // Highlight matching row on click
+    marker.on('click', () => highlightEqRow(quake.id));
+
+    eqLayer.addLayer(marker);
+  }
+  updateMapCount();
+}
+
+// Pan map to a given earthquake row
+function highlightEqRow(id) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (row) {
+    row.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    row.style.outline = '1px solid var(--accent)';
+    setTimeout(() => row.style.outline = '', 1800);
+  }
+}
+
+// Pan map to earthquake when row is clicked
+function flyToEq(id) {
+  ensureLayerOn('eq');
+  const quake = eqData.find(entry => entry.id === id);
+  if (!quake?.geometry?.coordinates) return;
+  const [lon, lat] = quake.geometry.coordinates;
+  map.flyTo([lat, lon], Math.max(map.getZoom(), 5), { duration: 1 });
+  // open its popup
+  eqLayer.eachLayer(marker => {
+    if (marker.getLatLng) {
+      const pos = marker.getLatLng();
+      if (Math.abs(pos.lat - lat) < 0.001 && Math.abs(pos.lng - lon) < 0.001) {
+        marker.openPopup();
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   EAS / NWS ALERTS
+══════════════════════════════════════════════════════ */
+
+let easData = [];
+
+async function loadAlerts() {
+  showLoading('eas-body');
+  const region = document.getElementById('eas-region').value;
+  const sevParam = 'severity=Extreme,Severe,Moderate';
+  const base = 'https://api.weather.gov/alerts/active';
+  const url  = region ? `${base}?${region}&${sevParam}` : `${base}?${sevParam}`;
+
+  try {
+    const response = await fetch(url, { headers:{ 'Accept':'application/geo+json' } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const sevOrder = { Extreme:0, Severe:1, Moderate:2, Unknown:3 };
+    easData = (payload.features || []).sort((alertA, alertB) => {
+      const propsA = alertA.properties || alertA, propsB = alertB.properties || alertB;
+      return (sevOrder[propsA.severity]??4) - (sevOrder[propsB.severity]??4);
+    });
+    markUpdated('eas-updated');
+    renderAlerts();
+  } catch (err) {
+    showState('eas-body','⚠️',`Failed: ${err.message}`);
+  }
+}
+
+function sevClass(severity) {
+  return { Extreme:'sev-extreme', Severe:'sev-severe', Moderate:'sev-moderate' }[severity] || 'sev-unknown';
+}
+
+function renderAlerts() {
+  const sevFilter = document.getElementById('eas-sev').value;
+  const filtered  = easData.filter(alert => {
+    const props = alert.properties || alert;
+    return sevFilter === 'all' || props.severity === sevFilter;
+  });
+
+  document.getElementById('eas-count').textContent = filtered.length;
+
+  if (!filtered.length) {
+    document.getElementById('eas-body').innerHTML =
+      `<div class="all-clear">✅ No active alerts.</div>`;
+    plotAlerts();
+    return;
+  }
+
+  let html = '<div class="alert-list">';
+  for (const alert of filtered) {
+    const props = alert.properties || alert;
+    const evt  = props.event || 'Unknown Alert';
+    const sev  = props.severity || 'Unknown';
+    const area = props.areaDesc || '';
+    const sent = props.sent || props.effective || '';
+    const exp  = props.expires || props.ends || '';
+    const url  = props['@id'] || props.id || '';
+
+    html += `<div class="alert-item" onclick="flyToAlert('${alert.id}')" title="Click to locate on map">
+      <div class="alert-top">
+        <span class="alert-event">${esc(evt)}</span>
+        <span class="sev-tag ${sevClass(sev)}">${esc(sev)}</span>
+      </div>
+      ${area ? `<div class="alert-area" title="${esc(area)}">${esc(area)}</div>` : ''}
+      <div class="alert-times">
+        ${sent ? `<span><b>Issued:</b> ${fmtTime(sent)}</span>` : ''}
+        ${exp  ? `<span><b>Exp:</b> ${fmtTime(exp)}</span>` : ''}
+        ${url  ? `<span><a class="link-btn" href="${esc(url)}" target="_blank" rel="noopener">Bulletin ↗</a></span>` : ''}
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('eas-body').innerHTML = html;
+  plotAlerts();
+  buildGlobalSummary();
+
+  buildAlertBar();
+}
+
+// Plot NWS alert polygons
+function plotAlerts() {
+  if (!map) return;
+  easLayer.clearLayers();
+
+  const sevColor = { Extreme:'#e67e80', Severe:'#e69875', Moderate:'#dbbc7f' };
+
+  for (const alert of easData) {
+    if (!alert.geometry) continue;
+    const props     = alert.properties || alert;
+    const eventName = (props.event || '').toLowerCase();
+    // Event-type overrides take priority over severity colour
+    let color;
+    if (eventName.includes('flood')) color = '#a7c080'; // green — matches standard NWS flood colour
+    else                             color = sevColor[props.severity] || '#aaa';
+
+    try {
+      const layer = L.geoJSON(alert.geometry, {
+        style: {
+          color,
+          weight:      1.5,
+          opacity:     0.85,
+          fillColor:   color,
+          fillOpacity: 0.12
+        }
+      });
+      layer._alertId = alert.id;
+
+      layer.bindPopup(`
+        <div class="popup-inner">
+          <div class="popup-title">${esc(props.event || 'Alert')}</div>
+          <div class="popup-sub" style="color:${color}">${esc(props.severity || '')} · ${esc(props.urgency || '')}</div>
+          <div class="popup-row"><span>Area</span><span style="max-width:140px;text-align:right;white-space:normal">${esc((props.areaDesc||'').substring(0,60))}${(props.areaDesc||'').length>60?'…':''}</span></div>
+          <div class="popup-row"><span>Issued</span><span>${fmtTime(props.sent||props.effective||'')}</span></div>
+          <div class="popup-row"><span>Expires</span><span>${fmtTime(props.expires||props.ends||'')}</span></div>
+          ${props['@id']||props.id ? `<a class="popup-link" href="${esc(props['@id']||props.id)}" target="_blank" rel="noopener">Bulletin ↗</a>` : ''}
+        </div>
+      `);
+
+      easLayer.addLayer(layer);
+    } catch(_) { /* skip malformed geometry */ }
+  }
+  updateMapCount();
+}
+
+// Zone geometry cache — fire/weather zones don't change, so cache indefinitely
+const _zoneCache = {};
+
+async function _fetchZoneGeom(url) {
+  if (_zoneCache[url]) return _zoneCache[url];
+  try {
+    const response = await fetch(url, { headers: { Accept: 'application/geo+json' }, signal: AbortSignal.timeout(6000) });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    _zoneCache[url] = payload.geometry || null;
+    return _zoneCache[url];
+  } catch(_) { return null; }
+}
+
+// Pan map to NWS alert when sidebar row is clicked
+async function flyToAlert(id) {
+  ensureLayerOn('eas');
+  const alert = easData.find(entry => entry.id === id);
+  if (!alert) return;
+
+  // Case 1: alert has direct geometry already plotted — find its layer
+  let found = false;
+  easLayer.eachLayer(layer => {
+    if (layer._alertId !== id) return;
+    try {
+      const bounds = layer.getBounds();
+      map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
+      layer.openPopup();
+      found = true;
+    } catch(_) {}
+  });
+  if (found) return;
+
+  // Case 2: no direct geometry — fetch first affectedZone polygon on demand
+  const zones = alert.properties?.affectedZones;
+  if (!zones?.length) return;
+  const geom = await _fetchZoneGeom(zones[0]);
+  if (!geom) return;
+  try {
+    const bounds = L.geoJSON(geom).getBounds();
+    map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
+    const props = alert.properties || alert;
+    const color = { Extreme:'#e67e80', Severe:'#e69875', Moderate:'#dbbc7f' }[props.severity] || '#aaa';
+    L.popup()
+      .setLatLng(bounds.getCenter())
+      .setContent(`
+        <div class="popup-inner">
+          <div class="popup-title">${esc(props.event || 'Alert')}</div>
+          <div class="popup-sub" style="color:${color}">${esc(props.severity||'')} · ${esc(props.urgency||'')}</div>
+          <div class="popup-row"><span>Area</span><span style="max-width:140px;text-align:right;white-space:normal">${esc((props.areaDesc||'').substring(0,60))}${(props.areaDesc||'').length>60?'…':''}</span></div>
+          <div class="popup-row"><span>Issued</span><span>${fmtTime(props.sent||props.effective||'')}</span></div>
+          <div class="popup-row"><span>Expires</span><span>${fmtTime(props.expires||props.ends||'')}</span></div>
+          ${props['@id']||props.id ? `<a class="popup-link" href="${esc(props['@id']||props.id)}" target="_blank" rel="noopener">Bulletin ↗</a>` : ''}
+        </div>
+      `)
+      .openOn(map);
+  } catch(_) {}
+}
+
+/* ══════════════════════════════════════════════════════
+   SPACE WEATHER  —  NOAA SWPC
+══════════════════════════════════════════════════════ */
+
+let swAlerts = [];
+let kpCurrent = null;
+
+// SWPC returns "YYYY-MM-DD HH:MM:SS" with no timezone — always UTC
+function swpcUTC(datetimeStr) {
+  if (!datetimeStr) return 0;
+  return new Date(String(datetimeStr).trim().replace(' ', 'T') + 'Z').getTime();
+}
+
+async function loadSpaceWeather() {
+  showLoading('sw-body');
+  try {
+    const [alertsRes, kpRes] = await Promise.allSettled([
+      fetch('https://services.swpc.noaa.gov/products/alerts.json'),
+      fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json')
+    ]);
+
+    if (alertsRes.status === 'fulfilled' && alertsRes.value.ok) {
+      const raw = await alertsRes.value.json();
+      const cutoff = Date.now() - 7*24*3600*1000;
+      swAlerts = raw
+        .filter(alert => alert.message && swpcUTC(alert.issue_datetime) >= cutoff)
+        .sort((alertA, alertB) => swpcUTC(alertB.issue_datetime) - swpcUTC(alertA.issue_datetime));
+    }
+
+    if (kpRes.status === 'fulfilled' && kpRes.value.ok) {
+      const kpSeries = await kpRes.value.json();
+      // Official 3-hour Kp product: array of objects { Kp, a_running, station_count, time_tag }
+      // Find the last entry with a valid (non-null) Kp reading
+      if (kpSeries?.length) {
+        const latestReading = [...kpSeries].reverse().find(entry => entry.Kp != null && entry.Kp !== '');
+        if (latestReading) kpCurrent = parseFloat(latestReading.Kp);
+      }
+    }
+
+    markUpdated('sw-updated');
+    renderSpaceWeather();
+  } catch (err) {
+    showState('sw-body','⚠️',`Failed: ${err.message}`);
+  }
+}
+
+const SW_PRODUCT_URLS = {
+  geo:   'https://www.swpc.noaa.gov/products/planetary-k-index',
+  solar: 'https://www.swpc.noaa.gov/products/solar-radiation-storm',
+  radio: 'https://www.swpc.noaa.gov/products/radio-blackout',
+  other: 'https://www.swpc.noaa.gov/products/alerts-watches-and-warnings'
+};
+
+function parseSWCategory(msg) {
+  const upper = msg.toUpperCase();
+  if (upper.includes('GEOMAGNETIC') || upper.includes('K-INDEX') || upper.includes('KP'))
+    return { key:'geo',   cls:'cat-geo',   label:'Geomagnetic' };
+  if (upper.includes('SOLAR RADIATION') || upper.includes('PROTON'))
+    return { key:'solar', cls:'cat-solar', label:'Solar Radiation' };
+  if (upper.includes('RADIO BLACKOUT') || upper.includes('X-RAY'))
+    return { key:'radio', cls:'cat-radio', label:'Radio Blackout' };
+  return { key:'other', cls:'cat-other', label:'Space Weather' };
+}
+
+function parseProductTitle(msg) {
+  const titleMatch = msg.match(/^([A-Z][A-Z \-]+)\n/);
+  if (titleMatch) return titleMatch[1].trim();
+  const first = msg.split('\n')[0].trim();
+  return first.length < 58 ? first : first.slice(0,55)+'…';
+}
+
+function renderSpaceWeather() {
+  const catFilter = document.getElementById('sw-cat-filter').value;
+  const filtered  = swAlerts.filter(alert =>
+    catFilter === 'all' || parseSWCategory(alert.message).key === catFilter
+  );
+
+  document.getElementById('sw-count').textContent = filtered.length;
+  let html = '';
+
+  // Kp gauge
+  if (kpCurrent !== null) {
+    const kp      = kpCurrent;
+    const kpColor = kp>=9?'#e67e80': kp>=7?'#e69875': kp>=5?'#dbbc7f': kp>=4?'#a7c080':'#83c092';
+    const kpLabel = kp>=9?'G5 Extreme': kp>=7?'G3–G4 Severe': kp>=5?'G1–G2 Storm': kp>=4?'Active':'Quiet';
+    html += `<div class="kp-bar-row">
+      <div class="kp-label">
+        <span style="color:var(--muted)">Planetary K-Index (Kp)</span>
+        <span style="font-weight:600;color:${kpColor}">${kpLabel}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="kp-value" style="color:${kpColor}">${kp.toFixed(1)}</span>
+        <div style="flex:1">
+          <div class="kp-scale">
+            ${[0,1,2,3,4,5,6,7,8,9].map(segment => {
+              const segColor = segment>=9?'#e67e80': segment>=7?'#e69875': segment>=5?'#dbbc7f': segment>=4?'#a7c080':'#83c092';
+              return `<div class="kp-seg ${kp>=segment?'active':''}" style="background:${segColor}" data-tip="Kp${segment}"></div>`;
+            }).join('')}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px">
+            <span>0</span><span>5</span><span>9</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if (!filtered.length) {
+    html += `<div class="all-clear">✅ No space weather alerts (7-day window).</div>`;
+    document.getElementById('sw-body').innerHTML = html;
+    return;
+  }
+
+  html += '<div class="sw-alert-list">';
+  for (const alert of filtered) {
+    const cat   = parseSWCategory(alert.message);
+    const title = parseProductTitle(alert.message);
+    const body  = alert.message.replace(/\r?\n/g,' ').trim();
+    const issued= alert.issue_datetime || null;
+    const link  = SW_PRODUCT_URLS[cat.key];
+    html += `<div class="sw-item">
+      <div class="sw-top">
+        <span class="sw-type">${esc(title)}</span>
+        <span class="sw-cat ${cat.cls}">${esc(cat.label)}</span>
+      </div>
+      <div class="sw-body">${esc(body)}</div>
+      <div class="sw-time">
+        ${issued ? `<span>Issued: ${fmtTime(new Date(swpcUTC(issued)).toISOString())}</span>` : ''}
+        ${link ? `<span><a class="link-btn" href="${esc(link)}" target="_blank" rel="noopener">Bulletin ↗</a></span>` : ''}
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+  document.getElementById('sw-body').innerHTML = html;
+  buildGlobalSummary();
+
+  buildAlertBar();
+}
+
+/* ══════════════════════════════════════════════════════
+   NASA EONET — Active Natural Events
+══════════════════════════════════════════════════════ */
+
+let eonetData = [];
+
+const EONET_CATS = {
+  wildfires:    { icon:'🔥', color:'#e69875', label:'Wildfire'      },
+  volcanoes:    { icon:'🌋', color:'#d699b6', label:'Volcano'       },
+  severeStorms: { icon:'🌀', color:'#7fbbb3', label:'Severe Storm'  },
+  seaLakeIce:   { icon:'🧊', color:'#83c092', label:'Sea/Lake Ice'  },
+  snow:         { icon:'❄️', color:'#d3c6aa', label:'Snow'          },
+  dustHaze:     { icon:'💨', color:'#859289', label:'Dust/Haze'     },
+  floods:       { icon:'🌊', color:'#7fbbb3', label:'Flood'         },
+  drought:      { icon:'🏜️', color:'#dbbc7f', label:'Drought'       },
+  manmade:      { icon:'⚠️', color:'#e67e80', label:'Manmade'       },
+};
+
+/* EONET events normally carry a title. If one is ever missing, say so plainly
+   rather than falling back to the category name: that fallback made the ticker
+   print the category twice (once as the tag, once as the location) and read as
+   though the category were the event's actual name. The EONET id is appended
+   so an untitled event is still traceable back to the source. */
+function eonetTitle(event) {
+  const title = (event?.title || '').trim();
+  if (title) return title;
+  return `Untitled event${event?.id ? ` · ${event.id}` : ''}`;
+}
+
+function eonetCatInfo(event) {
+  const catId = event.categories?.[0]?.id || 'manmade';
+  return EONET_CATS[catId] || { icon:'🌐', color:'#859289', label: event.categories?.[0]?.title || 'Event' };
+}
+
+async function loadEonet() {
+  showLoading('eonet-body');
+  try {
+    const response = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=50');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    eonetData = payload.events || [];
+    markUpdated('eonet-updated');
+    renderEonet();
+  } catch (err) {
+    showState('eonet-body','⚠️',`Failed: ${err.message}`);
+  }
+}
+
+function renderEonet() {
+  const catFilter = document.getElementById('eonet-cat').value;
+  const eonetCutoff48 = Date.now() - 48 * 3_600_000;
+  const filtered  = eonetData.filter(event => {
+    if (catFilter !== 'all' && !event.categories?.some(cat => cat.id === catFilter)) return false;
+    const geo = event.geometry?.[event.geometry.length - 1];
+    const updatedAt = geo?.date ? new Date(geo.date).getTime() : 0;
+    return updatedAt >= eonetCutoff48;
+  });
+
+  document.getElementById('eonet-count').textContent = filtered.length;
+
+  if (!filtered.length) {
+    document.getElementById('eonet-body').innerHTML =
+      `<div class="all-clear">✅ No active natural events.</div>`;
+    plotEonet();
+    return;
+  }
+
+  let html = '';
+  for (const event of filtered) {
+    const cat   = eonetCatInfo(event);
+    const geo   = event.geometry?.[event.geometry.length - 1];
+    const mag   = geo?.magnitudeValue != null
+      ? `${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit || ''}`
+      : null;
+    const date  = geo?.date ? fmtTime(geo.date) : '—';
+    const src   = event.sources?.[0]?.url || event.link || '';
+
+    html += `<div class="hazard-item" onclick="flyToEonet('${event.id}')" title="Click to locate on map">
+      <div class="hazard-top">
+        <span style="font-size:13px">${cat.icon}</span>
+        <span class="hazard-title">${esc(eonetTitle(event))}</span>
+        <span class="hazard-cat" style="background:${cat.color}22;color:${cat.color}">${esc(cat.label)}</span>
+      </div>
+      <div class="hazard-meta">
+        <span><b>Updated:</b> ${date}</span>
+        ${mag ? `<span><b>Size:</b> ${esc(mag)}</span>` : ''}
+        ${src ? `<span><a class="link-btn" href="${esc(src)}" target="_blank" rel="noopener">Source ↗</a></span>` : ''}
+      </div>
+    </div>`;
+  }
+  document.getElementById('eonet-body').innerHTML = html;
+  plotEonet();
+  buildGlobalSummary();
+
+  buildAlertBar();
+}
+
+function plotEonet() {
+  if (!map) return;
+  eonetLayer.clearLayers();
+  const catFilter = document.getElementById('eonet-cat').value;
+
+  const eonetMapCutoff = Date.now() - 48 * 3_600_000;
+
+  for (const event of eonetData) {
+    if (catFilter !== 'all' && !event.categories?.some(cat => cat.id === catFilter)) continue;
+    const geo = event.geometry?.[event.geometry.length - 1];
+    if (!geo?.coordinates) continue;
+    const updatedAt = geo.date ? new Date(geo.date).getTime() : 0;
+    if (!updatedAt || updatedAt < eonetMapCutoff) continue;
+
+    const [lon, lat] = geo.coordinates;
+    const cat   = eonetCatInfo(event);
+    const isWildfire = event.categories?.some(cat => cat.id === 'wildfires');
+
+    let marker;
+    if (isWildfire) {
+      marker = L.marker([lat, lon], {
+        icon: L.divIcon({
+          html: '<span style="font-size:18px;line-height:1">🔥</span>',
+          className: 'leaflet-marker-emoji',
+          iconSize:   [22, 22],
+          iconAnchor: [11, 11],
+          popupAnchor:[0, -12]
+        })
+      });
+    } else {
+      marker = L.circleMarker([lat, lon], {
+        radius:      7,
+        fillColor:   cat.color,
+        color:       cat.color,
+        weight:      1.5,
+        opacity:     1,
+        fillOpacity: 0.35,
+        dashArray:   '4 3'
+      });
+    }
+
+    marker._eonetId = event.id;
+    marker.bindPopup(`
+      <div class="popup-inner">
+        <div class="popup-title">${cat.icon} ${esc(eonetTitle(event))}</div>
+        <div class="popup-sub" style="color:${cat.color}">${esc(cat.label)}</div>
+        ${geo.magnitudeValue != null
+          ? `<div class="popup-row"><span>Size</span><span>${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit||''}</span></div>`
+          : ''}
+        <div class="popup-row"><span>Updated</span><span>${fmtTime(geo.date)}</span></div>
+        ${event.sources?.[0]?.url
+          ? `<a class="popup-link" href="${esc(event.sources[0].url)}" target="_blank" rel="noopener">Source ↗</a>`
+          : ''}
+      </div>
+    `);
+    eonetLayer.addLayer(marker);
+  }
+  updateMapCount();
+}
+
+// Pan map to EONET event when sidebar row is clicked
+function flyToEonet(id) {
+  ensureLayerOn('eonet');
+  const event = eonetData.find(entry => entry.id === id);
+  if (!event) return;
+  const geo = event.geometry?.[event.geometry.length - 1];
+  if (!geo?.coordinates) return;
+  const [lon, lat] = geo.coordinates;
+  map.flyTo([lat, lon], Math.max(map.getZoom(), 5), { duration: 1 });
+  eonetLayer.eachLayer(marker => {
+    if (marker._eonetId === id) marker.openPopup();
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   FEMA — Disaster Declarations
+══════════════════════════════════════════════════════ */
+
+let femaData = [];
+
+const FEMA_ICONS = {
+  'Fire':'🔥', 'Flood':'🌊', 'Hurricane':'🌀', 'Tornado':'🌪️',
+  'Earthquake':'📡', 'Tsunami':'🌊', 'Winter Storm':'❄️',
+  'Snow':'❄️', 'Drought':'🏜️', 'Severe Storm':'⛈️',
+  'Severe Ice Storm':'🧊', 'Typhoon':'🌀', 'Chemical':'☣️',
+  'Biological':'🦠', 'Dam/Levee Break':'🌊', 'Mud/Landslide':'⛰️',
+  'Volcano':'🌋',
+};
+
+const FEMA_TYPE_LABELS = { DR:'Major Disaster', EM:'Emergency', FM:'Fire Mgmt', FS:'Fire Suppression' };
+
+async function loadFema() {
+  showLoading('fema-body');
+  try {
+    const sixMonthsAgo = new Date(Date.now() - 180*24*3600*1000).toISOString();
+    const url = `https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries`
+              + `?$orderby=declarationDate%20desc&$top=50`
+              + `&$filter=declarationDate%20gt%20'${sixMonthsAgo}'`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    // FEMA returns data under its own key, not OData's 'value'
+    femaData = payload.DisasterDeclarationsSummaries || payload.value || [];
+    markUpdated('fema-updated');
+    renderFema();
+  } catch (err) {
+    showState('fema-body','⚠️',`Failed: ${err.message}`);
+  }
+}
+
+function renderFema() {
+  const typeFilter = document.getElementById('fema-type').value;
+  const filtered   = femaData.filter(decl =>
+    typeFilter === 'all' || decl.incidentType === typeFilter
+  );
+
+  document.getElementById('fema-count').textContent = filtered.length;
+
+  if (!filtered.length) {
+    document.getElementById('fema-body').innerHTML =
+      `<div class="all-clear">✅ No declarations match filter.</div>`;
+    return;
+  }
+
+  let html = '';
+  for (const decl of filtered) {
+    const icon      = FEMA_ICONS[decl.incidentType] || '⚠️';
+    const typeLabel = FEMA_TYPE_LABELS[decl.declarationType] || decl.declarationType;
+    const declId    = decl.femaDeclarationString || `DR-${decl.disasterNumber}`;
+    const link      = decl.disasterNumber
+      ? `https://www.fema.gov/disaster/${decl.disasterNumber}`
+      : '';
+
+    html += `<div class="hazard-item">
+      <div class="hazard-top">
+        <span style="font-size:13px">${icon}</span>
+        <span class="hazard-title">${esc(decl.declarationTitle || decl.incidentType)}</span>
+        <span class="hazard-cat" style="background:#2a3528;color:#a7c080">${esc(typeLabel)}</span>
+      </div>
+      <div class="hazard-meta">
+        <span><b>${esc(declId)}</b></span>
+        <span><b>State:</b> ${esc(decl.state || decl.stateCode || '—')}</span>
+        <span><b>Type:</b> ${esc(decl.incidentType || '—')}</span>
+        <span><b>Declared:</b> ${decl.declarationDate ? fmtTime(decl.declarationDate) : '—'}</span>
+        ${link ? `<span><a class="link-btn" href="${esc(link)}" target="_blank" rel="noopener">FEMA ↗</a></span>` : ''}
+      </div>
+    </div>`;
+  }
+  document.getElementById('fema-body').innerHTML = html;
+  buildGlobalSummary();
+
+  buildAlertBar();
+}
+
+/* ══════════════════════════════════════════════════════
+   NWS LOCAL STORM REPORTS — SPC daily storm data
+══════════════════════════════════════════════════════ */
+
+let lsrData = [];
+const LSR_COLORS = { torn: '#e67e80', hail: '#dbbc7f', wind: '#83c092' };
+const LSR_ICONS  = { torn: '🌪️', hail: '🌨️', wind: '💨' };
+const LSR_LABELS = { torn: 'Tornado', hail: 'Hail', wind: 'Wind Damage' };
+
+function parseSpcCsv(text, type) {
+  // SPC CSV header: Time,F-Scale|Size|Speed,Location,County,State,Lat,Lon,Comments
+  return text.trim().split('\n').slice(1).map(line => {
+    const cols = line.split(',');
+    if (cols.length < 7) return null;
+    const lat = parseFloat(cols[5]), lon = parseFloat(cols[6]);
+    if (isNaN(lat) || isNaN(lon)) return null;
+    return {
+      type,
+      time:      cols[0].trim(),
+      magnitude: cols[1].trim(),
+      location:  cols[2].trim(),
+      county:    cols[3].trim(),
+      state:     cols[4].trim(),
+      lat, lon,
+      comments:  cols.slice(7).join(',').trim()
+    };
+  }).filter(Boolean);
+}
+
+async function loadLSR() {
+  try {
+    const base = 'https://www.spc.noaa.gov/climo/reports/today_filtered_';
+    const [tornRes, hailRes, windRes] = await Promise.all([
+      fetch(base + 'torn.csv'),
+      fetch(base + 'hail.csv'),
+      fetch(base + 'wind.csv'),
+    ]);
+    const reports = [];
+    if (tornRes.ok) reports.push(...parseSpcCsv(await tornRes.text(), 'torn'));
+    if (hailRes.ok) reports.push(...parseSpcCsv(await hailRes.text(), 'hail'));
+    if (windRes.ok) reports.push(...parseSpcCsv(await windRes.text(), 'wind'));
+    lsrData = reports;
+    plotLSR();
+  } catch (err) {
+    console.warn('LSR load failed:', err.message);
+  }
+}
+
+// Format an SPC storm report's magnitude for display.
+// Units are SPC's own, not metric: hail Size is in hundredths of an inch.
+// (100 = 1.00", the size of a quarter) and wind Speed is already in mph
+// (verified against reports whose comments quote the measured gust).
+// Tornado reports carry an EF/F scale string. Any of the three may be 'UNK'.
+function lsrMagnitudeLabel(report) {
+  const raw = (report.magnitude || '').trim();
+  if (!raw || raw.toUpperCase() === 'UNK') return '';
+  const value = parseFloat(raw);
+  if (report.type === 'hail') {
+    return Number.isFinite(value) ? ` · ${(value / 100).toFixed(2)}"` : '';
+  }
+  if (report.type === 'wind') {
+    return Number.isFinite(value) ? ` · ${value} mph` : '';
+  }
+  return ` · ${raw}`;   // tornado EF/F scale
+}
+
+function plotLSR() {
+  if (!map) return;
+  lsrLayer.clearLayers();
+  for (const report of lsrData) {
+    const color = LSR_COLORS[report.type] || '#859289';
+    const icon  = LSR_ICONS[report.type]  || '⚡';
+    const label = LSR_LABELS[report.type] || 'Storm Report';
+    const magStr = lsrMagnitudeLabel(report);
+    L.circleMarker([report.lat, report.lon], {
+      radius: 5, color, fillColor: color, fillOpacity: 0.8, weight: 1.5
+    })
+    .bindPopup(`<div class="popup-inner">
+      <div class="popup-title">${icon} ${esc(label)}${esc(magStr)}</div>
+      <div class="popup-sub">${esc(report.location)}, ${esc(report.county)} Co., ${esc(report.state)}</div>
+      <div class="popup-row">UTC ${esc(report.time)} · NWS LSR</div>
+      ${report.comments ? `<div class="popup-row">${esc(report.comments)}</div>` : ''}
+    </div>`)
+    .addTo(lsrLayer);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   SPC CONVECTIVE OUTLOOK — spc.noaa.gov GeoJSON
+══════════════════════════════════════════════════════ */
+
+const SPC_RISK = {
+  TSTM: { label: 'General Thunderstorms', color: '#a7c080', order: 1 },
+  MRGL: { label: 'Marginal Risk',          color: '#83c092', order: 2 },
+  SLGT: { label: 'Slight Risk',            color: '#dbbc7f', order: 3 },
+  ENH:  { label: 'Enhanced Risk',          color: '#e69875', order: 4 },
+  MDT:  { label: 'Moderate Risk',          color: '#e67e80', order: 5 },
+  HIGH: { label: 'High Risk',              color: '#d699b6', order: 6 },
+};
+
+function _buildSpcLayer(geojson, layer) {
+  layer.clearLayers();
+  if (!geojson?.features?.length) return;
+  // Sort lowest→highest risk so higher risk renders on top
+  const features = [...geojson.features].sort((featA, featB) => {
+    const orderA = SPC_RISK[featA.properties.LABEL]?.order ?? 0;
+    const orderB = SPC_RISK[featB.properties.LABEL]?.order ?? 0;
+    return orderA - orderB;
+  });
+  L.geoJSON({ type: 'FeatureCollection', features }, {
+    style(feature) {
+      const risk = SPC_RISK[feature.properties.LABEL];
+      const col  = risk?.color ?? '#859289';
+      return { color: col, weight: 1.5, opacity: 0.9, fillColor: col, fillOpacity: 0.18 };
+    },
+    onEachFeature(feature, lyr) {
+      const p    = feature.properties;
+      const risk = SPC_RISK[p.LABEL];
+      lyr.bindPopup(`<div class="popup-inner">
+        <div class="popup-title">⛈️ SPC ${esc(p.LABEL2 || p.LABEL)}</div>
+        <div class="popup-row"><span>Valid</span><span>${fmtTime(p.VALID_ISO)}</span></div>
+        <div class="popup-row"><span>Expires</span><span>${fmtTime(p.EXPIRE_ISO)}</span></div>
+        <div class="popup-row"><span>Issued</span><span>${fmtTime(p.ISSUE_ISO)}</span></div>
+        <div class="popup-row"><span>Forecaster</span><span>${esc(p.FORECASTER || '—')}</span></div>
+      </div>`);
+    }
+  }).addTo(layer);
+}
+
+async function loadSPC() {
+  const base = 'https://www.spc.noaa.gov/products/outlook/';
+  try {
+    const [d1, d2, d3] = await Promise.all([
+      fetch(base + 'day1otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(response => response.ok ? response.json() : null),
+      fetch(base + 'day2otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(response => response.ok ? response.json() : null),
+      fetch(base + 'day3otlk_cat.nolyr.geojson', { signal: AbortSignal.timeout(10000) }).then(response => response.ok ? response.json() : null),
+    ]);
+    if (spcD1Layer) _buildSpcLayer(d1, spcD1Layer);
+    if (spcD2Layer) _buildSpcLayer(d2, spcD2Layer);
+    if (spcD3Layer) _buildSpcLayer(d3, spcD3Layer);
+  } catch (err) {
+    console.warn('SPC outlook load failed:', err.message);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   SPC FIRE WEATHER OUTLOOK — NOAA MapServer
+══════════════════════════════════════════════════════ */
+
+const FWX_RISK = {
+  5:  { label: 'Elevated',           color: '#dbbc7f' },
+  8:  { label: 'Critical',           color: '#e69875' },
+  10: { label: 'Extremely Critical', color: '#e67e80' },
+};
+
+// Parse SPC's compact timestamp format: "202604051700" → ISO string
+function parseSpcTs(compact) {
+  if (!compact || String(compact).length < 12) return null;
+  const ts = String(compact);
+  return new Date(Date.UTC(+ts.slice(0,4), +ts.slice(4,6)-1, +ts.slice(6,8), +ts.slice(8,10), +ts.slice(10,12))).toISOString();
+}
+
+async function _fetchFwxLayer(layerId) {
+  const base = 'https://mapservices.weather.noaa.gov/vector/rest/services/fire_weather/SPC_firewx/MapServer';
+  const params = new URLSearchParams({ where: '1=1', outFields: 'dn,valid,expire', returnGeometry: 'true', f: 'geojson' });
+  const response = await fetch(`${base}/${layerId}/query?${params}`, { signal: AbortSignal.timeout(10000) });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+function _buildFwxLayer(mainGJ, dryGJ, layer) {
+  layer.clearLayers();
+
+  // Main categorical risk (Elevated / Critical / Extremely Critical)
+  if (mainGJ?.features?.length) {
+    const features = [...mainGJ.features]
+      .filter(feature => feature.properties.dn && FWX_RISK[feature.properties.dn])
+      .sort((featA, featB) => (featA.properties.dn ?? 0) - (featB.properties.dn ?? 0));
+    L.geoJSON({ type: 'FeatureCollection', features }, {
+      style(feature) {
+        const risk = FWX_RISK[feature.properties.dn];
+        const col  = risk?.color ?? '#859289';
+        return { color: col, weight: 1.5, opacity: 0.9, fillColor: col, fillOpacity: 0.22 };
+      },
+      onEachFeature(feature, polygonLayer) {
+        const props = feature.properties;
+        const risk  = FWX_RISK[props.dn];
+        polygonLayer.bindPopup(`<div class="popup-inner">
+          <div class="popup-title">🔥 Fire Wx — ${esc(risk?.label ?? 'Unknown')}</div>
+          <div class="popup-row"><span>Valid</span><span>${fmtTime(parseSpcTs(props.valid))}</span></div>
+          <div class="popup-row"><span>Expires</span><span>${fmtTime(parseSpcTs(props.expire))}</span></div>
+        </div>`);
+      }
+    }).addTo(layer);
+  }
+
+  // Dry thunderstorm areas — dashed outline only, no fill
+  if (dryGJ?.features?.length) {
+    const dryFeatures = dryGJ.features.filter(feature => feature.geometry?.coordinates?.length);
+    if (dryFeatures.length) {
+      L.geoJSON({ type: 'FeatureCollection', features: dryFeatures }, {
+        style() {
+          return { color: '#d699b6', weight: 2, opacity: 0.85, dashArray: '6 4', fill: false };
+        },
+        onEachFeature(feature, polygonLayer) {
+          const props = feature.properties;
+          polygonLayer.bindPopup(`<div class="popup-inner">
+            <div class="popup-title">⚡ Dry Thunderstorm Area</div>
+            <div class="popup-row"><span>Valid</span><span>${fmtTime(parseSpcTs(props.valid))}</span></div>
+            <div class="popup-row"><span>Expires</span><span>${fmtTime(parseSpcTs(props.expire))}</span></div>
+          </div>`);
+        }
+      }).addTo(layer);
+    }
+  }
+}
+
+async function loadFireWx() {
+  try {
+    const [d1main, d1dry, d2main, d2dry] = await Promise.all([
+      _fetchFwxLayer(1),
+      _fetchFwxLayer(2),
+      _fetchFwxLayer(4),
+      _fetchFwxLayer(5),
+    ]);
+    if (fwxD1Layer) _buildFwxLayer(d1main, d1dry, fwxD1Layer);
+    if (fwxD2Layer) _buildFwxLayer(d2main, d2dry, fwxD2Layer);
+  } catch (err) {
+    console.warn('Fire weather outlook load failed:', err.message);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   RIVER GAUGES — NOAA NWPS via ArcGIS MapServer
+══════════════════════════════════════════════════════ */
+
+let gaugeData = [];
+
+const GAUGE_STATUS = {
+  action:   { color: '#dbbc7f', label: 'Action Stage'    },
+  flood:    { color: '#e69875', label: 'Minor Flooding'  },
+  moderate: { color: '#e67e80', label: 'Moderate Flood'  },
+  major:    { color: '#d699b6', label: 'Major Flood'     },
+};
+
+async function loadGauges() {
+  try {
+    const params = new URLSearchParams({
+      where: "status IN ('action','flood','moderate','major')",
+      outFields: 'gaugelid,status,location,waterbody,state,observed,units,flood,moderate,major,action,obstime,latitude,longitude,url',
+      returnGeometry: 'false',
+      resultRecordCount: 2000,
+      f: 'json'
+    });
+    const response = await fetch(
+      `https://mapservices.weather.noaa.gov/eventdriven/rest/services/water/riv_gauges/MapServer/0/query?${params}`,
+      { signal: AbortSignal.timeout(15000) }
+    );
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    gaugeData = (payload.features || []).map(feature => feature.attributes);
+    plotGauges();
+  } catch (err) {
+    console.warn('River gauge load failed:', err.message);
+  }
+}
+
+function plotGauges() {
+  if (!map) return;
+  gaugeLayer.clearLayers();
+  for (const gauge of gaugeData) {
+    const lat = parseFloat(gauge.latitude), lon = parseFloat(gauge.longitude);
+    if (isNaN(lat) || isNaN(lon)) continue;
+    const status = GAUGE_STATUS[gauge.status];
+    if (!status) continue;
+    const observedValue = parseFloat(gauge.observed);
+    const marker = L.marker([lat, lon], {
+      icon: L.divIcon({
+        html: `<div style="width:10px;height:10px;background:${status.color};border:1.5px solid #1a2227;box-sizing:border-box"></div>`,
+        className: 'leaflet-marker-emoji',
+        iconSize: [10, 10],
+        iconAnchor: [5, 5],
+        popupAnchor: [0, -8]
+      })
+    });
+    const location = esc(gauge.location || gauge.gaugelid);
+    const waterbody = gauge.waterbody ? `<div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(gauge.waterbody)}, ${esc(gauge.state)}</div>` : `<div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(gauge.state)}</div>`;
+    const thresholds = [
+      gauge.action   ? `<tr><td>Action</td><td>${gauge.action} ${gauge.units}</td></tr>` : '',
+      gauge.flood    ? `<tr><td>Minor</td><td>${gauge.flood} ${gauge.units}</td></tr>` : '',
+      gauge.moderate ? `<tr><td>Moderate</td><td>${gauge.moderate} ${gauge.units}</td></tr>` : '',
+      gauge.major    ? `<tr><td>Major</td><td>${gauge.major} ${gauge.units}</td></tr>` : '',
+    ].filter(Boolean).join('');
+    marker.bindPopup(`<div class="popup-inner">
+      <div class="popup-title">💧 ${location}</div>
+      ${waterbody}
+      <div class="popup-row" style="margin-top:6px">
+        <span style="background:${status.color};color:var(--badge-text, #1a2227);padding:1px 6px;border-radius:3px;font-size:11px;font-weight:700">${status.label}</span>
+        <span style="margin-left:6px"><b>${isNaN(observedValue) ? esc(gauge.observed) : observedValue.toFixed(2)}</b> ${esc(gauge.units || 'ft')}</span>
+      </div>
+      ${thresholds ? `<table style="margin-top:6px;font-size:11px;color:var(--muted);width:100%;border-collapse:collapse"><tbody>${thresholds}</tbody></table>` : ''}
+      <div class="popup-row" style="margin-top:4px">${gauge.obstime ? fmtTime(gauge.obstime.trim().replace(' ', 'T') + 'Z') : ''}</div>
+      ${gauge.url ? `<div class="popup-row"><a href="${esc(gauge.url)}" target="_blank" style="color:var(--accent)">View on water.noaa.gov ↗</a></div>` : ''}
+    </div>`);
+    marker.addTo(gaugeLayer);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   US DROUGHT MONITOR — droughtmonitor.unl.edu
+══════════════════════════════════════════════════════ */
+
+let droughtData = null;
+
+const DM_LEVELS = [
+  { dm:0, label:'D0 — Abnormally Dry',    color:'#dbbc7f', bg:'#3b3a27' },
+  { dm:1, label:'D1 — Moderate Drought',  color:'#e69875', bg:'#3d3226' },
+  { dm:2, label:'D2 — Severe Drought',    color:'#e67e80', bg:'#3d2b28' },
+  { dm:3, label:'D3 — Extreme Drought',   color:'#d699b6', bg:'#2e2538' },
+  { dm:4, label:'D4 — Exceptional Drought',color:'#a7c080',bg:'#293d2b' },
+];
+
+async function loadDrought() {
+  try {
+    const response = await fetch('https://droughtmonitor.unl.edu/data/json/usdm_current.json');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    droughtData = await response.json();
+    plotDrought();
+  } catch (err) { console.warn('Drought Monitor load failed:', err.message); }
+}
+
+function plotDrought() {
+  if (!map || !droughtData) return;
+  droughtLayer.clearLayers();
+
+  // Always populate the layer — toggleLayer() controls map visibility
+  const dmColors = { 0:'#dbbc7f', 1:'#e69875', 2:'#e67e80', 3:'#d699b6', 4:'#a7c080' };
+
+  L.geoJSON(droughtData, {
+    style: feature => ({
+      color:       dmColors[feature.properties?.DM] || '#859289',
+      weight:      0.5,
+      opacity:     0.6,
+      fillColor:   dmColors[feature.properties?.DM] || '#859289',
+      fillOpacity: 0.18
+    }),
+    onEachFeature: (feature, layer) => {
+      const level = DM_LEVELS.find(entry => entry.dm === feature.properties?.DM);
+      if (level) layer.bindPopup(`<div class="popup-inner">
+        <div class="popup-title">🏜️ ${esc(level.label)}</div>
+        <div class="popup-sub">US Drought Monitor</div>
+        <a class="popup-link" href="https://droughtmonitor.unl.edu/" target="_blank" rel="noopener">Full map ↗</a>
+      </div>`);
+    }
+  }).addTo(droughtLayer);
+}
+
+/* ══════════════════════════════════════════════════════
    SURFACE WIND — station barbs via Open-Meteo (no key, CORS)
    Samples a grid across the current viewport, so density stays
    usable at every zoom instead of being fixed to a city list.
 ══════════════════════════════════════════════════════ */
+
 let windData = [];
 let _windAbort = null;      // cancels an in-flight fetch when the view moves again
 let _windDebounce = null;
@@ -2452,7 +2082,7 @@ async function loadWind() {
     windData = (Array.isArray(payload) ? payload : [payload])
       .filter(entry => entry?.current?.wind_speed_10m != null);
     plotWind();
-    markUpdated('wind-updated');
+    noteDataLoaded();
   } catch (err) {
     if (err.name !== 'AbortError') console.warn('Wind load failed:', err.message);
   }
@@ -2490,615 +2120,521 @@ function compassPoint(deg) {
 }
 
 /* ══════════════════════════════════════════════════════
-   RIVER GAUGES — NOAA NWPS via ArcGIS MapServer
+   VOLCANISM — USGS VHP + GeoNet NZ
 ══════════════════════════════════════════════════════ */
-let gaugeData = [];
 
-const GAUGE_STATUS = {
-  action:   { color: '#dbbc7f', label: 'Action Stage'    },
-  flood:    { color: '#e69875', label: 'Minor Flooding'  },
-  moderate: { color: '#e67e80', label: 'Moderate Flood'  },
-  major:    { color: '#d699b6', label: 'Major Flood'     },
-};
+let geonetVALData = [], vhpData = [], vonaData = [];
+const GEONET_VAL_COLOR = { 0:'#859289', 1:'#a7c080', 2:'#dbbc7f', 3:'#e69875', 4:'#e67e80', 5:'#d699b6' };
+const VHP_ALERT_COLOR = { NORMAL:'#859289', ADVISORY:'#dbbc7f', WATCH:'#e69875', WARNING:'#e67e80' };
 
-async function loadGauges() {
+async function loadVolcanism() {
+  showLoading('vhp-body');
+  showLoading('geonet-body');
+  geonetVALData = []; vhpData = []; vonaData = [];
+  await Promise.all([loadGeoNetVAL(), loadVHP()]);
+  renderVHP();
+  renderGeoNet();
+  plotVolcanism();
+  markUpdated('vhp-updated');
+  markUpdated('geonet-updated');
+}
+
+async function loadGeoNetVAL() {
   try {
-    const params = new URLSearchParams({
-      where: "status IN ('action','flood','moderate','major')",
-      outFields: 'gaugelid,status,location,waterbody,state,observed,units,flood,moderate,major,action,obstime,latitude,longitude,url',
-      returnGeometry: 'false',
-      resultRecordCount: 2000,
-      f: 'json'
-    });
-    const response = await fetch(
-      `https://mapservices.weather.noaa.gov/eventdriven/rest/services/water/riv_gauges/MapServer/0/query?${params}`,
-      { signal: AbortSignal.timeout(15000) }
-    );
+    const response = await fetch('https://api.geonet.org.nz/volcano/val', { signal: AbortSignal.timeout(10000) });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
-    gaugeData = (payload.features || []).map(feature => feature.attributes);
-    plotGauges();
-  } catch (err) {
-    console.warn('River gauge load failed:', err.message);
-  }
+    geonetVALData = payload.features || [];
+  } catch (err) { console.warn('GeoNet VAL load failed:', err.message); }
 }
 
-function plotGauges() {
-  if (!map) return;
-  gaugeLayer.clearLayers();
-  for (const gauge of gaugeData) {
-    const lat = parseFloat(gauge.latitude), lon = parseFloat(gauge.longitude);
-    if (isNaN(lat) || isNaN(lon)) continue;
-    const status = GAUGE_STATUS[gauge.status];
-    if (!status) continue;
-    const observedValue = parseFloat(gauge.observed);
-    const marker = L.marker([lat, lon], {
-      icon: L.divIcon({
-        html: `<div style="width:10px;height:10px;background:${status.color};border:1.5px solid #1a2227;box-sizing:border-box"></div>`,
-        className: 'leaflet-marker-emoji',
-        iconSize: [10, 10],
-        iconAnchor: [5, 5],
-        popupAnchor: [0, -8]
-      })
-    });
-    const location = esc(gauge.location || gauge.gaugelid);
-    const waterbody = gauge.waterbody ? `<div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(gauge.waterbody)}, ${esc(gauge.state)}</div>` : `<div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(gauge.state)}</div>`;
-    const thresholds = [
-      gauge.action   ? `<tr><td>Action</td><td>${gauge.action} ${gauge.units}</td></tr>` : '',
-      gauge.flood    ? `<tr><td>Minor</td><td>${gauge.flood} ${gauge.units}</td></tr>` : '',
-      gauge.moderate ? `<tr><td>Moderate</td><td>${gauge.moderate} ${gauge.units}</td></tr>` : '',
-      gauge.major    ? `<tr><td>Major</td><td>${gauge.major} ${gauge.units}</td></tr>` : '',
-    ].filter(Boolean).join('');
-    marker.bindPopup(`<div class="popup-inner">
-      <div class="popup-title">💧 ${location}</div>
-      ${waterbody}
-      <div class="popup-row" style="margin-top:6px">
-        <span style="background:${status.color};color:var(--badge-text, #1a2227);padding:1px 6px;border-radius:3px;font-size:11px;font-weight:700">${status.label}</span>
-        <span style="margin-left:6px"><b>${isNaN(observedValue) ? esc(gauge.observed) : observedValue.toFixed(2)}</b> ${esc(gauge.units || 'ft')}</span>
-      </div>
-      ${thresholds ? `<table style="margin-top:6px;font-size:11px;color:var(--muted);width:100%;border-collapse:collapse"><tbody>${thresholds}</tbody></table>` : ''}
-      <div class="popup-row" style="margin-top:4px">${gauge.obstime ? fmtTime(gauge.obstime.trim().replace(' ', 'T') + 'Z') : ''}</div>
-      ${gauge.url ? `<div class="popup-row"><a href="${esc(gauge.url)}" target="_blank" style="color:var(--accent)">View on water.noaa.gov ↗</a></div>` : ''}
-    </div>`);
-    marker.addTo(gaugeLayer);
-  }
-}
-
-/* ══════════════════════════════════════════════════════
-   US DROUGHT MONITOR — droughtmonitor.unl.edu
-══════════════════════════════════════════════════════ */
-let droughtData = null;
-
-const DM_LEVELS = [
-  { dm:0, label:'D0 — Abnormally Dry',    color:'#dbbc7f', bg:'#3b3a27' },
-  { dm:1, label:'D1 — Moderate Drought',  color:'#e69875', bg:'#3d3226' },
-  { dm:2, label:'D2 — Severe Drought',    color:'#e67e80', bg:'#3d2b28' },
-  { dm:3, label:'D3 — Extreme Drought',   color:'#d699b6', bg:'#2e2538' },
-  { dm:4, label:'D4 — Exceptional Drought',color:'#a7c080',bg:'#293d2b' },
-];
-
-async function loadDrought() {
-  // Panel was removed — load data and plot map layer only
+async function loadVHP() {
   try {
-    const response = await fetch('https://droughtmonitor.unl.edu/data/json/usdm_current.json');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    droughtData = await response.json();
-    plotDrought();
-  } catch (err) { console.warn('Drought Monitor load failed:', err.message); }
-}
+    const [elevated, vonas] = await Promise.all([
+      fetch('https://volcanoes.usgs.gov/hans-public/api/volcano/getElevatedVolcanoes', { signal: AbortSignal.timeout(10000) }).then(response => response.json()),
+      fetch('https://volcanoes.usgs.gov/hans-public/api/notice/getVonasWithinLastYear',  { signal: AbortSignal.timeout(10000) }).then(response => response.json()),
+    ]);
+    const elevArr = Array.isArray(elevated) ? elevated : [];
+    vonaData = Array.isArray(vonas) ? vonas : [];
 
-function renderDrought() {
-  if (!droughtData?.features) return;
+    // Enrich each elevated volcano with lat/lon via getVolcano/{vnum}
+    vhpData = await Promise.all(
+      elevArr.map(async volcano => {
+        try {
+          const detail = await fetch(
+            `https://volcanoes.usgs.gov/hans-public/api/volcano/getVolcano/${volcano.vnum}`,
+            { signal: AbortSignal.timeout(8000) }
+          ).then(response => response.json());
+          return { ...volcano, latitude: detail.latitude ?? null, longitude: detail.longitude ?? null, elevation_m: detail.elevation_meters ?? null };
+        } catch { return volcano; }
+      })
+    );
 
-  const features = droughtData.features;
-  const totalArea = features.reduce((sum, feature) => sum + (feature.properties?.Shape_Area || 0), 0);
-  const activeLevels = DM_LEVELS.filter(level => features.some(feature => feature.properties?.DM === level.dm));
-
-  document.getElementById('drought-count').textContent = activeLevels.length;
-
-  let html = `<div style="padding:8px 10px 4px;font-size:10px;color:var(--muted)">
-    NOAA / University of Nebraska–Lincoln · <a class="link-btn" href="https://droughtmonitor.unl.edu/" target="_blank" rel="noopener">Full Map ↗</a>
-  </div>`;
-
-  for (const level of DM_LEVELS) {
-    const feat = features.find(feature => feature.properties?.DM === level.dm);
-    if (!feat) continue;
-    const area = feat.properties?.Shape_Area || 0;
-    const pct  = totalArea > 0 ? ((area / totalArea) * 100).toFixed(1) : '?';
-    const barWidth = totalArea > 0 ? Math.round((area / totalArea) * 100) : 0;
-
-    html += `<div class="hazard-item">
-      <div class="hazard-top">
-        <span class="hazard-cat" style="background:${level.bg};color:${level.color};font-size:10px;padding:2px 7px">
-          ${esc(level.label)}
-        </span>
-      </div>
-      <div style="margin-top:4px">
-        <div style="height:5px;border-radius:3px;background:var(--surface2);overflow:hidden">
-          <div style="height:100%;width:${barWidth}%;background:${level.color};border-radius:3px;transition:width .4s"></div>
-        </div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">${pct}% of monitored area</div>
-      </div>
-    </div>`;
-  }
-
-  if (!activeLevels.length) {
-    html += `<div class="all-clear">✅ No drought conditions currently reported.</div>`;
-  }
-
-  document.getElementById('drought-body').innerHTML = html;
-  plotDrought();
-}
-
-function plotDrought() {
-  if (!map || !droughtData) return;
-  droughtLayer.clearLayers();
-
-  // Always populate the layer — toggleLayer() controls map visibility
-  const dmColors = { 0:'#dbbc7f', 1:'#e69875', 2:'#e67e80', 3:'#d699b6', 4:'#a7c080' };
-
-  L.geoJSON(droughtData, {
-    style: feature => ({
-      color:       dmColors[feature.properties?.DM] || '#859289',
-      weight:      0.5,
-      opacity:     0.6,
-      fillColor:   dmColors[feature.properties?.DM] || '#859289',
-      fillOpacity: 0.18
-    }),
-    onEachFeature: (feature, layer) => {
-      const level = DM_LEVELS.find(entry => entry.dm === feature.properties?.DM);
-      if (level) layer.bindPopup(`<div class="popup-inner">
-        <div class="popup-title">🏜️ ${esc(level.label)}</div>
-        <div class="popup-sub">US Drought Monitor</div>
-        <a class="popup-link" href="https://droughtmonitor.unl.edu/" target="_blank" rel="noopener">Full map ↗</a>
-      </div>`);
+    // Build vnum→coords lookup so VONAs can also have coordinates
+    const vnumCoords = {};
+    for (const volcano of vhpData) {
+      if (volcano.vnum && volcano.latitude != null) vnumCoords[volcano.vnum] = { lat: volcano.latitude, lon: volcano.longitude };
     }
-  }).addTo(droughtLayer);
+    // Tag VONAs with coordinates where the volcano is in the elevated list
+    vonaData = vonaData.map(vona => ({ ...vona, ...(vnumCoords[vona.vnum] || {}) }));
+  } catch (err) { console.warn('USGS VHP load failed:', err.message); }
 }
 
-/* ══════════════════════════════════════════════════════
-   GLOBAL SUMMARY COUNTS — header bar
-══════════════════════════════════════════════════════ */
-function buildGlobalSummary() {
-  let extreme = 0, severe = 0, moderate = 0;
-  const srcCounts = { nws:0, meteoalarm:0, wmo:0, gdacs:0, msc:0, bom:0 };
-
-  // AlertStore sources (meteoalarm, wmo, gdacs — and future msc/bom)
-  for (const country of AlertStore.countries()) {
-    for (const alert of AlertStore.getCountry(country)) {
-      if (alert._sevRank >= 3) extreme++;
-      else if (alert._sevRank >= 2) severe++;
-      else if (alert._sevRank >= 1) moderate++;
-      if (srcCounts.hasOwnProperty(alert.source)) srcCounts[alert.source]++;
-    }
-  }
-
-  // NWS (not yet in AlertStore)
-  for (const alert of easData) {
-    const sev = (alert.properties || alert).severity;
-    if      (sev === 'Extreme')  { extreme++;  srcCounts.nws++; }
-    else if (sev === 'Severe')   { severe++;   srcCounts.nws++; }
-    else if (sev === 'Moderate') { moderate++; srcCounts.nws++; }
-  }
-
-  // MSC (not in AlertStore — use mscSeverity to classify)
-  for (const feature of mscData) {
-    const label = mscSeverity(feature.properties?.alert_type).label;
-    srcCounts.msc++;
-    if      (label === 'Warning') severe++;
-    else if (label === 'Watch')   severe++;
-    else if (label === 'Advisory') moderate++;
-  }
-
-  // BOM (not in AlertStore — all items counted, no severity mapping)
-  srcCounts.bom += bomData.length;
-
-  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value || '—'; };
-  set('sc-extreme-count',  extreme  || '—');
-  set('sc-severe-count',   severe   || '—');
-  set('sc-moderate-count', moderate || '—');
-  for (const [src, count] of Object.entries(srcCounts)) {
-    set(`sc-src-${src}`, count || '—');
-  }
-}
-
-
-/* ══════════════════════════════════════════════════════
-   BOOT + AUTO-REFRESH
-══════════════════════════════════════════════════════ */
-
-/* ══════════════════════════════════════════════════════
-   ALERT DETAIL BAR — 5-panel NWS story scroller
-══════════════════════════════════════════════════════ */
-let adbAlerts    = [];
-let adbActiveIdx = 0;      // index into adbAlerts of the alert being scrolled
-let _adbWindowStart = 0;   // index of the first alert occupying a panel slot
-
-/* The breakpoints hide trailing panels with CSS (5 → 3 → 2), but the rotation
-   is driven by JS. Without a window the detail bar would narrate alerts whose
-   panel is off-screen, with no panel highlighted at all. So the panels show a
-   sliding window over adbAlerts, and it slides once the last visible alert has
-   finished scrolling. Measured from the DOM so it always matches the CSS. */
-function _adbVisibleCount() {
-  const panels = [...document.querySelectorAll('.adb-panel')];
-  if (!panels.length) return Math.min(5, adbAlerts.length || 5);
-  const shown = panels.filter(p => getComputedStyle(p).display !== 'none').length;
-  return Math.max(1, Math.min(shown || 5, adbAlerts.length || 1));
-}
-
-/* Advance to the next alert, sliding the window when we reach its end.
-   The window slides by the number of visible slots, clamped so the last
-   window still ends on the final alert — so with 5 alerts and 2 slots it
-   slides 2, then 1. Every alert is shown exactly once per cycle, and when
-   all 5 are visible (desktop) maxStart is 0, so nothing slides at all. */
-function _adbAdvance() {
-  const total = adbAlerts.length;
-  if (!total) return;
-  const visible   = _adbVisibleCount();
-  const maxStart  = Math.max(0, total - visible);
-  const windowEnd = Math.min(_adbWindowStart + visible - 1, total - 1);
-
-  if (adbActiveIdx < windowEnd) { adbActiveIdx++; return; }
-
-  if (_adbWindowStart >= maxStart) {
-    _adbWindowStart = 0;                                   // wrap to the start
-    adbActiveIdx    = 0;
-  } else {
-    _adbWindowStart = Math.min(_adbWindowStart + visible, maxStart);
-    // skip any alert the previous window already showed
-    adbActiveIdx    = Math.min(Math.max(_adbWindowStart, adbActiveIdx + 1), total - 1);
-  }
-}
-let adbAnim      = null;
-
-// ── Colour + label helpers ──────────────────────────
-function adbColorForItem(item) {
-  if (item._color) return item._color;
-  if (item.src === 'usgs') return '#a7c080';
-  if (item.src === 'swpc') return '#7fbbb3';
-  if (item.src === 'eonet') {
-    const EONET_COLORS = {
-      wildfires:'#e69875', volcanoes:'#d699b6', severeStorms:'#7fbbb3',
-      seaLakeIce:'#83c092', snow:'#d3c6aa', dustHaze:'#859289',
-      floods:'#5fa8e8', drought:'#dbbc7f', manmade:'#e67e80'
-    };
-    return EONET_COLORS[item._catId] || '#d699b6';
-  }
-  if (item.src === 'fema')  return '#dbbc7f';
-  // NWS — colour by event type
-  const eventName = (item._event || '').toLowerCase();
-  if (eventName.includes('tornado'))                                 return '#ff5555';
-  if (eventName.includes('flash flood'))                             return '#4db8c8';
-  if (eventName.includes('flood'))                                   return '#5fa8e8';
-  if (eventName.includes('thunderstorm'))                            return '#f0c040';
-  if (eventName.includes('fire'))                                    return '#f08040';
-  if (eventName.includes('blizzard') || eventName.includes('snow'))  return '#a8d8f8';
-  if (eventName.includes('ice') || eventName.includes('winter'))     return '#b8e8ff';
-  if (eventName.includes('wind'))                                    return '#90d080';
-  if (eventName.includes('heat'))                                    return '#ff9060';
-  return '#e67e80';
-}
-
-// ── Aggregate the 5 most-recent items across all sources ──
-function adbGatherItems() {
-  // NB: no hard character truncation on `tag` or `short`. The panel rows are
-  // full-width with CSS `text-overflow: ellipsis`, which clips at the actual
-  // pixel boundary and shows a "…". Slicing here instead chopped mid-word with
-  // no ellipsis — "SPACE WEATHER MESSAGE" (21 chars) rendered as "MESSAG",
-  // which reads as a typo rather than as truncated text.
-  const candidates = [];
-
-  // USGS earthquakes
-  for (const quake of eqData) {
-    const props = quake.properties;
-    const time  = props.time || 0;
-    const mag   = props.mag != null ? props.mag.toFixed(1) : '?';
-    const depth = quake.geometry?.coordinates?.[2];
-    const issueTime = fmtTime(new Date(time).toISOString());
-    const parts = [];
-    if (props.place)   parts.push(props.place);
-    if (depth != null) parts.push(`Depth: ${depth.toFixed(0)} km`);
-    if (props.alert)   parts.push(`USGS alert level: ${props.alert.toUpperCase()}`);
-    parts.push(`Magnitude: ${mag}`);
-    if (props.url)     parts.push(props.url.replace(/^https?:\/\//, ''));
-    candidates.push({
-      src: 'usgs', ts: time,
-      tag: `M${mag} EQ`, issueTime,
-      short: props.place || 'Unknown location',
-      detail: parts.join('   ·   '),
-      _event: `M${mag} Earthquake`,
-      flyId: quake.id
-    });
-  }
-
-  // NWS alerts — all active, no filter
-  for (const alert of easData) {
-    const props   = alert.properties || alert;
-    const time    = new Date(props.sent || props.effective || 0).getTime();
-    const sent    = props.sent || props.effective;
-    const expires = props.expires || props.ends;
-    const issueTime = sent ? fmtTime(sent) : '—';
-    const parts = [];
-    if (props.areaDesc)    parts.push(props.areaDesc.trim());
-    if (props.headline)    parts.push(props.headline.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
-    if (props.description) parts.push(props.description.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
-    if (props.instruction) parts.push('⚠ INSTRUCTIONS: ' + props.instruction.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
-    // issue time is in the label; only include expiry in scroll
-    if (expires) parts.push(`Expires: ${fmtTime(expires)}`);
-    candidates.push({
-      src: 'nws', ts: time || Date.now(),
-      tag: props.event || 'ALERT', issueTime,
-      short: (props.areaDesc || '').split(';')[0].trim() || '—',
-      detail: parts.join('   ·   '),
-      _event: props.event || '',
-      flyId: alert.id
-    });
-  }
-
-  // EONET natural events — last 2 days only
-  const eonetCutoff = Date.now() - 2 * 24 * 3_600_000;
-  for (const event of eonetData) {
-    const geo    = event.geometry?.[event.geometry.length - 1];
-    const time   = geo?.date ? new Date(geo.date).getTime() : 0;
-    if (!time || time < eonetCutoff) continue;
-    const catId  = event.categories?.[0]?.id || 'manmade';
-    const catLbl = event.categories?.[0]?.title || 'Event';
-    const issueTime = geo?.date ? fmtTime(geo.date) : '—';
-    const parts = [];
-    parts.push(eonetTitle(event));
-    parts.push(`Category: ${catLbl}`);
-    if (geo?.magnitudeValue != null) parts.push(`Size: ${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit || ''}`);
-    if (event.sources?.[0]?.id) parts.push(`Source: ${event.sources[0].id}`);
-    if (event.link) parts.push(`Info: ${event.link}`);
-    // updated time is in the issueTime label
-    candidates.push({
-      src: 'eonet', ts: time,
-      tag: catLbl.toUpperCase(), issueTime,
-      short: eonetTitle(event),
-      detail: parts.join('   ·   '),
-      _catId: catId,
-      flyId: event.id
-    });
-  }
-
-  // SWPC space weather
-  for (const alert of swAlerts) {
-    const time      = swpcUTC(alert.issue_datetime);
-    const issueTime = alert.issue_datetime ? fmtTime(new Date(time).toISOString()) : '—';
-    const msg       = (alert.message || '').replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim();
-    const title     = parseProductTitle ? parseProductTitle(alert.message || '') : 'Space Weather';
-    // issue time in label; message is the detail
-    // Tag carries the hazard class, location row carries the product title.
-    // Both used to be parseProductTitle(), so the panel printed the same string
-    // twice — masked previously only because the tag was hard-chopped at 20 chars.
-    candidates.push({
-      src: 'swpc', ts: time,
-      tag: parseSWCategory(alert.message || '').label.toUpperCase(), issueTime,
-      short: title,
-      detail: msg,
-      _event: title
-    });
-  }
-
-  // FEMA declarations
-  for (const decl of femaData) {
-    const time      = decl.declarationDate ? new Date(decl.declarationDate).getTime() : 0;
-    const typeLabel = FEMA_TYPE_LABELS[decl.declarationType] || decl.declarationType;
-    const declId    = decl.femaDeclarationString || `DR-${decl.disasterNumber}`;
-    const issueTime = decl.declarationDate ? fmtTime(decl.declarationDate) : '—';
-    const parts     = [];
-    parts.push(decl.declarationTitle || decl.incidentType || 'Declaration');
-    parts.push(`${typeLabel} declared for ${decl.state || decl.stateCode || 'Unknown'}`);
-    parts.push(`Incident type: ${decl.incidentType || '—'}`);
-    parts.push(`Declaration ID: ${declId}`);
-    if (decl.disasterNumber) parts.push(`FEMA.gov/disaster/${decl.disasterNumber}`);
-    // declared date is in the issueTime label
-    candidates.push({
-      src: 'fema', ts: time,
-      tag: typeLabel.toUpperCase(), issueTime,
-      short: `${decl.state || '—'} · ${decl.incidentType || '—'}`,
-      detail: parts.join('   ·   '),
-      _event: typeLabel
-    });
-  }
-
-  // AlertStore — severe+ alerts that are currently active (onset in the past)
-  const _now = Date.now();
-  for (const country of AlertStore.countries()) {
-    for (const alert of AlertStore.getCountry(country)) {
-      if (alert._sevRank < 2) continue;
-      const srcStyle    = GEO_SOURCE_STYLE[alert.source] || {};
-      const countryLbl  = (alert.country||'').replace(/-/g,' ').replace(/\b\w/g,ch=>ch.toUpperCase());
-      const onsetTs     = alert.onset ? new Date(alert.onset).getTime() : 0;
-      if (onsetTs > _now) continue;  // skip advance warnings not yet in effect
-      candidates.push({
-        src:       alert.source,
-        ts:        onsetTs,
-        tag:       `${(srcStyle.label||alert.source.slice(0,4).toUpperCase())} · ${alert.severity.toUpperCase()}`,
-        issueTime: alert.onset ? fmtTime(alert.onset) : '—',
-        short:     `${countryLbl}${alert.areaDesc ? ' — ' + alert.areaDesc : ''}`,
-        detail:    [alert.title, countryLbl, alert.areaDesc, alert.expires ? `Exp: ${fmtTime(alert.expires)}` : ''].filter(Boolean).join('   ·   '),
-        _event:    alert.title,
-        _color:    alert.color,
-        flyId:     null,
-      });
-    }
-  }
-
-  // Sort newest-first, take top 5
-  candidates.sort((itemA, itemB) => itemB.ts - itemA.ts);
-  return candidates.slice(0, 5);
-}
-
-let _adbDebounce = null;
-function buildAlertBar() {
-  // Debounce: all rapid calls from render functions collapse into one execution,
-  // preventing multiple rAF(_adbAnimate) calls that cause the skip-panel bug.
-  clearTimeout(_adbDebounce);
-  _adbDebounce = setTimeout(_adbBuildNow, 80);
-}
-
-function _adbBuildNow() {
-  adbAlerts = adbGatherItems();
-  if (adbActiveIdx >= adbAlerts.length) adbActiveIdx = 0;
-  const _maxStart = Math.max(0, adbAlerts.length - _adbVisibleCount());
-  if (_adbWindowStart > _maxStart) _adbWindowStart = 0;
-  if (adbActiveIdx < _adbWindowStart) _adbWindowStart = 0;
-
-  // If a rAF loop is already running (either the measure frame or the step loop),
-  // leave it alone and just silently refresh the inactive panels.
-  // This prevents periodic data refreshes (NWS 60s, EQ 120s, etc.) from
-  // cancelling and restarting the animation mid-scroll.
-  if (_adbRafId !== null || _adbMeasureId !== null) {
-    _adbRefreshInactive();
-    return;
-  }
-
-  _adbRenderAll();
-  requestAnimationFrame(_adbAnimate);
-}
-
-// Three stacked rows: event tag, location, timestamp. Each spans the panel's
-// full width, so a long event name can no longer starve the location beside it.
-function adbPanelMarkup(item) {
-  return `
-    <span class="adb-tag" style="color:${adbColorForItem(item)}">${esc(item.tag)}</span>
-    <span class="adb-short">${esc(item.short)}</span>
-    <span class="adb-issue-time">${esc(item.issueTime || '—')}</span>`;
-}
-
-// Update only the inactive panels — never touches the active one or its animation
-function _adbRefreshInactive() {
-  for (let slot = 0; slot < 5; slot++) {
-    const alertIdx = _adbWindowStart + slot;
-    if (alertIdx === adbActiveIdx) continue;
-    const panel = document.getElementById(`adb-panel-${slot}`);
-    if (!panel) continue;
-    const item    = adbAlerts[alertIdx];
-    const flyable = !!(item?.flyId);
-    panel.className = 'adb-panel' + (flyable ? ' flyable' : '');
-    if (flyable) { panel.dataset.flySrc = item.src; panel.dataset.flyId = item.flyId; }
-    else         { delete panel.dataset.flySrc; delete panel.dataset.flyId; }
-    if (item) {
-      panel.innerHTML = adbPanelMarkup(item);
-    } else {
-      panel.innerHTML = `<span class="adb-empty">—</span>`;
-    }
-  }
-}
-
-// Always do a full ordered rebuild — no partial updates, no ordering bugs
-function _adbRenderAll() {
-  const bar = document.getElementById('adb-panels');
-  if (!bar) return;
-  bar.innerHTML = '';
-
-  if (!adbAlerts.length) {
-    bar.innerHTML = `<span class="adb-empty" style="padding:0 24px;color:#2a3540;flex:1;display:flex;align-items:center">No recent events</span>`;
-    return;
-  }
-
-  for (let slot = 0; slot < 5; slot++) {
-    const panel    = document.createElement('div');
-    panel.id       = `adb-panel-${slot}`;
-    const alertIdx = _adbWindowStart + slot;      // slot → alert via the window
-    const item     = adbAlerts[alertIdx];
-    const isActive = (alertIdx === adbActiveIdx);
-    const flyable  = !!(item?.flyId);
-    panel.className = 'adb-panel' + (isActive ? ' active' : '') + (flyable ? ' flyable' : '');
-    if (flyable) {
-      panel.dataset.flySrc = item.src;
-      panel.dataset.flyId  = item.flyId;
-    }
-
-    if (item) {
-      // Both active and inactive panels show the same layout;
-      // detail text lives in the separate bar below.
-      panel.innerHTML = adbPanelMarkup(item);
-    } else {
-      panel.innerHTML = `<span class="adb-empty">—</span>`;
-    }
-
-    bar.appendChild(panel); // always in order 0→4
-  }
-}
-
-// Manual rAF scroll — guaranteed constant speed, no easing curves
-const ADB_SPEED  = 215; // px per second
-const ADB_TAIL_GAP = 5; // px from the left edge at which the panel hands over
-let _adbRafId    = null; // handle for the active step() loop
-let _adbMeasureId = null; // handle for the one-frame measurement rAF
-
-function _adbAnimate() {
-  if (!adbAlerts.length) return;
-
-  // Cancel any in-flight loops (both measurement frame and step loop)
-  if (_adbMeasureId) { cancelAnimationFrame(_adbMeasureId); _adbMeasureId = null; }
-  if (_adbRafId)     { cancelAnimationFrame(_adbRafId);     _adbRafId     = null; }
-
-  const item     = adbAlerts[adbActiveIdx];
-  const detailEl = document.getElementById('adb-detail-text');
-  const innerEl  = document.getElementById('adb-detail-inner');
-  if (!item || !detailEl || !innerEl) return;
-
-  detailEl.textContent = item.detail;
-  detailEl.style.transform = '';
-
-  // One measurement frame so the browser has committed the new text width
-  _adbMeasureId = requestAnimationFrame(() => {
-    _adbMeasureId = null;
-    const barW  = innerEl.offsetWidth;
-    const textW = detailEl.scrollWidth;
-    // Hand over once the text's trailing edge is ADB_TAIL_GAP from the left
-    // edge of the bar, so the panel change lands as the description clears
-    // rather than after a beat of empty bar.
-    const total = barW + textW - ADB_TAIL_GAP;
-    let startTime = null;
-
-    function step(ts) {
-      if (!startTime) startTime = ts;
-      const px = ((ts - startTime) / 1000) * ADB_SPEED;
-      detailEl.style.transform = `translateX(${barW - px}px)`;
-
-      if (px >= total) {
-        // Finished — advance, sliding the panel window if this was the last
-        // visible alert (see _adbAdvance)
-        _adbRafId = null;
-        _adbAdvance();
-        _adbRenderAll();
-        requestAnimationFrame(_adbAnimate);
-      } else {
-        _adbRafId = requestAnimationFrame(step);
-      }
-    }
-
-    _adbRafId = requestAnimationFrame(step);
+function volcMarkerIcon(color) {
+  return L.divIcon({
+    html: `<div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid ${color};filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))"></div>`,
+    className: 'leaflet-marker-emoji',
+    iconSize:    [14, 13],
+    iconAnchor:  [7,  13],
+    popupAnchor: [0, -14]
   });
 }
 
-/* ── Fly-to dispatcher (ticker + alert bar) ─────── */
-function adbFlyTo(src, id) {
-  if (!src || !id) return;
-  if      (src === 'usgs')        flyToEq(id);
-  else if (src === 'nws')         flyToAlert(id);
-  else if (src === 'eonet')       flyToEonet(id);
-  else if (src === 'meteoalarm')  flyToMeteo(id);
-  else if (src === 'wmo')         flyToWMO(id);
-  else if (src === 'gdacs')       flyToGDACS(id);
-  else if (src === 'msc')         flyToMSC(id);
-  // SWPC, FEMA, BOM have no map markers
+function renderVHP() {
+  const body = document.getElementById('vhp-body');
+  if (!body) return;
+  const items = [];
+
+  // Coord lookup for VONAs
+  const vhpCoords = {};
+  for (const volcano of vhpData) {
+    if (volcano.vnum && volcano.latitude != null) vhpCoords[volcano.vnum] = { lat: volcano.latitude, lon: volcano.longitude, id: `vhp-${volcano.vnum}` };
+  }
+
+  // USGS VHP — currently elevated volcanoes
+  vhpData.forEach(volcano => {
+    const col = VHP_ALERT_COLOR[volcano.alert_level] || '#859289';
+    const coords = volcano.latitude != null ? { lat: volcano.latitude, lon: volcano.longitude, id: `vhp-${volcano.vnum}` } : null;
+    items.push({
+      source: 'VHP', color: col,
+      title:  `${volcano.volcano_name} — ${volcano.alert_level}`,
+      sub:    `${volcano.obs_fullname} · Aviation: ${volcano.color_code || '—'}`,
+      time:   volcano.sent_utc ? volcano.sent_utc.replace(' ', 'T') + 'Z' : null,
+      desc:   '',
+      url:    volcano.notice_url || null,
+      coords,
+    });
+  });
+
+  // VONAs — last 7 days; coordinates shared via vnum lookup
+  const cutoff = Date.now() - 7 * 86400_000;
+  vonaData
+    .filter(vona => (vona.sent_unixtime * 1000) >= cutoff)
+    .forEach(vona => {
+      const col = VHP_ALERT_COLOR[vona.alert_level] || '#859289';
+      const coords = vhpCoords[vona.vnum] || null;
+      items.push({
+        source: 'VONA', color: col,
+        title:  `${vona.volcano_name} — VONA ${vona.color_code}`,
+        sub:    `${vona.region} · ${vona.nvews_threat || ''}`,
+        time:   vona.sent_utc ? vona.sent_utc.replace(' ', 'T') + 'Z' : null,
+        desc:   (vona.synopsis_complete || '').slice(0, 160),
+        url:    vona.vona_url || null,
+        coords,
+      });
+    });
+
+  document.getElementById('vhp-count').textContent = items.length;
+
+  if (!items.length) {
+    body.innerHTML = '<div class="state muted">No elevated volcanic activity</div>';
+    return;
+  }
+
+  // Timed items first (most recent), then untimed
+  items.sort((itemA, itemB) => {
+    if (itemA.time && itemB.time) return new Date(itemB.time) - new Date(itemA.time);
+    if (itemA.time) return -1;
+    if (itemB.time) return 1;
+    return itemA.source.localeCompare(itemB.source);
+  });
+
+  body.innerHTML = items.map(item => {
+    const flyAttr = item.coords
+      ? `onclick="flyToVolc('${item.coords.id}',${item.coords.lat},${item.coords.lon})" style="border-left-color:${item.color};cursor:pointer"`
+      : `style="border-left-color:${item.color}"`;
+    return `
+    <div class="alert-item" ${flyAttr} title="${item.coords ? 'Click to locate on map' : ''}">
+      <div class="alert-row">
+        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">${esc(item.source)}</span>
+        <span class="alert-event">${esc(item.title)}</span>
+      </div>
+      ${item.sub  ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
+      ${item.desc ? `<div class="alert-sub" style="opacity:.8">${esc(item.desc)}${item.desc.length >= 160 ? '…' : ''}</div>` : ''}
+      <div class="alert-meta">
+        <span>${fmtTime(item.time)}</span>
+        ${item.url ? `<a href="${esc(item.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
-// Event delegation — alert detail bar panels
-document.getElementById('adb-panels').addEventListener('click', event => {
-  const panel = event.target.closest('.adb-panel.flyable');
-  if (panel) adbFlyTo(panel.dataset.flySrc, panel.dataset.flyId);
-});
+function renderGeoNet() {
+  const body = document.getElementById('geonet-body');
+  if (!body) return;
+  const items = [];
+
+  // GeoNet VAL — all NZ volcanoes with their current alert level
+  geonetVALData.forEach(feature => {
+    const props = feature.properties;
+    const col   = GEONET_VAL_COLOR[props.level ?? 0] || '#859289';
+    const coords = feature.geometry?.coordinates
+      ? { lat: feature.geometry.coordinates[1], lon: feature.geometry.coordinates[0], id: `geonet-${props.volcanoID}` }
+      : null;
+    items.push({
+      source: 'NZ', color: col,
+      title:  `${props.volcanoTitle} — VAL ${props.level ?? 0}`,
+      sub:    props.activity || '',
+      time:   null,
+      desc:   props.hazards || '',
+      url:    `https://www.geonet.org.nz/volcano/${props.volcanoID}`,
+      coords,
+    });
+  });
+
+  document.getElementById('geonet-count').textContent = items.length;
+
+  if (!items.length) {
+    body.innerHTML = '<div class="state muted">No elevated volcanic activity</div>';
+    return;
+  }
+
+  body.innerHTML = items.map(item => {
+    const flyAttr = item.coords
+      ? `onclick="flyToVolc('${item.coords.id}',${item.coords.lat},${item.coords.lon})" style="border-left-color:${item.color};cursor:pointer"`
+      : `style="border-left-color:${item.color}"`;
+    return `
+    <div class="alert-item" ${flyAttr} title="${item.coords ? 'Click to locate on map' : ''}">
+      <div class="alert-row">
+        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">${esc(item.source)}</span>
+        <span class="alert-event">${esc(item.title)}</span>
+      </div>
+      ${item.sub  ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
+      ${item.desc ? `<div class="alert-sub" style="opacity:.8">${esc(item.desc)}${item.desc.length >= 160 ? '…' : ''}</div>` : ''}
+      <div class="alert-meta">
+        <span>${fmtTime(item.time)}</span>
+        ${item.url ? `<a href="${esc(item.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function plotVolcanism() {
+  if (!map) return;
+  volcLayer.clearLayers();
+
+  // GeoNet NZ — GeoJSON Point geometry
+  for (const feature of geonetVALData) {
+    const props = feature.properties;
+    if (!feature.geometry?.coordinates) continue;
+    const [lon, lat] = feature.geometry.coordinates;
+    const col = GEONET_VAL_COLOR[props.level ?? 0] || '#859289';
+    const marker = L.marker([lat, lon], { icon: volcMarkerIcon(col), zIndexOffset: 100 });
+    marker._volcId = `geonet-${props.volcanoID}`;
+    marker.bindPopup(`<div class="popup-inner">
+      <div class="popup-title">🌋 ${esc(props.volcanoTitle)}</div>
+      <div class="popup-sub">GeoNet NZ — Volcanic Alert Level ${props.level ?? 0}</div>
+      ${props.activity ? `<div class="popup-row" style="margin-top:4px;font-size:11px;color:var(--muted)">${esc(props.activity)}</div>` : ''}
+      ${props.hazards  ? `<div class="popup-row" style="font-size:10px;color:var(--muted)">${esc(props.hazards.slice(0,200))}${props.hazards.length>200?'…':''}</div>` : ''}
+      <div class="popup-row"><a href="https://www.geonet.org.nz/volcano/${esc(props.volcanoID)}" target="_blank" style="color:var(--accent)">GeoNet ↗</a></div>
+    </div>`);
+    marker.addTo(volcLayer);
+  }
+
+  // USGS VHP — elevated volcanoes (coordinates enriched in loadVHP)
+  for (const volcano of vhpData) {
+    if (volcano.latitude == null || volcano.longitude == null) continue;
+    const col = VHP_ALERT_COLOR[volcano.alert_level] || '#859289';
+    const marker = L.marker([volcano.latitude, volcano.longitude], { icon: volcMarkerIcon(col), zIndexOffset: 200 });
+    marker._volcId = `vhp-${volcano.vnum}`;
+    marker.bindPopup(`<div class="popup-inner">
+      <div class="popup-title">🌋 ${esc(volcano.volcano_name)}</div>
+      <div class="popup-sub">${esc(volcano.obs_fullname)}</div>
+      <div class="popup-row" style="margin-top:4px">
+        <span style="background:${col};color:var(--badge-text, #1a2227);padding:1px 7px;border-radius:3px;font-size:11px;font-weight:700">${esc(volcano.alert_level)}</span>
+        ${volcano.color_code ? `<span style="margin-left:6px;font-size:11px;color:var(--muted)">Aviation: ${esc(volcano.color_code)}</span>` : ''}
+      </div>
+      ${volcano.notice_url ? `<div class="popup-row"><a href="${esc(volcano.notice_url)}" target="_blank" style="color:var(--accent)">Latest Notice ↗</a></div>` : ''}
+    </div>`);
+    marker.addTo(volcLayer);
+  }
+}
+
+function flyToVolc(id, lat, lon) {
+  ensureLayerOn('volc');
+  if (!map || lat == null || lon == null) return;
+  map.flyTo([lat, lon], Math.max(map.getZoom(), 5), { duration: 1 });
+  volcLayer.eachLayer(marker => { if (marker._volcId === id) marker.openPopup(); });
+}
+
+/* ══════════════════════════════════════════════════════
+   CANADA — Environment and Climate Change Canada MSC
+══════════════════════════════════════════════════════ */
+
+let mscData = [];
+
+// Classify MSC alert severity from the alert_type field ("warning" / "watch" /
+// "advisory" / "statement"), falling back to matching on free text
+function mscSeverity(alertType) {
+  const type = (alertType || '').toLowerCase();
+  if (type.includes('warning'))  return { color: '#e67e80', label: 'Warning' };
+  if (type.includes('watch'))    return { color: '#e69875', label: 'Watch' };
+  if (type.includes('advisory')) return { color: '#dbbc7f', label: 'Advisory' };
+  return { color: '#7fbbb3', label: 'Statement' };
+}
+
+// Title-case a lowercase MSC alert name ("air quality warning" → "Air Quality Warning")
+function mscTitleCase(name) {
+  return (name || '').replace(/\b\w/g, ch => ch.toUpperCase());
+}
+
+async function loadMSCPanel() {
+  showLoading('msc-body');
+  mscData = [];
+  await loadMSC();
+  renderMSCPanel();
+  markUpdated('msc-updated');
+  buildGlobalSummary();
+}
+
+async function loadMSC() {
+  try {
+    // GeoMet OGC API — Features; serves CORS-enabled GeoJSON directly.
+    const url = 'https://api.weather.gc.ca/collections/weather-alerts/items?f=json&limit=500';
+    const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const geojson = await response.json();
+    mscData = geojson.features || [];
+    plotMSC();
+  } catch (err) { console.warn('MSC load failed:', err.message); }
+}
+
+function renderMSCPanel() {
+  const body = document.getElementById('msc-body');
+  if (!body) return;
+
+  const items = mscData.map(feature => {
+    const props    = feature.properties;
+    const severity = mscSeverity(props.alert_type);
+    return {
+      id:      feature.id || '',
+      color:   severity.color,
+      title:   mscTitleCase(props.alert_name_en) || 'MSC Alert',
+      sub:     [props.feature_name_en, props.province].filter(Boolean).join(', '),
+      time:    props.validity_datetime || props.publication_datetime,
+      expires: props.expiration_datetime,
+      desc:    (props.alert_text_en || '').slice(0, 160),
+      url:     '',
+    };
+  });
+
+  document.getElementById('msc-count').textContent = items.length;
+
+  if (!items.length) {
+    body.innerHTML = '<div class="state muted">No active Canadian alerts</div>';
+    return;
+  }
+
+  items.sort((itemA, itemB) => new Date(itemB.time) - new Date(itemA.time));
+
+  body.innerHTML = items.map(item => `
+    <div class="alert-item clickable" style="border-left-color:${item.color}"
+         onclick="flyToMSC('${esc(item.id)}')" title="Click to locate on map">
+      <div class="alert-row">
+        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">CA</span>
+        <span class="alert-event">${esc(item.title)}</span>
+      </div>
+      ${item.sub  ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
+      ${item.desc ? `<div class="alert-sub" style="opacity:.8">${esc(item.desc)}${item.desc.length >= 160 ? '…' : ''}</div>` : ''}
+      <div class="alert-meta">
+        <span>${fmtTime(item.time)}</span>
+        ${item.expires ? `<span>Exp: ${fmtTime(item.expires)}</span>` : ''}
+        ${item.url ? `<a href="${esc(item.url)}" target="_blank" style="color:var(--accent);margin-left:auto" onclick="event.stopPropagation()">↗</a>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function plotMSC() {
+  if (!map) return;
+  mscLayer.clearLayers();
+  L.geoJSON({ type: 'FeatureCollection', features: mscData }, {
+    style(feature) {
+      const severity = mscSeverity(feature.properties.alert_type);
+      return { color: severity.color, weight: 1, opacity: 0.8, fillColor: severity.color, fillOpacity: 0.12, dashArray: '3 4' };
+    },
+    onEachFeature(feature, layer) {
+      const props    = feature.properties;
+      const severity = mscSeverity(props.alert_type);
+      const alertText = props.alert_text_en || '';
+      layer._mscId = feature.id;
+      layer.bindPopup(`<div class="popup-inner">
+        <div class="popup-title">🇨🇦 ${esc(mscTitleCase(props.alert_name_en) || 'MSC Alert')}</div>
+        <div class="popup-sub">${esc(props.feature_name_en || props.province || '')}</div>
+        <div class="popup-row" style="margin-top:4px">
+          <span style="background:${severity.color};color:var(--badge-text, #1a2227);padding:1px 6px;border-radius:3px;font-size:11px;font-weight:700">${severity.label}</span>
+        </div>
+        <div class="popup-row" style="margin-top:6px;line-height:1.4;font-size:11px;color:var(--muted)">${esc(alertText.slice(0, 300))}${alertText.length > 300 ? '…' : ''}</div>
+        <div class="popup-row"><span>Effective</span><span>${fmtTime(props.validity_datetime || props.publication_datetime)}</span></div>
+        <div class="popup-row"><span>Expires</span><span>${fmtTime(props.expiration_datetime)}</span></div>
+      </div>`);
+    }
+  }).addTo(mscLayer);
+}
+
+function flyToMSC(identifier) {
+  ensureLayerOn('msc');
+  if (!map || !identifier) return;
+  // mscLayer contains one L.geoJSON group; individual polygon layers are one level deeper
+  mscLayer.eachLayer(group => {
+    (group.eachLayer ? group : { eachLayer: visit => visit(group) }).eachLayer(polygonLayer => {
+      if (polygonLayer._mscId !== identifier) return;
+      try {
+        const bounds = polygonLayer.getBounds?.();
+        if (bounds?.isValid()) map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
+      } catch {}
+      polygonLayer.openPopup();
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   AUSTRALIA — Bureau of Meteorology
+══════════════════════════════════════════════════════ */
+
+let bomData = [];
+
+const BOM_TYPE = {
+  tropical_cyclone_warning: { label: 'Tropical Cyclone Warning', color: '#d699b6' },
+  flood_watch:              { label: 'Flood Watch',              color: '#a7c080' },
+  flood_warning:            { label: 'Flood Warning',            color: '#a7c080' },
+  fire_weather_warning:     { label: 'Fire Weather Warning',     color: '#e69875' },
+  severe_thunderstorm_warning:{ label: 'Severe Thunderstorm Warning', color: '#dbbc7f' },
+  marine_wind_warning:      { label: 'Marine Wind Warning',      color: '#7fbbb3' },
+  road_weather_alert:       { label: 'Road Weather Alert',       color: '#859289' },
+};
+
+// State/territory approximate centroids for flyTo (BOM warnings carry no geometry)
+const AUS_STATE_CENTER = {
+  ACT: [-35.47, 149.01], NSW: [-32.16, 147.02], NT: [-19.49, 134.36],
+  QLD: [-22.57, 144.43], SA:  [-30.00, 135.76], TAS: [-42.02, 146.59],
+  VIC: [-37.02, 144.97], WA:  [-25.33, 122.18],
+};
+
+async function loadBOMPanel() {
+  showLoading('bom-body');
+  bomData = [];
+  await loadBOM();
+  renderBOMPanel();
+  plotBOM();
+  markUpdated('bom-updated');
+  buildGlobalSummary();
+}
+
+async function loadBOM() {
+  try {
+    const response = await fetch('https://api.weather.bom.gov.au/v1/warnings', { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    bomData = payload.data || [];
+  } catch (err) { console.warn('BOM load failed:', err.message); }
+}
+
+function renderBOMPanel() {
+  const body = document.getElementById('bom-body');
+  if (!body) return;
+
+  const items = bomData.map(warning => {
+    const typeInfo = BOM_TYPE[warning.type] || { label: warning.type?.replace(/_/g,' ') || 'Warning', color: '#859289' };
+    const states   = warning.states?.length ? warning.states : warning.state ? [warning.state] : [];
+    return {
+      color:   typeInfo.color,
+      title:   warning.short_title || typeInfo.label,
+      sub:     states.join(', '),
+      flyState: states[0] || '',     // first state for flyTo
+      time:    warning.issue_time,
+      expires: warning.expiry_time,
+    };
+  });
+
+  document.getElementById('bom-count').textContent = items.length;
+
+  if (!items.length) {
+    body.innerHTML = '<div class="state muted">No active Australian warnings</div>';
+    return;
+  }
+
+  items.sort((itemA, itemB) => new Date(itemB.time) - new Date(itemA.time));
+
+  body.innerHTML = items.map(item => `
+    <div class="alert-item${item.flyState ? ' clickable' : ''}" style="border-left-color:${item.color}"
+         ${item.flyState ? `onclick="flyToBOM('${esc(item.flyState)}')" title="Click to locate on map"` : ''}>
+      <div class="alert-row">
+        <span class="alert-badge" style="background:${item.color};color:var(--badge-text, #1a2227)">AU</span>
+        <span class="alert-event">${esc(item.title)}</span>
+      </div>
+      ${item.sub ? `<div class="alert-sub">${esc(item.sub)}</div>` : ''}
+      <div class="alert-meta">
+        <span>${fmtTime(item.time)}</span>
+        ${item.expires ? `<span>Exp: ${fmtTime(item.expires)}</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+// Plot catchment polygons for the currently ACTIVE BOM flood warnings only.
+// The National Flood Gauge Network layers are the full static catchment
+// reference set — querying them with where=1=1 draws every catchment in
+// Australia. Instead we match layer 1 (Flood Warning Catchments) against the
+// product ids of active warnings from the BOM warnings API (loadBOM must have
+// populated bomData first). Layer 0 (Flood Watch Catchments) has no product_id
+// field to join on, so watches appear in the panel list but not as polygons.
+async function plotBOM() {
+  if (!bomLayer) return;
+  bomLayer.clearLayers();
+
+  // Product ids of active warnings, sanitized for the ArcGIS where clause
+  const activeProductIds = bomData
+    .map(warning => warning.id)
+    .filter(id => /^[A-Za-z0-9_]+$/.test(id || ''));
+  if (!activeProductIds.length) return;  // nothing active → nothing to draw
+
+  const base = 'https://hosting.wsapi.cloud.bom.gov.au/arcgis/rest/services/flood/National_Flood_Gauge_Network/FeatureServer';
+  const whereClause = `product_id IN (${activeProductIds.map(id => `'${id}'`).join(',')})`;
+  const query = new URLSearchParams({ where: whereClause, outFields: '*', f: 'geojson' });
+  try {
+    const warningGeojson = await fetch(proxyUrl(`${base}/1/query?${query}`), { signal: AbortSignal.timeout(15000) })
+      .then(response => response.ok ? response.json() : null);
+    if (!warningGeojson?.features?.length) return;
+
+    L.geoJSON(warningGeojson, {
+      style: { color: '#e67e80', weight: 1.5, opacity: 0.85, fillColor: '#e67e80', fillOpacity: 0.22 },
+      onEachFeature(feature, layer) {
+        const props = feature.properties;
+        layer._bomState = props.state_code;
+        layer.bindPopup(`<div class="popup-inner">
+          <div class="popup-title">🇦🇺 Flood Warning</div>
+          <div class="popup-row"><span>Area</span><span>${esc(props.dist_name || '')}</span></div>
+          <div class="popup-row"><span>State</span><span>${esc(props.state_code || '')}</span></div>
+          <div class="popup-row"><span>Product</span><span>${esc(props.product_id || '')}</span></div>
+        </div>`);
+      },
+    }).addTo(bomLayer);
+  } catch (err) { console.warn('BOM flood layer failed:', err.message); }
+}
+
+function flyToBOM(state) {
+  ensureLayerOn('bom');
+  if (!map || !state) return;
+  const center = AUS_STATE_CENTER[state.toUpperCase().trim()];
+  if (center) map.flyTo(center, Math.max(map.getZoom(), 5), { duration: 1 });
+  else map.flyTo([-25.27, 133.78], 4, { duration: 1 }); // whole-country fallback
+}
 
 /* ══════════════════════════════════════════════════════
    GDACS — Global Disaster Alert and Coordination System
    Feed: https://www.gdacs.org/xml/rss.xml  (via CORS proxy)
 ══════════════════════════════════════════════════════ */
+
+let gdacsData = [];
 const GDACS_COLOR = { Red: '#e67e80', Orange: '#e69875', Green: '#a7c080' };
 const GDACS_ICON  = { FL:'💧', TC:'🌀', DR:'☀️', WF:'🔥', VO:'🌋', EQ:'🔴', TS:'🌊' };
 const GDACS_LABEL = { FL:'Flood', TC:'Cyclone', DR:'Drought', WF:'Wildfire', VO:'Volcano', EQ:'Earthquake', TS:'Tsunami' };
@@ -3111,13 +2647,13 @@ function xmlLocal(el, lname) {
   }
   return null;
 }
+
 function xmlLocalText(el, lname) {
   const child = xmlLocal(el, lname);
   return child ? child.textContent.trim() : '';
 }
 
 async function loadGDACS() {
-  showLoading('gdacs-body');
   gdacsData = [];
   try {
     const response = await fetch(proxyUrl('https://www.gdacs.org/xml/rss.xml'), { signal: AbortSignal.timeout(15000) });
@@ -3148,46 +2684,11 @@ async function loadGDACS() {
     }).filter(event => event.type);
   } catch (err) {
     console.warn('GDACS load failed:', err.message);
-    const body = document.getElementById('gdacs-body');
-    if (body) body.innerHTML = `<div class="state muted">Failed to load: ${esc(err.message)}</div>`;
     return;
   }
-  renderGDACS();
   plotGDACS();
-  markUpdated('gdacs-updated');
+  noteDataLoaded();
   AlertStore.push('gdacs', normalizeGDACS(gdacsData));
-}
-
-function renderGDACS() {
-  const body = document.getElementById('gdacs-body');
-  if (!body) return;
-  const selType  = document.getElementById('gdacs-type')?.value || 'all';
-  const filtered = gdacsData.filter(event => selType === 'all' || event.type === selType);
-  document.getElementById('gdacs-count').textContent = filtered.length;
-  if (!filtered.length) {
-    body.innerHTML = '<div class="state muted">No active GDACS alerts</div>';
-    return;
-  }
-  const order = { Red: 0, Orange: 1, Green: 2 };
-  filtered.sort((eventA, eventB) => (order[eventA.level] ?? 3) - (order[eventB.level] ?? 3));
-  body.innerHTML = filtered.map(event => {
-    const col    = GDACS_COLOR[event.level] || '#859289';
-    const icon   = GDACS_ICON[event.type]  || '⚠️';
-    const lbl    = GDACS_LABEL[event.type] || event.type;
-    const canFly = event.lat != null && event.lon != null;
-    return `<div class="alert-item${canFly ? ' clickable' : ''}" style="border-left-color:${col}"
-               ${canFly ? `onclick="flyToGDACS('${esc(event.guid)}')" title="Click to locate on map"` : ''}>
-      <div class="alert-row">
-        <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(event.level || '?')}</span>
-        <span class="alert-event">${icon} ${esc(event.name || lbl)}</span>
-      </div>
-      ${event.country ? `<div class="alert-sub">${esc(event.country)}</div>` : ''}
-      <div class="alert-meta">
-        ${event.popVal  ? `<span>👥 ${esc(event.popVal)}</span>` : ''}
-        ${event.todate  ? `<span>${fmtTime(event.todate)}</span>` : ''}
-      </div>
-    </div>`;
-  }).join('');
 }
 
 // Diamond-shaped divIcon: immediately distinct from circle EQ markers and triangle volcano markers
@@ -3242,19 +2743,21 @@ function flyToGDACS(guid) {
    METEOALARM — European Severe Weather Warnings
    Covers 39 countries via CAP feeds (via CORS proxy)
 ══════════════════════════════════════════════════════ */
+
+let meteoalarmData = [];
+
 const METEO_SEV_COLOR = {
   Minor:    '#a7c080',
   Moderate: '#dbbc7f',
   Severe:   '#e69875',
   Extreme:  '#e67e80',
 };
+
 const METEO_SEV_ORDER = { Minor: 0, Moderate: 1, Severe: 2, Extreme: 3 };
 
 /* ── MeteoAlarm awareness codes ──────────────────────────────────
    Most national feeds put a human-readable description in the CAP
-   `event` field. Romania instead publishes the raw awareness codes
-   (verified: 66 of 66 of its alerts, and the only country of 39 doing
-   so), which surfaced in the panel as "awareness_type=5, awareness_level=2".
+   `event` field. Romania instead publishes the raw awareness codes, as an example.
    Code meanings come from MeteoAlarm's own EDR API metadata.
    Type 11 is absent from their list; 12 and 13 are both flood variants,
    so it is mapped defensively rather than left to fall through. */
@@ -3267,9 +2770,7 @@ const METEO_AWARENESS_TYPE = {
 };
 
 /* Read the structured MeteoAlarm awareness codes out of a CAP info block.
-   Values look like "1; green; Minor" and "5; high-temperature". Every one of
-   the 39 feeds populates these, which makes them far more reliable than
-   parsing the free-text `event` field. */
+   Values look like "1; green; Minor" and "5; high-temperature". */
 function meteoAwareness(info) {
   let level = null, hazard = null;
   for (const param of (info.parameter || [])) {
@@ -3293,7 +2794,6 @@ function meteoDecodeEvent(event) {
 }
 
 // Slugs must match live feeds at https://feeds.meteoalarm.org/
-// (Turkey was removed upstream — its feed now returns 404)
 const METEOALARM_COUNTRIES = [
   'andorra','austria','belgium','bosnia-herzegovina','bulgaria','croatia',
   'cyprus','czechia','denmark','estonia','finland','france','germany',
@@ -3304,22 +2804,356 @@ const METEOALARM_COUNTRIES = [
   'united-kingdom',
 ];
 
-// European sub-regions for Meteoalarm panel grouping
-const METEO_REGIONS = {
-  'Nordic':          ['denmark','finland','iceland','norway','sweden'],
-  'British Isles':   ['ireland','united-kingdom'],
-  'Western Europe':  ['andorra','belgium','france','luxembourg','netherlands','switzerland'],
-  'Central Europe':  ['austria','czechia','germany','hungary','poland','slovakia','slovenia'],
-  'Southern Europe': ['bosnia-herzegovina','croatia','cyprus','greece','israel','italy','malta','montenegro','portugal','republic-of-north-macedonia','serbia','spain'],
-  'Eastern Europe':  ['bulgaria','estonia','latvia','lithuania','moldova','romania','ukraine'],
-};
-// Reverse lookup: country → region name
-const METEO_COUNTRY_REGION = {};
-for (const [region, countries] of Object.entries(METEO_REGIONS)) {
-  for (const c of countries) METEO_COUNTRY_REGION[c] = region;
+// Prefer English info block; fall back to first
+function meteoInfoEN(infoArr) {
+  if (!Array.isArray(infoArr) || !infoArr.length) return null;
+  return infoArr.find(info => info.language && info.language.toLowerCase().startsWith('en')) || infoArr[0];
 }
 
-/* ── Geographic hierarchy for AlertStore ───────────────────────── */
+// Parse Meteoalarm polygon field → array of rings [[lat,lon],...] or null
+// The field may be a single string or an array of strings (one per sub-area polygon)
+function parseMeteoPolygon(polygon) {
+  if (!polygon) return null;
+  const strings = Array.isArray(polygon) ? polygon : [polygon];
+  const rings = strings.map(polygonStr => {
+    if (!polygonStr || typeof polygonStr !== 'string') return null;
+    try {
+      const coords = polygonStr.trim().split(/\s+/).map(pair => {
+        const [lat, lon] = pair.split(',').map(Number);
+        return [lat, lon];
+      }).filter(([lat, lon]) => !isNaN(lat) && !isNaN(lon));
+      return coords.length >= 3 ? coords : null;
+    } catch { return null; }
+  }).filter(Boolean);
+  return rings.length ? rings : null;
+}
+
+async function loadMeteoalarm() {
+  meteoalarmData = [];
+  const BASE = 'https://feeds.meteoalarm.org/api/v1/warnings/feeds-';
+  const results = await Promise.allSettled(
+    METEOALARM_COUNTRIES.map(country =>
+      fetch(proxyUrl(BASE + country), { signal: AbortSignal.timeout(15000) })
+        .then(response => response.ok ? response.json() : null)
+        .catch(() => null)
+    )
+  );
+  results.forEach((result, index) => {
+    if (result.status !== 'fulfilled' || !result.value?.warnings) return;
+    const country = METEOALARM_COUNTRIES[index];
+    result.value.warnings.forEach(warning => {
+      // API wraps CAP data under warning.alert; fall back to flat structure for older feeds
+      const alertObj = warning.alert || warning;
+      const info = meteoInfoEN(alertObj.info);
+      if (!info) return;
+
+      const awareness = meteoAwareness(info);
+
+      // Drop green "no particular awareness required" entries. Many national
+      // feeds publish one per hazard type per region as a placeholder.
+      if (awareness.level === 1) return;
+
+      // Drop anything already expired — the map layer and AlertStore read this
+      // array directly, so without this they keep showing lapsed warnings.
+      if (info.expires && new Date(info.expires).getTime() <= Date.now()) return;
+
+      const sev = info.severity || 'Minor';
+      // Keep each country's own description; only fall back to the structured
+      // hazard name when a feed publishes raw codes instead (Romania).
+      const rawEvent = (info.event || '').trim();
+      const event = (/awareness_type\s*=/i.test(rawEvent)
+                      ? (awareness.hazard || meteoDecodeEvent(rawEvent))
+                      : rawEvent) || 'Warning';
+      // Collect polygons from all areas (some countries split into multiple area entries)
+      const allAreas = Array.isArray(info.area) ? info.area : (info.area ? [info.area] : []);
+      const area = allAreas[0] || {};
+      // Gather all polygon strings across all areas, then parse
+      const allPolygonStrings = allAreas.flatMap(areaEntry =>
+        Array.isArray(areaEntry.polygon) ? areaEntry.polygon : (areaEntry.polygon ? [areaEntry.polygon] : [])
+      );
+      const coords = parseMeteoPolygon(allPolygonStrings.length ? allPolygonStrings : null);
+      // Centroid: average of all rings' average points
+      let centLat = null, centLon = null;
+      if (coords) {
+        const allPts = coords.flat();
+        centLat = allPts.reduce((sum, point) => sum + point[0], 0) / allPts.length;
+        centLon = allPts.reduce((sum, point) => sum + point[1], 0) / allPts.length;
+      }
+      meteoalarmData.push({
+        id:       alertObj.identifier || warning.uuid || `${country}-${Date.now()}-${Math.random()}`,
+        country,
+        severity: sev,
+        event,
+        areaDesc: area.areaDesc || country,
+        headline: info.headline || '',
+        onset:    info.onset    || alertObj.sent || '',
+        expires:  info.expires  || '',
+        coords,
+        centLat,
+        centLon,
+      });
+    });
+  });
+  plotMeteoalarm();
+  noteDataLoaded();
+  AlertStore.push('meteoalarm', normalizeMeteoalarm(meteoalarmData));
+}
+
+function plotMeteoalarm() {
+  if (!meteoalarmLayer) return;
+  meteoalarmLayer.clearLayers();
+  meteoalarmData.forEach(warning => {
+    const col = METEO_SEV_COLOR[warning.severity] || '#859289';
+    if (warning.coords) {
+      // coords is an array of rings; L.polygon accepts [[ring1],[ring2],...] for multi-ring
+      const poly = L.polygon(warning.coords, {
+        color: col, weight: 1.5, opacity: 0.85,
+        fillColor: col, fillOpacity: 0.18,
+      });
+      poly._meteoId = warning.id;
+      poly.bindPopup(_meteoPopup(warning));
+      meteoalarmLayer.addLayer(poly);
+    } else if (warning.centLat != null) {
+      const marker = L.circleMarker([warning.centLat, warning.centLon], {
+        radius: 7, color: col, weight: 2, opacity: 0.9,
+        fillColor: col, fillOpacity: 0.35,
+      });
+      marker._meteoId = warning.id;
+      marker.bindPopup(_meteoPopup(warning));
+      meteoalarmLayer.addLayer(marker);
+    }
+  });
+}
+
+function _meteoPopup(warning) {
+  const col = METEO_SEV_COLOR[warning.severity] || '#859289';
+  return `<div class="popup-inner">
+    <div class="popup-title">⚠️ ${esc(warning.event)}</div>
+    <div class="popup-row"><span>Severity</span><span style="color:${col}">${esc(warning.severity)}</span></div>
+    <div class="popup-row"><span>Area</span><span>${esc(warning.areaDesc)}</span></div>
+    ${warning.headline ? `<div class="popup-row"><span>Info</span><span>${esc(warning.headline)}</span></div>` : ''}
+    ${warning.onset   ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(warning.onset)}</span></div>`     : ''}
+    ${warning.expires ? `<div class="popup-row"><span>Expires</span><span>${fmtTime(warning.expires)}</span></div>` : ''}
+  </div>`;
+}
+
+function flyToMeteo(id) {
+  ensureLayerOn('meteoalarm');
+  const warning = meteoalarmData.find(entry => entry.id === id);
+  if (!warning || !map) return;
+  // Try to fly to polygon bounds first, then fall back to centroid
+  let flown = false;
+  meteoalarmLayer.eachLayer(layer => {
+    if (layer._meteoId !== id) return;
+    try {
+      const bounds = layer.getBounds?.();
+      if (bounds?.isValid()) {
+        map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
+        flown = true;
+      }
+    } catch {}
+    layer.openPopup();
+  });
+  if (!flown && warning.centLat != null && warning.centLon != null) {
+    map.flyTo([warning.centLat, warning.centLon], Math.max(map.getZoom(), 5), { duration: 1 });
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   WMO SWIC — Global Severe Weather Alerts
+   WFS GeoServer with full polygon geometry
+   Endpoint: https://severeweather.wmo.int/f/ows
+══════════════════════════════════════════════════════ */
+
+let wmoData = [];
+
+// s integer: 0=Unknown 1=Minor 2=Moderate 3=Severe 4=Extreme
+const WMO_SEV_COLOR = ['#859289', '#a7c080', '#dbbc7f', '#e69875', '#e67e80'];
+const WMO_SEV_LABEL = ['Unknown', 'Minor', 'Moderate', 'Severe', 'Extreme'];
+
+/* CAP urgency/certainty, which the WFS exposes as the numeric `u` and `c`
+   columns. Mapping confirmed by fetching the source CAP files and comparing:
+   u 4=Immediate 3=Expected 2=Future 0=Unknown, c 4=Observed 3=Likely
+   2=Possible 0=Unknown.
+
+   Certainty is the field that separates "this hazard is happening" from
+   "conditions make it likely". It matters because several services publish
+   risk forecasts under an event name that reads like an active event.
+   As an example, Kazakhstan's fire-danger warnings arrive as event "Forestfire", severity
+   Extreme, certainty Likely, with no description text to disambiguate. */
+const WMO_URGENCY   = { 0:'Unknown', 1:'Past', 2:'Future', 3:'Expected', 4:'Immediate' };
+const WMO_CERTAINTY = { 0:'Unknown', 1:'Unlikely', 2:'Possible', 3:'Likely', 4:'Observed' };
+
+// Plain-language gloss so the CAP term isn't left to interpretation
+function wmoCertaintyNote(code) {
+  if (code === 4) return 'observed — hazard reported';
+  if (code === 3 || code === 2) return 'forecast — not yet observed';
+  return null;
+}
+
+// Extract 2-letter ISO country code from capurl prefix (e.g. "cn-cma-xx/..." → "cn")
+const WMO_ISO2_NAME = {
+  af:'Afghanistan', al:'Albania', dz:'Algeria', ao:'Angola', ar:'Argentina',
+  am:'Armenia', au:'Australia', at:'Austria', az:'Azerbaijan', bd:'Bangladesh',
+  by:'Belarus', be:'Belgium', bj:'Benin', bo:'Bolivia', ba:'Bosnia',
+  br:'Brazil', bg:'Bulgaria', bf:'Burkina Faso', kh:'Cambodia', cm:'Cameroon',
+  ca:'Canada', cl:'Chile', cn:'China', co:'Colombia', cd:'DR Congo',
+  cr:'Costa Rica', hr:'Croatia', cu:'Cuba', cz:'Czechia', dk:'Denmark',
+  do:'Dominican Rep.', ec:'Ecuador', eg:'Egypt', sv:'El Salvador', et:'Ethiopia',
+  fi:'Finland', fr:'France', ge:'Georgia', de:'Germany', gh:'Ghana',
+  gr:'Greece', gt:'Guatemala', gn:'Guinea', ht:'Haiti', hn:'Honduras',
+  hu:'Hungary', in:'India', id:'Indonesia', ir:'Iran', iq:'Iraq',
+  ie:'Ireland', il:'Israel', it:'Italy', jm:'Jamaica', jp:'Japan',
+  jo:'Jordan', kz:'Kazakhstan', ke:'Kenya', kp:'North Korea', kr:'South Korea',
+  kw:'Kuwait', kg:'Kyrgyzstan', la:'Laos', lv:'Latvia', lb:'Lebanon',
+  ly:'Libya', lt:'Lithuania', mg:'Madagascar', mw:'Malawi', my:'Malaysia',
+  ml:'Mali', mr:'Mauritania', mx:'Mexico', md:'Moldova', mn:'Mongolia',
+  ma:'Morocco', mz:'Mozambique', mm:'Myanmar', np:'Nepal', nl:'Netherlands',
+  nz:'New Zealand', ni:'Nicaragua', ng:'Nigeria', no:'Norway', om:'Oman',
+  pk:'Pakistan', pa:'Panama', py:'Paraguay', pe:'Peru', ph:'Philippines',
+  pl:'Poland', pt:'Portugal', ro:'Romania', ru:'Russia', sa:'Saudi Arabia',
+  sn:'Senegal', rs:'Serbia', sl:'Sierra Leone', so:'Somalia', za:'South Africa',
+  es:'Spain', lk:'Sri Lanka', sd:'Sudan', se:'Sweden', ch:'Switzerland',
+  sy:'Syria', tw:'Taiwan', tj:'Tajikistan', tz:'Tanzania', th:'Thailand',
+  tg:'Togo', tn:'Tunisia', tr:'Turkey', tm:'Turkmenistan', ug:'Uganda',
+  ua:'Ukraine', ae:'UAE', gb:'United Kingdom', us:'USA', uz:'Uzbekistan',
+  ve:'Venezuela', vn:'Vietnam', ye:'Yemen', zm:'Zambia', zw:'Zimbabwe',
+};
+
+function wmoCountryFromCapurl(capurl) {
+  if (!capurl) return '';
+  const iso2 = capurl.split('-')[0].toLowerCase();
+  return WMO_ISO2_NAME[iso2] || iso2.toUpperCase();
+}
+
+async function loadWMO() {
+  wmoData = [];
+  // Fetch severe+ land alerts with polygon geometry, server-side filtered + sorted
+  const base = 'https://severeweather.wmo.int/f/ows';
+  const params = new URLSearchParams({
+    service:      'WFS',
+    version:      '1.1.0',
+    request:      'GetFeature',
+    typeName:     'local_postgis:postgis_geojsons',
+    outputFormat: 'application/json',
+    CQL_FILTER:   "s>=2 AND marine='0' AND row_type<>'BOUNDARY'",
+    maxFeatures:  '250',
+    sortBy:       's D',
+  });
+  try {
+    const response = await fetch(proxyUrl(`${base}?${params}`), { signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const geojson = await response.json();
+    if (!Array.isArray(geojson.features)) throw new Error('Unexpected response shape');
+
+    // Deduplicate by capurl — keep best geometry type (POLYGON/MULTIPOLYGON > POINT)
+    const geomRank = { POLYGON: 2, MULTIPOLYGON: 2, POINT: 1 };
+    const seen = new Map();
+    for (const feature of geojson.features) {
+      const props = feature.properties;
+      const key = props.capurl || feature.id;
+      const rank = geomRank[props.row_type] ?? 0;
+      if (!seen.has(key) || rank > (geomRank[seen.get(key).properties.row_type] ?? 0)) {
+        seen.set(key, feature);
+      }
+    }
+
+    wmoData = [...seen.values()].map(feature => {
+      const props = feature.properties;
+      // Compute centroid for point/polygon fly-to
+      let centLat = null, centLon = null;
+      if (feature.geometry?.type === 'Point') {
+        [centLon, centLat] = feature.geometry.coordinates;
+      } else if (feature.bbox) {
+        centLon = (feature.bbox[0] + feature.bbox[2]) / 2;
+        centLat = (feature.bbox[1] + feature.bbox[3]) / 2;
+      }
+      return {
+        id:       feature.id,
+        capurl:   props.capurl || '',
+        country:  wmoCountryFromCapurl(props.capurl),
+        areadesc: props.areadesc || '',
+        event:    props.event    || '',
+        sev:      props.s ?? 0,
+        urgency:   props.u ?? 0,
+        certainty: props.c ?? 0,
+        onset:    props.onset    || props.effective || props.sent || '',
+        expires:  props.expires  || props.chk_expires || '',
+        geometry: feature.geometry || null,
+        centLat, centLon,
+      };
+    });
+  } catch (err) {
+    console.warn('WMO load failed:', err.message);
+    return;
+  }
+  plotWMO();
+  noteDataLoaded();
+  AlertStore.push('wmo', normalizeWMO(wmoData));
+}
+
+function plotWMO() {
+  if (!wmoLayer) return;
+  wmoLayer.clearLayers();
+  // Only plot Severe+ on the map to avoid overwhelming it
+  wmoData.filter(alert => alert.sev >= 3 && alert.geometry).forEach(alert => {
+    const col = WMO_SEV_COLOR[alert.sev] || '#859289';
+    let layer;
+    if (alert.geometry.type === 'Point') {
+      const [lon, lat] = alert.geometry.coordinates;
+      layer = L.circleMarker([lat, lon], {
+        radius: 6, color: col, weight: 1.5, opacity: 0.9,
+        fillColor: col, fillOpacity: 0.4,
+      });
+    } else {
+      // L.geoJSON handles GeoJSON [lon,lat] → Leaflet [lat,lon] natively
+      layer = L.geoJSON(alert.geometry, {
+        style: { color: col, weight: 1.2, opacity: 0.8, fillColor: col, fillOpacity: 0.15 },
+      });
+    }
+    const popup = `<div class="popup-inner">
+      <div class="popup-title">⚠️ ${esc(alert.event || 'Weather Alert')}</div>
+      <div class="popup-row"><span>Severity</span><span style="color:${col};font-weight:600">${esc(WMO_SEV_LABEL[alert.sev] ?? '')}</span></div>
+      <div class="popup-row"><span>Certainty</span><span>${esc(WMO_CERTAINTY[alert.certainty] || 'Unknown')}${
+        wmoCertaintyNote(alert.certainty) ? ` <span style="color:var(--muted)">(${esc(wmoCertaintyNote(alert.certainty))})</span>` : ''}</span></div>
+      <div class="popup-row"><span>Urgency</span><span>${esc(WMO_URGENCY[alert.urgency] || 'Unknown')}</span></div>
+      ${alert.areadesc ? `<div class="popup-row"><span>Area</span><span>${esc(alert.areadesc)}</span></div>` : ''}
+      ${alert.country  ? `<div class="popup-row"><span>Country</span><span>${esc(alert.country)}</span></div>` : ''}
+      ${alert.onset    ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(alert.onset)}</span></div>` : ''}
+      ${alert.expires  ? `<div class="popup-row"><span>Expires</span><span>${fmtTime(alert.expires)}</span></div>` : ''}
+    </div>`;
+    if (layer.bindPopup) {
+      layer.bindPopup(popup);
+    } else {
+      layer.eachLayer(subLayer => subLayer.bindPopup(popup));
+    }
+    layer._wmoId = alert.id;
+    wmoLayer.addLayer(layer);
+  });
+}
+
+function flyToWMO(id) {
+  ensureLayerOn('wmo');
+  const alert = wmoData.find(entry => entry.id === id);
+  if (!alert || !map) return;
+  if (alert.centLat != null && alert.centLon != null) {
+    map.flyTo([alert.centLat, alert.centLon], Math.max(map.getZoom(), 5), { duration: 1 });
+  }
+  // Open popup on matching layer
+  wmoLayer.eachLayer(layer => {
+    if (layer._wmoId !== id) return;
+    if (layer.openPopup) layer.openPopup();
+    else layer.eachLayer?.(subLayer => subLayer.openPopup?.());
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   ALERTSTORE — cross-source alert index + per-country panels
+   Meteoalarm, WMO and GDACS push normalized alerts here; the store
+   groups them by country → sub-region → continent for the sidebar.
+══════════════════════════════════════════════════════ */
+
+/* ── Geographic hierarchy ───────────────────────────────────────── */
 const GEO_REGIONS = {
   // Europe
   'Nordic':          ['denmark','finland','iceland','norway','sweden'],
@@ -3350,6 +3184,7 @@ const GEO_REGIONS = {
 };
 
 const GEO_COUNTRY_REGION = {};
+
 for (const [region, countries] of Object.entries(GEO_REGIONS)) {
   for (const c of countries) GEO_COUNTRY_REGION[c] = region;
 }
@@ -3364,15 +3199,6 @@ const GEO_REGION_GROUP = {
   'East Asia':'Asia-Pacific','Southeast Asia':'Asia-Pacific','Oceania':'Asia-Pacific',
   'Global':'Global',
 };
-
-// Ordered list of sub-regions for display
-const GEO_REGION_ORDER = [
-  'Nordic','British Isles','Western Europe','Central Europe','Southern Europe','Eastern Europe',
-  'North America','Caribbean','Central America','South America',
-  'North Africa','West Africa','East Africa','Southern Africa',
-  'Middle East','Central Asia','South Asia','East Asia','Southeast Asia','Oceania',
-  'Global',
-];
 
 // Full country name → slug (for WMO ISO-name and GDACS raw-name normalization)
 const COUNTRY_NAME_SLUG = {
@@ -3564,11 +3390,9 @@ function normalizeGDACS(data) {
   /* GDACS "Green" is its lowest tier: the event is tracked, but no significant
      humanitarian impact is expected — the same semantic class as Meteoalarm's
      green "no awareness required" entries. They are kept OUT of the AlertStore,
-     which feeds the country panels and the header counts. Measured before this
-     filter: 278 of 755 store entries were green, and 22 of 53 country panels
-     (DR Congo 75, Angola 48, Brazil 33, Zambia 24 …) contained nothing else.
-     They remain in full in the GDACS panel and on the map, since renderGDACS()
-     and plotGDACS() read gdacsData directly rather than the store. */
+     which feeds the country panels and the header counts. 
+     They remain in full on the map, since plotGDACS() reads gdacsData
+     directly rather than the store. */
   return data
     .filter(event => event.level !== 'Green')
     .map(event => ({
@@ -3596,12 +3420,13 @@ const GEO_GROUP_SUBREGIONS = {
   'Europe':       ['Nordic','British Isles','Western Europe','Central Europe','Southern Europe','Eastern Europe'],
 };
 
-/* Maps group name → the container div id for dynamic panels */
-const GEO_GROUP_CONTAINER = {
-  'Africa':       'geo-africa-panels',
-  'Americas':     'geo-americas-panels',
-  'Asia-Pacific': 'geo-asiapacific-panels',
-  'Europe':       'geo-europe-panels',
+/* Maps group name → its sidebar header, collapsible section, and the
+   container that receives the dynamic country panels */
+const GEO_GROUP_DOM = {
+  'Africa':       { header: 'geo-africa-header',      section: 'geo-section-africa',      panels: 'geo-africa-panels' },
+  'Americas':     { header: 'geo-americas-header',    section: 'geo-section-americas',    panels: 'geo-americas-panels' },
+  'Asia-Pacific': { header: 'geo-asiapacific-header', section: 'geo-section-asiapacific', panels: 'geo-asiapacific-panels' },
+  'Europe':       { header: 'geo-europe-header',      section: 'geo-section-europe',      panels: 'geo-europe-panels' },
 };
 
 /* ── Build a single country panel element ────────────────────────── */
@@ -3666,8 +3491,8 @@ function toggleSubregion(srId, labelEl) {
 }
 
 function renderCountryPanels() {
-  for (const [group, containerId] of Object.entries(GEO_GROUP_CONTAINER)) {
-    const container = document.getElementById(containerId);
+  for (const [group, dom] of Object.entries(GEO_GROUP_DOM)) {
+    const container = document.getElementById(dom.panels);
     if (!container) continue;
 
     const subRegions = GEO_GROUP_SUBREGIONS[group];
@@ -3711,11 +3536,13 @@ function renderCountryPanels() {
       }
     }
 
-    // Africa header visibility (no static panels, hide when empty)
-    if (group === 'Africa') {
-      const hdr = document.getElementById('geo-africa-header');
-      if (hdr) hdr.style.display = hasAny ? '' : 'none';
-    }
+    // Hide the group header when its section has nothing to show: no dynamic
+    // country panels and no static panels of its own (Africa and Europe are
+    // dynamic-only; Americas and Asia-Pacific always carry static panels).
+    const section   = document.getElementById(dom.section);
+    const hasStatic = !!section?.querySelector(':scope > .panel');
+    const header    = document.getElementById(dom.header);
+    if (header) header.style.display = (hasAny || hasStatic) ? '' : 'none';
   }
 }
 
@@ -3727,469 +3554,441 @@ AlertStore.subscribe(() => {
   buildAlertBar();
 });
 
-// Prefer English info block; fall back to first
-function meteoInfoEN(infoArr) {
-  if (!Array.isArray(infoArr) || !infoArr.length) return null;
-  return infoArr.find(info => info.language && info.language.toLowerCase().startsWith('en')) || infoArr[0];
-}
+/* ══════════════════════════════════════════════════════
+   GLOBAL SUMMARY COUNTS — header bar
+══════════════════════════════════════════════════════ */
 
-// Parse Meteoalarm polygon field → array of rings [[lat,lon],...] or null
-// The field may be a single string or an array of strings (one per sub-area polygon)
-function parseMeteoPolygon(polygon) {
-  if (!polygon) return null;
-  const strings = Array.isArray(polygon) ? polygon : [polygon];
-  const rings = strings.map(polygonStr => {
-    if (!polygonStr || typeof polygonStr !== 'string') return null;
-    try {
-      const coords = polygonStr.trim().split(/\s+/).map(pair => {
-        const [lat, lon] = pair.split(',').map(Number);
-        return [lat, lon];
-      }).filter(([lat, lon]) => !isNaN(lat) && !isNaN(lon));
-      return coords.length >= 3 ? coords : null;
-    } catch { return null; }
-  }).filter(Boolean);
-  return rings.length ? rings : null;
-}
+function buildGlobalSummary() {
+  let extreme = 0, severe = 0, moderate = 0;
+  const srcCounts = { nws:0, meteoalarm:0, wmo:0, gdacs:0, msc:0, bom:0 };
 
-async function loadMeteoalarm() {
-  showLoading('meteo-body');
-  meteoalarmData = [];
-  const BASE = 'https://feeds.meteoalarm.org/api/v1/warnings/feeds-';
-  const results = await Promise.allSettled(
-    METEOALARM_COUNTRIES.map(country =>
-      fetch(proxyUrl(BASE + country), { signal: AbortSignal.timeout(15000) })
-        .then(response => response.ok ? response.json() : null)
-        .catch(() => null)
-    )
-  );
-  results.forEach((result, index) => {
-    if (result.status !== 'fulfilled' || !result.value?.warnings) return;
-    const country = METEOALARM_COUNTRIES[index];
-    result.value.warnings.forEach(warning => {
-      // API wraps CAP data under warning.alert; fall back to flat structure for older feeds
-      const alertObj = warning.alert || warning;
-      const info = meteoInfoEN(alertObj.info);
-      if (!info) return;
-
-      const awareness = meteoAwareness(info);
-
-      // Drop green "no particular awareness required" entries. Many national
-      // feeds publish one per hazard type per region as a placeholder — across
-      // all 39 feeds they are ~44% of everything returned (the Netherlands
-      // sends 624 of 628, Ireland 21 of 21). CAP `severity` cannot distinguish
-      // them, because green is tagged "Minor", a level we legitimately show;
-      // only the awareness_level parameter separates them.
-      if (awareness.level === 1) return;
-
-      // Drop anything already expired — the panel and map layer read this array
-      // directly, so without this they keep showing lapsed warnings.
-      if (info.expires && new Date(info.expires).getTime() <= Date.now()) return;
-
-      const sev = info.severity || 'Minor';
-      // Keep each country's own description; only fall back to the structured
-      // hazard name when a feed publishes raw codes instead (Romania).
-      const rawEvent = (info.event || '').trim();
-      const event = (/awareness_type\s*=/i.test(rawEvent)
-                      ? (awareness.hazard || meteoDecodeEvent(rawEvent))
-                      : rawEvent) || 'Warning';
-      // Collect polygons from all areas (some countries split into multiple area entries)
-      const allAreas = Array.isArray(info.area) ? info.area : (info.area ? [info.area] : []);
-      const area = allAreas[0] || {};
-      // Gather all polygon strings across all areas, then parse
-      const allPolygonStrings = allAreas.flatMap(areaEntry =>
-        Array.isArray(areaEntry.polygon) ? areaEntry.polygon : (areaEntry.polygon ? [areaEntry.polygon] : [])
-      );
-      const coords = parseMeteoPolygon(allPolygonStrings.length ? allPolygonStrings : null);
-      // Centroid: average of all rings' average points
-      let centLat = null, centLon = null;
-      if (coords) {
-        const allPts = coords.flat();
-        centLat = allPts.reduce((sum, point) => sum + point[0], 0) / allPts.length;
-        centLon = allPts.reduce((sum, point) => sum + point[1], 0) / allPts.length;
-      }
-      meteoalarmData.push({
-        id:       alertObj.identifier || warning.uuid || `${country}-${Date.now()}-${Math.random()}`,
-        country,
-        severity: sev,
-        event,
-        areaDesc: area.areaDesc || country,
-        headline: info.headline || '',
-        onset:    info.onset    || alertObj.sent || '',
-        expires:  info.expires  || '',
-        coords,
-        centLat,
-        centLon,
-      });
-    });
-  });
-  renderMeteoalarm();
-  plotMeteoalarm();
-  markUpdated('meteo-updated');
-  AlertStore.push('meteoalarm', normalizeMeteoalarm(meteoalarmData));
-}
-
-function renderMeteoalarm() {
-  const body = document.getElementById('meteo-body');
-  if (!body) return;
-  const selSev    = document.getElementById('meteo-sev')?.value || 'all';
-  const selRegion = document.getElementById('meteo-region')?.value || 'all';
-  const minOrder  = selSev === 'Extreme' ? 3 : selSev === 'Severe' ? 2 : selSev === 'Moderate' ? 1 : -1;
-
-  // Filter by severity + region
-  const filtered = meteoalarmData.filter(warning => {
-    if ((METEO_SEV_ORDER[warning.severity] ?? 0) < minOrder) return false;
-    if (selRegion !== 'all') {
-      const regionCountries = METEO_REGIONS[selRegion];
-      if (regionCountries && !regionCountries.includes(warning.country)) return false;
+  // AlertStore sources (meteoalarm, wmo, gdacs — and future msc/bom)
+  for (const country of AlertStore.countries()) {
+    for (const alert of AlertStore.getCountry(country)) {
+      if (alert._sevRank >= 3) extreme++;
+      else if (alert._sevRank >= 2) severe++;
+      else if (alert._sevRank >= 1) moderate++;
+      if (srcCounts.hasOwnProperty(alert.source)) srcCounts[alert.source]++;
     }
-    return true;
-  });
-  document.getElementById('meteo-count').textContent = filtered.length;
-  if (!filtered.length) {
-    body.innerHTML = '<div class="state muted">No active European alerts</div>';
-    return;
   }
 
-  // Group by region, sorted by severity within each group
-  const regionOrder = Object.keys(METEO_REGIONS);
-  const byRegion = new Map();
-  for (const warning of filtered) {
-    const region = METEO_COUNTRY_REGION[warning.country] || 'Other';
-    if (!byRegion.has(region)) byRegion.set(region, []);
-    byRegion.get(region).push(warning);
+  // NWS (not yet in AlertStore)
+  for (const alert of easData) {
+    const sev = (alert.properties || alert).severity;
+    if      (sev === 'Extreme')  { extreme++;  srcCounts.nws++; }
+    else if (sev === 'Severe')   { severe++;   srcCounts.nws++; }
+    else if (sev === 'Moderate') { moderate++; srcCounts.nws++; }
   }
-  // Sort each region's alerts by severity desc
-  for (const regionAlerts of byRegion.values()) regionAlerts.sort((warnA, warnB) => (METEO_SEV_ORDER[warnB.severity] ?? 0) - (METEO_SEV_ORDER[warnA.severity] ?? 0));
 
-  let html = '';
-  for (const region of regionOrder) {
-    const items = byRegion.get(region);
-    if (!items) continue;
-    html += `<div class="alert-region-header">${esc(region)} <span class="alert-region-count">${items.length}</span></div>`;
-    html += items.map(warning => {
-      const col    = METEO_SEV_COLOR[warning.severity] || '#859289';
-      const canFly = warning.centLat != null && warning.centLon != null;
-      const ctryLabel = warning.country.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
-      return `<div class="alert-item${canFly ? ' clickable' : ''}" style="border-left-color:${col}"
-                 ${canFly ? `onclick="flyToMeteo('${esc(warning.id)}')" title="Click to locate on map"` : ''}>
-        <div class="alert-row">
-          <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(warning.severity)}</span>
-          <span class="alert-event">${esc(warning.event)}</span>
-        </div>
-        <div class="alert-sub">${esc(warning.areaDesc)} · ${esc(ctryLabel)}</div>
-        <div class="alert-meta">
-          ${warning.onset   ? `<span>${fmtTime(warning.onset)}</span>`   : ''}
-          ${warning.expires ? `<span>Exp: ${fmtTime(warning.expires)}</span>` : ''}
-        </div>
-      </div>`;
-    }).join('');
+  // MSC (not in AlertStore — use mscSeverity to classify)
+  for (const feature of mscData) {
+    const label = mscSeverity(feature.properties?.alert_type).label;
+    srcCounts.msc++;
+    if      (label === 'Warning') severe++;
+    else if (label === 'Watch')   severe++;
+    else if (label === 'Advisory') moderate++;
   }
-  // Any ungrouped countries
-  const other = byRegion.get('Other');
-  if (other) {
-    html += `<div class="alert-region-header">Other <span class="alert-region-count">${other.length}</span></div>`;
-    html += other.map(warning => {
-      const col    = METEO_SEV_COLOR[warning.severity] || '#859289';
-      const canFly = warning.centLat != null && warning.centLon != null;
-      const ctryLabel = warning.country.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
-      return `<div class="alert-item${canFly ? ' clickable' : ''}" style="border-left-color:${col}"
-                 ${canFly ? `onclick="flyToMeteo('${esc(warning.id)}')" title="Click to locate on map"` : ''}>
-        <div class="alert-row">
-          <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(warning.severity)}</span>
-          <span class="alert-event">${esc(warning.event)}</span>
-        </div>
-        <div class="alert-sub">${esc(warning.areaDesc)} · ${esc(ctryLabel)}</div>
-        <div class="alert-meta">
-          ${warning.onset   ? `<span>${fmtTime(warning.onset)}</span>`   : ''}
-          ${warning.expires ? `<span>Exp: ${fmtTime(warning.expires)}</span>` : ''}
-        </div>
-      </div>`;
-    }).join('');
-  }
-  body.innerHTML = html;
-}
 
-function plotMeteoalarm() {
-  if (!meteoalarmLayer) return;
-  meteoalarmLayer.clearLayers();
-  meteoalarmData.forEach(warning => {
-    const col = METEO_SEV_COLOR[warning.severity] || '#859289';
-    if (warning.coords) {
-      // coords is an array of rings; L.polygon accepts [[ring1],[ring2],...] for multi-ring
-      const poly = L.polygon(warning.coords, {
-        color: col, weight: 1.5, opacity: 0.85,
-        fillColor: col, fillOpacity: 0.18,
-      });
-      poly._meteoId = warning.id;
-      poly.bindPopup(_meteoPopup(warning));
-      meteoalarmLayer.addLayer(poly);
-    } else if (warning.centLat != null) {
-      const marker = L.circleMarker([warning.centLat, warning.centLon], {
-        radius: 7, color: col, weight: 2, opacity: 0.9,
-        fillColor: col, fillOpacity: 0.35,
-      });
-      marker._meteoId = warning.id;
-      marker.bindPopup(_meteoPopup(warning));
-      meteoalarmLayer.addLayer(marker);
-    }
-  });
-}
+  // BOM (not in AlertStore — all items counted, no severity mapping)
+  srcCounts.bom += bomData.length;
 
-function _meteoPopup(warning) {
-  const col = METEO_SEV_COLOR[warning.severity] || '#859289';
-  return `<div class="popup-inner">
-    <div class="popup-title">⚠️ ${esc(warning.event)}</div>
-    <div class="popup-row"><span>Severity</span><span style="color:${col}">${esc(warning.severity)}</span></div>
-    <div class="popup-row"><span>Area</span><span>${esc(warning.areaDesc)}</span></div>
-    ${warning.headline ? `<div class="popup-row"><span>Info</span><span>${esc(warning.headline)}</span></div>` : ''}
-    ${warning.onset   ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(warning.onset)}</span></div>`     : ''}
-    ${warning.expires ? `<div class="popup-row"><span>Expires</span><span>${fmtTime(warning.expires)}</span></div>` : ''}
-  </div>`;
-}
-
-function flyToMeteo(id) {
-  ensureLayerOn('meteoalarm');
-  const warning = meteoalarmData.find(entry => entry.id === id);
-  if (!d || !map) return;
-  // Try to fly to polygon bounds first, then fall back to centroid
-  let flown = false;
-  meteoalarmLayer.eachLayer(layer => {
-    if (layer._meteoId !== id) return;
-    try {
-      const bounds = layer.getBounds?.();
-      if (bounds?.isValid()) {
-        map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 8, duration: 1 });
-        flown = true;
-      }
-    } catch {}
-    layer.openPopup();
-  });
-  if (!flown && warning.centLat != null && warning.centLon != null) {
-    map.flyTo([warning.centLat, warning.centLon], Math.max(map.getZoom(), 5), { duration: 1 });
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value || '—'; };
+  set('sc-extreme-count',  extreme  || '—');
+  set('sc-severe-count',   severe   || '—');
+  set('sc-moderate-count', moderate || '—');
+  for (const [src, count] of Object.entries(srcCounts)) {
+    set(`sc-src-${src}`, count || '—');
   }
 }
 
 /* ══════════════════════════════════════════════════════
-   WMO SWIC — Global Severe Weather Alerts
-   WFS GeoServer with full polygon geometry
-   Endpoint: https://severeweather.wmo.int/f/ows
+   ALERT DETAIL BAR — 5-panel story scroller across all sources
 ══════════════════════════════════════════════════════ */
 
-// s integer: 0=Unknown 1=Minor 2=Moderate 3=Severe 4=Extreme
-const WMO_SEV_COLOR = ['#859289', '#a7c080', '#dbbc7f', '#e69875', '#e67e80'];
-const WMO_SEV_LABEL = ['Unknown', 'Minor', 'Moderate', 'Severe', 'Extreme'];
+let adbAlerts    = [];
+let adbActiveIdx = 0;      // index into adbAlerts of the alert being scrolled
+let _adbWindowStart = 0;   // index of the first alert occupying a panel slot
 
-/* CAP urgency/certainty, which the WFS exposes as the numeric `u` and `c`
-   columns. Mapping confirmed by fetching the source CAP files and comparing:
-   u 4=Immediate 3=Expected 2=Future 0=Unknown, c 4=Observed 3=Likely
-   2=Possible 0=Unknown.
-
-   Certainty is the field that separates "this hazard is happening" from
-   "conditions make it likely". It matters because several services publish
-   risk forecasts under an event name that reads like an active event —
-   Kazakhstan's fire-danger warnings arrive as event "Forestfire", severity
-   Extreme, certainty Likely, with no description text to disambiguate. */
-const WMO_URGENCY   = { 0:'Unknown', 1:'Past', 2:'Future', 3:'Expected', 4:'Immediate' };
-const WMO_CERTAINTY = { 0:'Unknown', 1:'Unlikely', 2:'Possible', 3:'Likely', 4:'Observed' };
-
-// Plain-language gloss so the CAP term isn't left to interpretation
-function wmoCertaintyNote(code) {
-  if (code === 4) return 'observed — hazard reported';
-  if (code === 3 || code === 2) return 'forecast — not yet observed';
-  return null;
+/* The breakpoints hide trailing panels with CSS (5 → 3 → 2), but the rotation
+   is driven by JS. Without a window the detail bar would narrate alerts whose
+   panel is off-screen, with no panel highlighted at all. So the panels show a
+   sliding window over adbAlerts, and it slides once the last visible alert has
+   finished scrolling. Measured from the DOM so it always matches the CSS. */
+function _adbVisibleCount() {
+  const panels = [...document.querySelectorAll('.adb-panel')];
+  if (!panels.length) return Math.min(5, adbAlerts.length || 5);
+  const shown = panels.filter(p => getComputedStyle(p).display !== 'none').length;
+  return Math.max(1, Math.min(shown || 5, adbAlerts.length || 1));
 }
 
-// Extract 2-letter ISO country code from capurl prefix (e.g. "cn-cma-xx/..." → "cn")
-const WMO_ISO2_NAME = {
-  af:'Afghanistan', al:'Albania', dz:'Algeria', ao:'Angola', ar:'Argentina',
-  am:'Armenia', au:'Australia', at:'Austria', az:'Azerbaijan', bd:'Bangladesh',
-  by:'Belarus', be:'Belgium', bj:'Benin', bo:'Bolivia', ba:'Bosnia',
-  br:'Brazil', bg:'Bulgaria', bf:'Burkina Faso', kh:'Cambodia', cm:'Cameroon',
-  ca:'Canada', cl:'Chile', cn:'China', co:'Colombia', cd:'DR Congo',
-  cr:'Costa Rica', hr:'Croatia', cu:'Cuba', cz:'Czechia', dk:'Denmark',
-  do:'Dominican Rep.', ec:'Ecuador', eg:'Egypt', sv:'El Salvador', et:'Ethiopia',
-  fi:'Finland', fr:'France', ge:'Georgia', de:'Germany', gh:'Ghana',
-  gr:'Greece', gt:'Guatemala', gn:'Guinea', ht:'Haiti', hn:'Honduras',
-  hu:'Hungary', in:'India', id:'Indonesia', ir:'Iran', iq:'Iraq',
-  ie:'Ireland', il:'Israel', it:'Italy', jm:'Jamaica', jp:'Japan',
-  jo:'Jordan', kz:'Kazakhstan', ke:'Kenya', kp:'North Korea', kr:'South Korea',
-  kw:'Kuwait', kg:'Kyrgyzstan', la:'Laos', lv:'Latvia', lb:'Lebanon',
-  ly:'Libya', lt:'Lithuania', mg:'Madagascar', mw:'Malawi', my:'Malaysia',
-  ml:'Mali', mr:'Mauritania', mx:'Mexico', md:'Moldova', mn:'Mongolia',
-  ma:'Morocco', mz:'Mozambique', mm:'Myanmar', np:'Nepal', nl:'Netherlands',
-  nz:'New Zealand', ni:'Nicaragua', ng:'Nigeria', no:'Norway', om:'Oman',
-  pk:'Pakistan', pa:'Panama', py:'Paraguay', pe:'Peru', ph:'Philippines',
-  pl:'Poland', pt:'Portugal', ro:'Romania', ru:'Russia', sa:'Saudi Arabia',
-  sn:'Senegal', rs:'Serbia', sl:'Sierra Leone', so:'Somalia', za:'South Africa',
-  es:'Spain', lk:'Sri Lanka', sd:'Sudan', se:'Sweden', ch:'Switzerland',
-  sy:'Syria', tw:'Taiwan', tj:'Tajikistan', tz:'Tanzania', th:'Thailand',
-  tg:'Togo', tn:'Tunisia', tr:'Turkey', tm:'Turkmenistan', ug:'Uganda',
-  ua:'Ukraine', ae:'UAE', gb:'United Kingdom', us:'USA', uz:'Uzbekistan',
-  ve:'Venezuela', vn:'Vietnam', ye:'Yemen', zm:'Zambia', zw:'Zimbabwe',
-};
+/* Advance to the next alert, sliding the window when we reach its end.
+   The window slides by the number of visible slots, clamped so the last
+   window still ends on the final alert — so with 5 alerts and 2 slots it
+   slides 2, then 1. Every alert is shown exactly once per cycle, and when
+   all 5 are visible (desktop) maxStart is 0, so nothing slides at all. */
+function _adbAdvance() {
+  const total = adbAlerts.length;
+  if (!total) return;
+  const visible   = _adbVisibleCount();
+  const maxStart  = Math.max(0, total - visible);
+  const windowEnd = Math.min(_adbWindowStart + visible - 1, total - 1);
 
-function wmoCountryFromCapurl(capurl) {
-  if (!capurl) return '';
-  const iso2 = capurl.split('-')[0].toLowerCase();
-  return WMO_ISO2_NAME[iso2] || iso2.toUpperCase();
+  if (adbActiveIdx < windowEnd) { adbActiveIdx++; return; }
+
+  if (_adbWindowStart >= maxStart) {
+    _adbWindowStart = 0;                                   // wrap to the start
+    adbActiveIdx    = 0;
+  } else {
+    _adbWindowStart = Math.min(_adbWindowStart + visible, maxStart);
+    // skip any alert the previous window already showed
+    adbActiveIdx    = Math.min(Math.max(_adbWindowStart, adbActiveIdx + 1), total - 1);
+  }
 }
 
-async function loadWMO() {
-  showLoading('wmo-body');
-  wmoData = [];
-  // Fetch severe+ land alerts with polygon geometry, server-side filtered + sorted
-  const base = 'https://severeweather.wmo.int/f/ows';
-  const params = new URLSearchParams({
-    service:      'WFS',
-    version:      '1.1.0',
-    request:      'GetFeature',
-    typeName:     'local_postgis:postgis_geojsons',
-    outputFormat: 'application/json',
-    CQL_FILTER:   "s>=2 AND marine='0' AND row_type<>'BOUNDARY'",
-    maxFeatures:  '250',
-    sortBy:       's D',
-  });
-  try {
-    const response = await fetch(proxyUrl(`${base}?${params}`), { signal: AbortSignal.timeout(20000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const geojson = await response.json();
-    if (!Array.isArray(geojson.features)) throw new Error('Unexpected response shape');
+// ── Colour + label helpers ──────────────────────────
+function adbColorForItem(item) {
+  if (item._color) return item._color;
+  if (item.src === 'usgs') return '#a7c080';
+  if (item.src === 'swpc') return '#7fbbb3';
+  if (item.src === 'eonet') {
+    const EONET_COLORS = {
+      wildfires:'#e69875', volcanoes:'#d699b6', severeStorms:'#7fbbb3',
+      seaLakeIce:'#83c092', snow:'#d3c6aa', dustHaze:'#859289',
+      floods:'#5fa8e8', drought:'#dbbc7f', manmade:'#e67e80'
+    };
+    return EONET_COLORS[item._catId] || '#d699b6';
+  }
+  if (item.src === 'fema')  return '#dbbc7f';
+  // NWS — colour by event type
+  const eventName = (item._event || '').toLowerCase();
+  if (eventName.includes('tornado'))                                 return '#ff5555';
+  if (eventName.includes('flash flood'))                             return '#4db8c8';
+  if (eventName.includes('flood'))                                   return '#5fa8e8';
+  if (eventName.includes('thunderstorm'))                            return '#f0c040';
+  if (eventName.includes('fire'))                                    return '#f08040';
+  if (eventName.includes('blizzard') || eventName.includes('snow'))  return '#a8d8f8';
+  if (eventName.includes('ice') || eventName.includes('winter'))     return '#b8e8ff';
+  if (eventName.includes('wind'))                                    return '#90d080';
+  if (eventName.includes('heat'))                                    return '#ff9060';
+  return '#e67e80';
+}
 
-    // Deduplicate by capurl — keep best geometry type (POLYGON/MULTIPOLYGON > POINT)
-    const geomRank = { POLYGON: 2, MULTIPOLYGON: 2, POINT: 1 };
-    const seen = new Map();
-    for (const feature of geojson.features) {
-      const props = feature.properties;
-      const key = props.capurl || feature.id;
-      const rank = geomRank[props.row_type] ?? 0;
-      if (!seen.has(key) || rank > (geomRank[seen.get(key).properties.row_type] ?? 0)) {
-        seen.set(key, feature);
-      }
-    }
+// ── Aggregate the 5 most-recent items across all sources ──
+function adbGatherItems() {
+  // NB: no hard character truncation on `tag` or `short`. The panel rows are
+  // full-width with CSS `text-overflow: ellipsis`, which clips at the actual
+  // pixel boundary and shows a "…". Slicing here instead chopped mid-word with no ellipsis
+  const candidates = [];
 
-    wmoData = [...seen.values()].map(feature => {
-      const props = feature.properties;
-      // Compute centroid for point/polygon fly-to
-      let centLat = null, centLon = null;
-      if (feature.geometry?.type === 'Point') {
-        [centLon, centLat] = feature.geometry.coordinates;
-      } else if (feature.bbox) {
-        centLon = (feature.bbox[0] + feature.bbox[2]) / 2;
-        centLat = (feature.bbox[1] + feature.bbox[3]) / 2;
-      }
-      return {
-        id:       feature.id,
-        capurl:   props.capurl || '',
-        country:  wmoCountryFromCapurl(props.capurl),
-        areadesc: props.areadesc || '',
-        event:    props.event    || '',
-        sev:      props.s ?? 0,
-        urgency:   props.u ?? 0,
-        certainty: props.c ?? 0,
-        onset:    props.onset    || props.effective || props.sent || '',
-        expires:  props.expires  || props.chk_expires || '',
-        geometry: feature.geometry || null,
-        centLat, centLon,
-      };
+  // USGS earthquakes
+  for (const quake of eqData) {
+    const props = quake.properties;
+    const time  = props.time || 0;
+    const mag   = props.mag != null ? props.mag.toFixed(1) : '?';
+    const depth = quake.geometry?.coordinates?.[2];
+    const issueTime = fmtTime(new Date(time).toISOString());
+    const parts = [];
+    if (props.place)   parts.push(props.place);
+    if (depth != null) parts.push(`Depth: ${depth.toFixed(0)} km`);
+    if (props.alert)   parts.push(`USGS alert level: ${props.alert.toUpperCase()}`);
+    parts.push(`Magnitude: ${mag}`);
+    if (props.url)     parts.push(props.url.replace(/^https?:\/\//, ''));
+    candidates.push({
+      src: 'usgs', ts: time,
+      tag: `M${mag} EQ`, issueTime,
+      short: props.place || 'Unknown location',
+      detail: parts.join('   ·   '),
+      _event: `M${mag} Earthquake`,
+      flyId: quake.id
     });
-  } catch (err) {
-    console.warn('WMO load failed:', err.message);
-    const body = document.getElementById('wmo-body');
-    if (body) body.innerHTML = `<div class="state muted">Failed to load: ${esc(err.message)}</div>`;
-    return;
   }
-  renderWMO();
-  plotWMO();
-  markUpdated('wmo-updated');
-  AlertStore.push('wmo', normalizeWMO(wmoData));
-}
 
-function renderWMO() {
-  const body = document.getElementById('wmo-body');
-  if (!body) return;
-  const minSev  = parseInt(document.getElementById('wmo-sev')?.value ?? '3', 10);
-  const filtered = wmoData.filter(alert => alert.sev >= minSev);
-  document.getElementById('wmo-count').textContent = filtered.length;
-  if (!filtered.length) {
-    body.innerHTML = '<div class="state muted">No active WMO alerts</div>';
-    return;
+  // NWS alerts — all active, no filter
+  for (const alert of easData) {
+    const props   = alert.properties || alert;
+    const time    = new Date(props.sent || props.effective || 0).getTime();
+    const sent    = props.sent || props.effective;
+    const expires = props.expires || props.ends;
+    const issueTime = sent ? fmtTime(sent) : '—';
+    const parts = [];
+    if (props.areaDesc)    parts.push(props.areaDesc.trim());
+    if (props.headline)    parts.push(props.headline.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
+    if (props.description) parts.push(props.description.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
+    if (props.instruction) parts.push('⚠ INSTRUCTIONS: ' + props.instruction.replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim());
+    // issue time is in the label; only include expiry in scroll
+    if (expires) parts.push(`Expires: ${fmtTime(expires)}`);
+    candidates.push({
+      src: 'nws', ts: time || Date.now(),
+      tag: props.event || 'ALERT', issueTime,
+      short: (props.areaDesc || '').split(';')[0].trim() || '—',
+      detail: parts.join('   ·   '),
+      _event: props.event || '',
+      flyId: alert.id
+    });
   }
-  // Sort: highest severity first, then most recent
-  filtered.sort((alertA, alertB) => alertB.sev - alertA.sev || new Date(alertB.onset) - new Date(alertA.onset));
-  body.innerHTML = filtered.map(alert => {
-    const col    = WMO_SEV_COLOR[alert.sev] || '#859289';
-    const label  = WMO_SEV_LABEL[alert.sev] || 'Unknown';
-    const canFly = alert.centLat != null && alert.centLon != null;
-    return `<div class="alert-item${canFly ? ' clickable' : ''}" style="border-left-color:${col}"
-               ${canFly ? `onclick="flyToWMO('${esc(alert.id)}')" title="Click to locate on map"` : ''}>
-      <div class="alert-row">
-        <span class="alert-badge" style="background:${col};color:var(--badge-text, #1a2227)">${esc(label)}</span>
-        <span class="alert-event">${esc(alert.event || 'Weather Alert')}</span>
-      </div>
-      <div class="alert-sub">${esc(alert.areadesc)}${alert.country ? ' · ' + esc(alert.country) : ''}</div>
-      ${alert.certainty !== 4 ? `<div class="alert-sub" style="opacity:.75">${esc(WMO_CERTAINTY[alert.certainty] || 'Unknown')} — forecast, not observed</div>` : ''}
-      <div class="alert-meta">
-        ${alert.onset   ? `<span>${fmtTime(alert.onset)}</span>`            : ''}
-        ${alert.expires ? `<span>Exp: ${fmtTime(alert.expires)}</span>`     : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
 
-function plotWMO() {
-  if (!wmoLayer) return;
-  wmoLayer.clearLayers();
-  // Only plot Severe+ on the map to avoid overwhelming it
-  wmoData.filter(alert => alert.sev >= 3 && alert.geometry).forEach(alert => {
-    const col = WMO_SEV_COLOR[alert.sev] || '#859289';
-    let layer;
-    if (alert.geometry.type === 'Point') {
-      const [lon, lat] = alert.geometry.coordinates;
-      layer = L.circleMarker([lat, lon], {
-        radius: 6, color: col, weight: 1.5, opacity: 0.9,
-        fillColor: col, fillOpacity: 0.4,
-      });
-    } else {
-      // L.geoJSON handles GeoJSON [lon,lat] → Leaflet [lat,lon] natively
-      layer = L.geoJSON(alert.geometry, {
-        style: { color: col, weight: 1.2, opacity: 0.8, fillColor: col, fillOpacity: 0.15 },
+  // EONET natural events — last 2 days only
+  const eonetCutoff = Date.now() - 2 * 24 * 3_600_000;
+  for (const event of eonetData) {
+    const geo    = event.geometry?.[event.geometry.length - 1];
+    const time   = geo?.date ? new Date(geo.date).getTime() : 0;
+    if (!time || time < eonetCutoff) continue;
+    const catId  = event.categories?.[0]?.id || 'manmade';
+    const catLbl = event.categories?.[0]?.title || 'Event';
+    const issueTime = geo?.date ? fmtTime(geo.date) : '—';
+    const parts = [];
+    parts.push(eonetTitle(event));
+    parts.push(`Category: ${catLbl}`);
+    if (geo?.magnitudeValue != null) parts.push(`Size: ${geo.magnitudeValue.toLocaleString()} ${geo.magnitudeUnit || ''}`);
+    if (event.sources?.[0]?.id) parts.push(`Source: ${event.sources[0].id}`);
+    if (event.link) parts.push(`Info: ${event.link}`);
+    // updated time is in the issueTime label
+    candidates.push({
+      src: 'eonet', ts: time,
+      tag: catLbl.toUpperCase(), issueTime,
+      short: eonetTitle(event),
+      detail: parts.join('   ·   '),
+      _catId: catId,
+      flyId: event.id
+    });
+  }
+
+  // SWPC space weather
+  for (const alert of swAlerts) {
+    const time      = swpcUTC(alert.issue_datetime);
+    const issueTime = alert.issue_datetime ? fmtTime(new Date(time).toISOString()) : '—';
+    const msg       = (alert.message || '').replace(/\r?\n/g,' ').replace(/\s{2,}/g,' ').trim();
+    const title     = parseProductTitle ? parseProductTitle(alert.message || '') : 'Space Weather';
+    // issue time in label; message is the detail
+    // Tag carries the hazard class, location row carries the product title.
+    candidates.push({
+      src: 'swpc', ts: time,
+      tag: parseSWCategory(alert.message || '').label.toUpperCase(), issueTime,
+      short: title,
+      detail: msg,
+      _event: title
+    });
+  }
+
+  // FEMA declarations
+  for (const decl of femaData) {
+    const time      = decl.declarationDate ? new Date(decl.declarationDate).getTime() : 0;
+    const typeLabel = FEMA_TYPE_LABELS[decl.declarationType] || decl.declarationType;
+    const declId    = decl.femaDeclarationString || `DR-${decl.disasterNumber}`;
+    const issueTime = decl.declarationDate ? fmtTime(decl.declarationDate) : '—';
+    const parts     = [];
+    parts.push(decl.declarationTitle || decl.incidentType || 'Declaration');
+    parts.push(`${typeLabel} declared for ${decl.state || decl.stateCode || 'Unknown'}`);
+    parts.push(`Incident type: ${decl.incidentType || '—'}`);
+    parts.push(`Declaration ID: ${declId}`);
+    if (decl.disasterNumber) parts.push(`FEMA.gov/disaster/${decl.disasterNumber}`);
+    // declared date is in the issueTime label
+    candidates.push({
+      src: 'fema', ts: time,
+      tag: typeLabel.toUpperCase(), issueTime,
+      short: `${decl.state || '—'} · ${decl.incidentType || '—'}`,
+      detail: parts.join('   ·   '),
+      _event: typeLabel
+    });
+  }
+
+  // AlertStore — severe+ alerts that are currently active (onset in the past)
+  const _now = Date.now();
+  for (const country of AlertStore.countries()) {
+    for (const alert of AlertStore.getCountry(country)) {
+      if (alert._sevRank < 2) continue;
+      const srcStyle    = GEO_SOURCE_STYLE[alert.source] || {};
+      const countryLbl  = (alert.country||'').replace(/-/g,' ').replace(/\b\w/g,ch=>ch.toUpperCase());
+      const onsetTs     = alert.onset ? new Date(alert.onset).getTime() : 0;
+      if (onsetTs > _now) continue;  // skip advance warnings not yet in effect
+      candidates.push({
+        src:       alert.source,
+        ts:        onsetTs,
+        tag:       `${(srcStyle.label||alert.source.slice(0,4).toUpperCase())} · ${alert.severity.toUpperCase()}`,
+        issueTime: alert.onset ? fmtTime(alert.onset) : '—',
+        short:     `${countryLbl}${alert.areaDesc ? ' — ' + alert.areaDesc : ''}`,
+        detail:    [alert.title, countryLbl, alert.areaDesc, alert.expires ? `Exp: ${fmtTime(alert.expires)}` : ''].filter(Boolean).join('   ·   '),
+        _event:    alert.title,
+        _color:    alert.color,
+        flyId:     null,
       });
     }
-    const popup = `<div class="popup-inner">
-      <div class="popup-title">⚠️ ${esc(alert.event || 'Weather Alert')}</div>
-      <div class="popup-row"><span>Severity</span><span style="color:${col};font-weight:600">${esc(WMO_SEV_LABEL[alert.sev] ?? '')}</span></div>
-      <div class="popup-row"><span>Certainty</span><span>${esc(WMO_CERTAINTY[alert.certainty] || 'Unknown')}${
-        wmoCertaintyNote(alert.certainty) ? ` <span style="color:var(--muted)">(${esc(wmoCertaintyNote(alert.certainty))})</span>` : ''}</span></div>
-      <div class="popup-row"><span>Urgency</span><span>${esc(WMO_URGENCY[alert.urgency] || 'Unknown')}</span></div>
-      ${alert.areadesc ? `<div class="popup-row"><span>Area</span><span>${esc(alert.areadesc)}</span></div>` : ''}
-      ${alert.country  ? `<div class="popup-row"><span>Country</span><span>${esc(alert.country)}</span></div>` : ''}
-      ${alert.onset    ? `<div class="popup-row"><span>Onset</span><span>${fmtTime(alert.onset)}</span></div>` : ''}
-      ${alert.expires  ? `<div class="popup-row"><span>Expires</span><span>${fmtTime(alert.expires)}</span></div>` : ''}
-    </div>`;
-    if (layer.bindPopup) {
-      layer.bindPopup(popup);
+  }
+
+  // Sort newest-first, take top 5
+  candidates.sort((itemA, itemB) => itemB.ts - itemA.ts);
+  return candidates.slice(0, 5);
+}
+
+let _adbDebounce = null;
+
+function buildAlertBar() {
+  // Debounce: rapid calls from the render functions collapse into one build,
+  // so only a single rAF(_adbAnimate) loop is ever started per refresh.
+  clearTimeout(_adbDebounce);
+  _adbDebounce = setTimeout(_adbBuildNow, 80);
+}
+
+function _adbBuildNow() {
+  adbAlerts = adbGatherItems();
+  if (adbActiveIdx >= adbAlerts.length) adbActiveIdx = 0;
+  const _maxStart = Math.max(0, adbAlerts.length - _adbVisibleCount());
+  if (_adbWindowStart > _maxStart) _adbWindowStart = 0;
+  if (adbActiveIdx < _adbWindowStart) _adbWindowStart = 0;
+
+  // If a rAF loop is already running (either the measure frame or the step loop),
+  // leave it alone and just silently refresh the inactive panels.
+  // This prevents periodic data refreshes (NWS 60s, EQ 120s, etc.) from
+  // cancelling and restarting the animation mid-scroll.
+  if (_adbRafId !== null || _adbMeasureId !== null) {
+    _adbRefreshInactive();
+    return;
+  }
+
+  _adbRenderAll();
+  requestAnimationFrame(_adbAnimate);
+}
+
+// Three stacked rows: event tag, location, timestamp. Each spans the panel's
+// full width, so a long event name cannot crowd out the location beside it.
+function adbPanelMarkup(item) {
+  return `
+    <span class="adb-tag" style="color:${adbColorForItem(item)}">${esc(item.tag)}</span>
+    <span class="adb-short">${esc(item.short)}</span>
+    <span class="adb-issue-time">${esc(item.issueTime || '—')}</span>`;
+}
+
+// Update only the inactive panels — never touches the active one or its animation
+function _adbRefreshInactive() {
+  for (let slot = 0; slot < 5; slot++) {
+    const alertIdx = _adbWindowStart + slot;
+    if (alertIdx === adbActiveIdx) continue;
+    const panel = document.getElementById(`adb-panel-${slot}`);
+    if (!panel) continue;
+    const item    = adbAlerts[alertIdx];
+    const flyable = !!(item?.flyId);
+    panel.className = 'adb-panel' + (flyable ? ' flyable' : '');
+    if (flyable) { panel.dataset.flySrc = item.src; panel.dataset.flyId = item.flyId; }
+    else         { delete panel.dataset.flySrc; delete panel.dataset.flyId; }
+    if (item) {
+      panel.innerHTML = adbPanelMarkup(item);
     } else {
-      layer.eachLayer(subLayer => subLayer.bindPopup(popup));
+      panel.innerHTML = `<span class="adb-empty">—</span>`;
     }
-    layer._wmoId = alert.id;
-    wmoLayer.addLayer(layer);
+  }
+}
+
+// Always do a full ordered rebuild — no partial updates, no ordering bugs
+function _adbRenderAll() {
+  const bar = document.getElementById('adb-panels');
+  if (!bar) return;
+  bar.innerHTML = '';
+
+  if (!adbAlerts.length) {
+    bar.innerHTML = `<span class="adb-empty" style="padding:0 24px;color:#2a3540;flex:1;display:flex;align-items:center">No recent events</span>`;
+    return;
+  }
+
+  for (let slot = 0; slot < 5; slot++) {
+    const panel    = document.createElement('div');
+    panel.id       = `adb-panel-${slot}`;
+    const alertIdx = _adbWindowStart + slot;      // slot → alert via the window
+    const item     = adbAlerts[alertIdx];
+    const isActive = (alertIdx === adbActiveIdx);
+    const flyable  = !!(item?.flyId);
+    panel.className = 'adb-panel' + (isActive ? ' active' : '') + (flyable ? ' flyable' : '');
+    if (flyable) {
+      panel.dataset.flySrc = item.src;
+      panel.dataset.flyId  = item.flyId;
+    }
+
+    if (item) {
+      // Both active and inactive panels show the same layout;
+      // detail text lives in the separate bar below.
+      panel.innerHTML = adbPanelMarkup(item);
+    } else {
+      panel.innerHTML = `<span class="adb-empty">—</span>`;
+    }
+
+    bar.appendChild(panel); // always in order 0→4
+  }
+}
+
+// Manual rAF scroll — guaranteed constant speed, no easing curves
+const ADB_SPEED  = 215; // px per second
+const ADB_TAIL_GAP = 5; // px from the left edge at which the panel hands over
+let _adbRafId    = null; // handle for the active step() loop
+let _adbMeasureId = null; // handle for the one-frame measurement rAF
+
+function _adbAnimate() {
+  if (!adbAlerts.length) return;
+
+  // Cancel any in-flight loops (both measurement frame and step loop)
+  if (_adbMeasureId) { cancelAnimationFrame(_adbMeasureId); _adbMeasureId = null; }
+  if (_adbRafId)     { cancelAnimationFrame(_adbRafId);     _adbRafId     = null; }
+
+  const item     = adbAlerts[adbActiveIdx];
+  const detailEl = document.getElementById('adb-detail-text');
+  const innerEl  = document.getElementById('adb-detail-inner');
+  if (!item || !detailEl || !innerEl) return;
+
+  detailEl.textContent = item.detail;
+  detailEl.style.transform = '';
+
+  // One measurement frame so the browser has committed the new text width
+  _adbMeasureId = requestAnimationFrame(() => {
+    _adbMeasureId = null;
+    const barW  = innerEl.offsetWidth;
+    const textW = detailEl.scrollWidth;
+    // Hand over once the text's trailing edge is ADB_TAIL_GAP from the left
+    // edge of the bar, so the panel change lands as the description clears
+    // rather than after a beat of empty bar.
+    const total = barW + textW - ADB_TAIL_GAP;
+    let startTime = null;
+
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      const px = ((ts - startTime) / 1000) * ADB_SPEED;
+      detailEl.style.transform = `translateX(${barW - px}px)`;
+
+      if (px >= total) {
+        // Finished — advance, sliding the panel window if this was the last
+        // visible alert (see _adbAdvance)
+        _adbRafId = null;
+        _adbAdvance();
+        _adbRenderAll();
+        requestAnimationFrame(_adbAnimate);
+      } else {
+        _adbRafId = requestAnimationFrame(step);
+      }
+    }
+
+    _adbRafId = requestAnimationFrame(step);
   });
 }
 
-function flyToWMO(id) {
-  ensureLayerOn('wmo');
-  const alert = wmoData.find(entry => entry.id === id);
-  if (!alert || !map) return;
-  if (alert.centLat != null && alert.centLon != null) {
-    map.flyTo([alert.centLat, alert.centLon], Math.max(map.getZoom(), 5), { duration: 1 });
-  }
-  // Open popup on matching layer
-  wmoLayer.eachLayer(layer => {
-    if (layer._wmoId !== id) return;
-    if (layer.openPopup) layer.openPopup();
-    else layer.eachLayer?.(subLayer => subLayer.openPopup?.());
-  });
+/* ── Fly-to dispatcher (ticker + alert bar) ─────── */
+function adbFlyTo(src, id) {
+  if (!src || !id) return;
+  if      (src === 'usgs')        flyToEq(id);
+  else if (src === 'nws')         flyToAlert(id);
+  else if (src === 'eonet')       flyToEonet(id);
+  else if (src === 'meteoalarm')  flyToMeteo(id);
+  else if (src === 'wmo')         flyToWMO(id);
+  else if (src === 'gdacs')       flyToGDACS(id);
+  else if (src === 'msc')         flyToMSC(id);
+  // SWPC, FEMA, BOM have no map markers
 }
+
+// Event delegation — alert detail bar panels
+document.getElementById('adb-panels').addEventListener('click', event => {
+  const panel = event.target.closest('.adb-panel.flyable');
+  if (panel) adbFlyTo(panel.dataset.flySrc, panel.dataset.flyId);
+});
+
+/* ══════════════════════════════════════════════════════
+   BOOT + AUTO-REFRESH
+══════════════════════════════════════════════════════ */
 
 function refreshAll() {
   loadEarthquakes();
@@ -4217,17 +4016,19 @@ requestAnimationFrame(() => map.invalidateSize());
 buildAlertBar(); // render empty bar immediately
 initMapSearch();
 applyResponsiveSidebars();
+
 addEventListener('resize', () => {
   clearTimeout(_respTimer);
   _respTimer = setTimeout(applyResponsiveSidebars, 250);
 });
+
 refreshAll();
 
 // Staggered auto-refresh intervals
-setInterval(loadEarthquakes,  120_000);
-setInterval(loadAlerts,        60_000);
-setInterval(loadSpaceWeather, 300_000);
-setInterval(loadEonet,        300_000);
+setInterval(loadEarthquakes,  120_000);  // USGS Earthquakes - 2 minute refresh
+setInterval(loadAlerts,        60_000);  // NWS Alerts - check once per minute
+setInterval(loadSpaceWeather, 1800_000);  // Space Weather - every 30 minutes
+setInterval(loadEonet,        300_000);  // EONET - every 5 minutes
 setInterval(loadFema,         600_000);  // FEMA declarations change slowly
 setInterval(loadDrought,      600_000);  // Drought monitor updates weekly
 setInterval(loadLSR,          300_000);  // SPC storm reports — 5 min refresh
@@ -4242,6 +4043,8 @@ setInterval(loadMeteoalarm,   600_000);  // Meteoalarm Europe — 10 min refresh
 setInterval(loadWMO,          600_000);  // WMO SWIC global alerts — 10 min refresh
 setInterval(loadWind,         600_000);  // Surface wind barbs — 10 min (no-ops while layer is off)
 setInterval(refreshGibsDailyLayers, 3600_000);  // re-point daily GIBS layers after a UTC date rollover
+setInterval(loadRainviewer,   300_000);  // RainViewer refreshes frames ~every 5 min
+setInterval(() => { buildGlobalSummary(); }, 60_000);   // Re-evaluate 1-hour window every minute
 
 // Live indicator: re-evaluate on a timer so it goes stale on its own, and
 // react immediately to the browser's own connectivity events.
@@ -4257,5 +4060,3 @@ map.on('moveend', () => {
   clearTimeout(_windDebounce);
   _windDebounce = setTimeout(loadWind, 600);
 });
-setInterval(loadRainviewer,   300_000);  // RainViewer refreshes frames ~every 5 min
-setInterval(() => { buildGlobalSummary(); }, 60_000);   // Re-evaluate 1-hour window every minute
