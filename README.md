@@ -105,3 +105,7 @@ redistribution.
 - Daily satellite composites from GIBS are pinned two days back so the layer
   is always fully assembled; see `GIBS_DAILY_OFFSET`.
 - This project is not affiliated with or endorsed by any of the agencies above.
+
+##License
+
+This project is subject to the GNU GPLv3.
