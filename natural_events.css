@@ -1,0 +1,2225 @@
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Default palette — Everforest Dark Hard */
+      --bg:        #2d353b;
+      --surface:   rgba(52, 63, 68, 0.72);
+      --surface2:  rgba(61, 72, 77, 0.82);
+      --border:    #475258;
+      --accent:    #7fbbb3;
+      --warn:      #dbbc7f;
+      --danger:    #e67e80;
+      --text:      #d3c6aa;
+      --muted:     #859289;
+      --green:     #a7c080;
+      --aqua:      #83c092;
+      --orange:    #e69875;
+      --purple:    #d699b6;
+      --font:      'Sora', system-ui, sans-serif;
+      --header-h:  62px;
+      --alertbar-h:  60px;
+      --adb-detail-h: 28px;
+      --gap:       8px;
+      --pad:       8px;
+      --sidebar-w: 370px;
+      --badge-text: #1a2227;
+      --panel-radius: 14px;
+    }
+
+    body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(127,187,179,0.14) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(127,187,179,0.08) 0%, transparent 42%),
+        var(--bg);
+    }
+
+    /* ── Theme: Nord ─────────────────────────────── */
+    /* Contrast: #ECEFF4 on #2E3440 = 11.3:1 (AAA) */
+    .theme-nord {
+      --bg:        #2E3440;
+      --surface:   rgba(59, 66, 82, 0.72);
+      --surface2:  rgba(67, 76, 94, 0.82);
+      --border:    #4C566A;
+      --accent:    #88C0D0;
+      --warn:      #EBCB8B;
+      --danger:    #BF616A;
+      --text:      #ECEFF4;
+      --muted:     #8b95a5;
+      --green:     #A3BE8C;
+      --aqua:      #8FBCBB;
+      --orange:    #D08770;
+      --purple:    #B48EAD;
+      --font:      'Inter', 'Segoe UI', system-ui, sans-serif;
+      --badge-text: #2E3440;
+      --panel-radius: 6px;
+    }
+
+    /* ── Theme: Dracula ──────────────────────────── */
+    /* Contrast: #F8F8F2 on #282A36 = 12.1:1 (AAA) */
+    .theme-dracula {
+      --bg:        #282A36;
+      --surface:   rgba(52, 55, 70, 0.72);
+      --surface2:  rgba(68, 71, 90, 0.82);
+      --border:    #6272A4;
+      --accent:    #8BE9FD;
+      --warn:      #F1FA8C;
+      --danger:    #FF5555;
+      --text:      #F8F8F2;
+      --muted:     #8792b0;
+      --green:     #50FA7B;
+      --aqua:      #8BE9FD;
+      --orange:    #FFB86C;
+      --purple:    #BD93F9;
+      --font:      'Fira Code', 'Consolas', monospace;
+      --badge-text: #21222C;
+      --panel-radius: 10px;
+    }
+
+    /* ── Theme: Solarized Dark ───────────────────── */
+    /* Contrast: #93A1A1 on #002B36 = 7.2:1 (AAA)   */
+    .theme-solarized {
+      --bg:        #002B36;
+      --surface:   rgba(7, 54, 66, 0.72);
+      --surface2:  rgba(10, 63, 78, 0.82);
+      --border:    #586E75;
+      --accent:    #268BD2;
+      --warn:      #B58900;
+      --danger:    #DC322F;
+      --text:      #93A1A1;
+      --muted:     #657B83;
+      --green:     #859900;
+      --aqua:      #2AA198;
+      --orange:    #CB4B16;
+      --purple:    #6C71C4;
+      --font:      'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+      --badge-text: #002B36;
+      --panel-radius: 4px;
+    }
+
+    /* ── Theme: Catppuccin Mocha ─────────────────── */
+    /* Contrast: #CDD6F4 on #1E1E2E = 11.4:1 (AAA)  */
+    .theme-catppuccin {
+      --bg:        #1E1E2E;
+      --surface:   rgba(49, 50, 68, 0.72);
+      --surface2:  rgba(69, 71, 90, 0.82);
+      --border:    #585B70;
+      --accent:    #89B4FA;
+      --warn:      #F9E2AF;
+      --danger:    #F38BA8;
+      --text:      #CDD6F4;
+      --muted:     #7f849c;
+      --green:     #A6E3A1;
+      --aqua:      #94E2D5;
+      --orange:    #FAB387;
+      --purple:    #CBA6F7;
+      --font:      'Inter', 'Segoe UI', system-ui, sans-serif;
+      --badge-text: #1E1E2E;
+      --panel-radius: 12px;
+    }
+
+    /* ── Theme: High Contrast ────────────────────── */
+    /* WCAG AAA: #FFFFFF on #0A0A0A = 19.9:1         */
+    .theme-high-contrast {
+      --bg:        #0A0A0A;
+      --surface:   rgba(26, 26, 26, 0.72);
+      --surface2:  rgba(42, 42, 42, 0.82);
+      --border:    #555555;
+      --accent:    #5CB8FF;
+      --warn:      #FFD700;
+      --danger:    #FF4444;
+      --text:      #FFFFFF;
+      --muted:     #AAAAAA;
+      --green:     #44FF44;
+      --aqua:      #44FFDD;
+      --orange:    #FF8844;
+      --purple:    #DD88FF;
+      --font:      'Segoe UI', system-ui, sans-serif;
+      --badge-text: #000000;
+      --panel-radius: 4px;
+    }
+
+    /* ── Theme: Terminal (Green Phosphor) ──────────── */
+    /* Contrast: #33FF33 on #080C08 = 15.4:1 (AAA)    */
+    .theme-terminal {
+      --bg:        #080C08;
+      --surface:   rgba(12, 18, 12, 0.72);
+      --surface2:  rgba(21, 32, 21, 0.82);
+      --border:    #1E4A1E;
+      --accent:    #39FF14;   /* neon phosphor green */
+      --warn:      #CCFF00;   /* yellow-green */
+      --danger:    #FF3333;
+      --text:      #33DD33;   /* slightly softer green */
+      --muted:     #226622;
+      --green:     #66FF66;
+      --aqua:      #33FFCC;
+      --orange:    #FFCC33;
+      --purple:    #CC44FF;
+      --font:      'Share Tech Mono', 'Fira Code', 'Courier New', monospace;
+      --badge-text: #080C08;
+      --panel-radius: 0px;
+    }
+
+    /* ── Theme: Amber CRT ───────────────────────────── */
+    /* Contrast: #FFAA22 on #0A0600 = 11.3:1 (AAA)     */
+    .theme-amber {
+      --bg:        #0A0600;
+      --surface:   rgba(20, 13, 0, 0.72);
+      --surface2:  rgba(31, 20, 0, 0.82);
+      --border:    #4A2E00;
+      --accent:    #FF9900;   /* amber phosphor */
+      --warn:      #FFDD00;   /* bright amber-yellow */
+      --danger:    #FF4422;
+      --text:      #FFAA22;
+      --muted:     #7A5000;
+      --green:     #CCAA00;
+      --aqua:      #FF8844;
+      --orange:    #FF6600;
+      --purple:    #BB6600;
+      --font:      'Share Tech Mono', 'Fira Code', 'Courier New', monospace;
+      --badge-text: #0A0600;
+      --panel-radius: 0px;
+    }
+
+    /* ── Theme: Blueprint ───────────────────────────── */
+    /* Contrast: #C8DCF5 on #091522 = 10.8:1 (AAA)     */
+    /* Evokes technical drawings, engineering schematics */
+    .theme-blueprint {
+      --bg:        #091522;
+      --surface:   rgba(13, 30, 53, 0.72);
+      --surface2:  rgba(19, 40, 68, 0.82);
+      --border:    #1D3F6E;
+      --accent:    #4A9EFF;   /* blueprint white-blue */
+      --warn:      #FFD700;   /* draftsman yellow */
+      --danger:    #FF5555;
+      --text:      #C8DCF5;   /* white-blue linework */
+      --muted:     #4E6D91;
+      --green:     #44DD88;
+      --aqua:      #22CCDD;
+      --orange:    #FF8844;
+      --purple:    #9977EE;
+      --font:      'IBM Plex Mono', 'Courier New', monospace;
+      --badge-text: #091522;
+      --panel-radius: 2px;
+    }
+
+    /* ── Theme: Industrial ──────────────────────────── */
+    /* ANSI Z535 safety palette on raw charcoal          */
+    /* Contrast: #E8E8E8 on #1A1A1A = 11.1:1 (AAA)     */
+    .theme-industrial {
+      --bg:        #1A1A1A;
+      --surface:   rgba(34, 34, 34, 0.72);
+      --surface2:  rgba(46, 46, 46, 0.82);
+      --border:    #4A4A4A;
+      --accent:    #FFD700;   /* ANSI safety yellow */
+      --warn:      #FF8C00;   /* ANSI safety orange */
+      --danger:    #CC1111;   /* ANSI signal red */
+      --text:      #E8E8E8;
+      --muted:     #888888;
+      --green:     #00AA44;   /* ANSI safety green */
+      --aqua:      #00AACC;
+      --orange:    #FF6600;
+      --purple:    #AA44CC;
+      --font:      'Inter', 'Arial Narrow', system-ui, sans-serif;
+      --badge-text: #1A1A1A;
+      --panel-radius: 2px;
+    }
+
+    /* ── Theme: Military / Tactical ─────────────────── */
+    /* Contrast: #C8C8A8 on #161810 = 9.7:1 (AAA)      */
+    /* Low-observable UI — olive drab, field khaki       */
+    .theme-military {
+      --bg:        #161810;
+      --surface:   rgba(31, 33, 26, 0.72);
+      --surface2:  rgba(42, 45, 34, 0.82);
+      --border:    #464A32;
+      --accent:    #8BAC44;   /* olive drab / NVG green */
+      --warn:      #C8A020;   /* field amber */
+      --danger:    #BB3322;   /* signal red */
+      --text:      #C8C8A8;   /* light khaki */
+      --muted:     #666850;
+      --green:     #6B8E23;   /* OD green */
+      --aqua:      #5F9EA0;   /* cadet blue */
+      --orange:    #B8842A;   /* field tan */
+      --purple:    #7A6A9A;
+      --font:      'IBM Plex Mono', 'Courier New', monospace;
+      --badge-text: #161810;
+      --panel-radius: 1px;
+    }
+
+    /* ══════════════════════════════════════════════════
+       ATMOSPHERIC THEMES
+    ══════════════════════════════════════════════════ */
+
+    /* ── Theme: Synthwave ───────────────────────────── */
+    /* 80s retro neon — chrome, purple haze, hot pink   */
+    /* Contrast: #E0CFFF on #0D0221 = 13.4:1 (AAA)     */
+    .theme-synthwave {
+      --bg:        #0D0221;
+      --surface:   rgba(26, 5, 53, 0.72);
+      --surface2:  rgba(39, 10, 74, 0.82);
+      --border:    #5A1A8A;
+      --accent:    #FF2D78;   /* hot pink neon */
+      --warn:      #FFEE00;   /* neon yellow */
+      --danger:    #FF0044;
+      --text:      #E0CFFF;   /* pale violet */
+      --muted:     #7755AA;
+      --green:     #00FF9F;   /* neon mint */
+      --aqua:      #00D4FF;   /* electric cyan */
+      --orange:    #FF8C00;
+      --purple:    #BF5FFF;   /* electric purple */
+      --font:      'Orbitron', system-ui, sans-serif;
+      --badge-text: #0D0221;
+      --panel-radius: 6px;
+    }
+
+    /* ── Theme: Deep Sea ────────────────────────────── */
+    /* Hadal zone — bioluminescent life, crushing dark   */
+    /* Contrast: #90D8E8 on #010C18 = 12.6:1 (AAA)     */
+    .theme-deepsea {
+      --bg:        #010C18;
+      --surface:   rgba(4, 21, 37, 0.72);
+      --surface2:  rgba(9, 32, 53, 0.82);
+      --border:    #0B3355;
+      --accent:    #00FFCC;   /* bioluminescent teal */
+      --warn:      #88FFDD;
+      --danger:    #FF4466;
+      --text:      #90D8E8;   /* pale deep-sea aqua */
+      --muted:     #2A6880;
+      --green:     #44FFAA;
+      --aqua:      #00C8FF;
+      --orange:    #FF8866;
+      --purple:    #8866FF;
+      --font:      'IBM Plex Sans', system-ui, sans-serif;
+      --badge-text: #010C18;
+      --panel-radius: 14px;
+    }
+
+    /* ── Theme: Volcanic ────────────────────────────── */
+    /* Obsidian flows, magma cracks — scorched earth     */
+    /* Contrast: #E8C8A8 on #0D0704 = 13.1:1 (AAA)     */
+    .theme-volcanic {
+      --bg:        #0D0704;
+      --surface:   rgba(26, 14, 8, 0.72);
+      --surface2:  rgba(40, 21, 8, 0.82);
+      --border:    #5A2A10;
+      --accent:    #FF5500;   /* molten orange */
+      --warn:      #FFAA00;   /* lava gold */
+      --danger:    #FF2222;
+      --text:      #E8C8A8;   /* volcanic ash */
+      --muted:     #8A5A3A;
+      --green:     #88BB44;
+      --aqua:      #44AACC;
+      --orange:    #FF7733;
+      --purple:    #CC44AA;
+      --font:      'Segoe UI', system-ui, sans-serif;
+      --badge-text: #0D0704;
+      --panel-radius: 3px;
+    }
+
+    /* ── Theme: Vaporwave ───────────────────────────── */
+    /* Pastel surrealism — marble, palm trees, grid      */
+    /* Contrast: #FFD0EE on #1A0A2E = 11.8:1 (AAA)     */
+    .theme-vaporwave {
+      --bg:        #1A0A2E;
+      --surface:   rgba(38, 15, 68, 0.72);
+      --surface2:  rgba(54, 24, 88, 0.82);
+      --border:    #5A2A7A;
+      --accent:    #FF80BF;   /* pastel pink */
+      --warn:      #FFEE88;   /* pastel lemon */
+      --danger:    #FF5588;
+      --text:      #FFD0EE;   /* pale rose */
+      --muted:     #8A5577;
+      --green:     #80FFAA;   /* pastel mint */
+      --aqua:      #80EEFF;   /* pastel cyan */
+      --orange:    #FFB080;
+      --purple:    #CC88FF;   /* pastel lavender */
+      --font:      'Orbitron', system-ui, sans-serif;
+      --badge-text: #1A0A2E;
+      --panel-radius: 16px;
+    }
+
+    /* ── Theme: Arctic ──────────────────────────────── */
+    /* Polar ice cap — aurora borealis, frozen silence   */
+    /* Contrast: #D4EAF8 on #080F1A = 14.2:1 (AAA)     */
+    .theme-arctic {
+      --bg:        #080F1A;
+      --surface:   rgba(13, 24, 40, 0.72);
+      --surface2:  rgba(22, 34, 54, 0.82);
+      --border:    #1E3A5E;
+      --accent:    #88CCFF;   /* ice blue */
+      --warn:      #AADDFF;   /* polar mist */
+      --danger:    #FF6688;   /* aurora pink */
+      --text:      #D4EAF8;   /* frost white */
+      --muted:     #4A7AA0;
+      --green:     #44DDAA;   /* northern lights */
+      --aqua:      #66EEDD;
+      --orange:    #FF9966;   /* aurora amber */
+      --purple:    #AA88FF;   /* aurora violet */
+      --font:      'Inter', system-ui, sans-serif;
+      --badge-text: #080F1A;
+      --panel-radius: 10px;
+    }
+
+    /* ── Theme: Midnight City ───────────────────────── */
+    /* Urban night — sodium vapor, neon signs, wet asphalt */
+    /* Contrast: #C0CCE0 on #080C18 = 11.3:1 (AAA)      */
+    .theme-midnight {
+      --bg:        #080C18;
+      --surface:   rgba(14, 20, 40, 0.72);
+      --surface2:  rgba(22, 32, 53, 0.82);
+      --border:    #1E3050;
+      --accent:    #4488FF;   /* electric blue streetlight */
+      --warn:      #FFCC44;   /* sodium vapor */
+      --danger:    #FF4444;
+      --text:      #C0CCE0;   /* city haze blue-gray */
+      --muted:     #445870;
+      --green:     #44CC88;
+      --aqua:      #22BBDD;
+      --orange:    #FF8844;   /* neon sign orange */
+      --purple:    #8866CC;   /* purple neon */
+      --font:      'Inter', system-ui, sans-serif;
+      --badge-text: #080C18;
+      --panel-radius: 8px;
+    }
+
+    /* ══════════════════════════════════════════════════
+       CHARACTER THEMES
+    ══════════════════════════════════════════════════ */
+
+    /* ── Theme: Brutalist Dark ──────────────────────── */
+    /* Anti-design — raw structure, no softness          */
+    /* Contrast: #FFFFFF on #111111 = 18.1:1 (AAA)     */
+    .theme-brutalist {
+      --bg:        #111111;
+      --surface:   rgba(26, 26, 26, 0.72);
+      --surface2:  rgba(36, 36, 36, 0.82);
+      --border:    #FFFFFF;   /* stark white borders */
+      --accent:    #FF0000;   /* raw red */
+      --warn:      #FFFF00;   /* raw yellow */
+      --danger:    #FF0000;
+      --text:      #FFFFFF;
+      --muted:     #888888;
+      --green:     #00FF00;   /* raw green */
+      --aqua:      #00FFFF;
+      --orange:    #FF6600;
+      --purple:    #FF00FF;
+      --font:      'Impact', 'Arial Black', system-ui, sans-serif;
+      --badge-text: #111111;
+      --panel-radius: 0px;
+    }
+
+    /* ── Theme: Espresso ────────────────────────────── */
+    /* Third-wave coffee shop — dark roast, warm cream   */
+    /* Contrast: #EED8C0 on #19100A = 12.8:1 (AAA)     */
+    .theme-espresso {
+      --bg:        #19100A;
+      --surface:   rgba(35, 23, 16, 0.72);
+      --surface2:  rgba(48, 30, 22, 0.82);
+      --border:    #5A3A28;
+      --accent:    #D4886A;   /* latte caramel */
+      --warn:      #E8B870;   /* honey amber */
+      --danger:    #CC4422;   /* dark roast */
+      --text:      #EED8C0;   /* cream */
+      --muted:     #8A6650;
+      --green:     #88AA66;   /* matcha */
+      --aqua:      #6AAABB;   /* blue willow china */
+      --orange:    #CC7744;
+      --purple:    #997799;
+      --font:      'IBM Plex Sans', system-ui, sans-serif;
+      --badge-text: #19100A;
+      --panel-radius: 8px;
+    }
+
+    /* ── Theme: Cyberpunk ───────────────────────────── */
+    /* Neon-soaked dystopia — circuit grime, corpo neon  */
+    /* Contrast: #E8FF80 on #080808 = 17.1:1 (AAA)     */
+    .theme-cyberpunk {
+      --bg:        #080808;
+      --surface:   rgba(16, 16, 16, 0.72);
+      --surface2:  rgba(28, 28, 28, 0.82);
+      --border:    #BBDD00;   /* neon chartreuse */
+      --accent:    #CCFF00;   /* toxic lime */
+      --warn:      #FFAA00;   /* neon amber */
+      --danger:    #FF0066;   /* magenta alarm */
+      --text:      #E8FF80;   /* pale toxic yellow */
+      --muted:     #666633;
+      --green:     #66FF00;
+      --aqua:      #00FFCC;
+      --orange:    #FF8800;
+      --purple:    #FF00CC;   /* neon fuchsia */
+      --font:      'VT323', 'Share Tech Mono', monospace;
+      --badge-text: #080808;
+      --panel-radius: 0px;
+    }
+
+    /* ── Theme: Autumn ──────────────────────────────── */
+    /* Harvest season — fallen oak, woodsmoke, cider     */
+    /* Contrast: #F0D8B0 on #1A0E06 = 13.6:1 (AAA)     */
+    .theme-autumn {
+      --bg:        #1A0E06;
+      --surface:   rgba(38, 21, 8, 0.72);
+      --surface2:  rgba(52, 28, 10, 0.82);
+      --border:    #6A3D18;
+      --accent:    #E8882A;   /* pumpkin orange */
+      --warn:      #DDB050;   /* golden leaf */
+      --danger:    #CC3322;   /* crimson maple */
+      --text:      #F0D8B0;   /* warm cream */
+      --muted:     #8A6040;
+      --green:     #7A9A44;   /* late fern */
+      --aqua:      #6699AA;   /* cool rain */
+      --orange:    #D46A22;
+      --purple:    #AA6688;   /* dried lavender */
+      --font:      'IBM Plex Sans', system-ui, sans-serif;
+      --badge-text: #1A0E06;
+      --panel-radius: 8px;
+    }
+
+    /* ── Theme: Rose Gold ───────────────────────────── */
+    /* Warm copper & blush — luxe but subdued            */
+    /* Contrast: #F0D8D0 on #1A0E10 = 13.0:1 (AAA)     */
+    .theme-rosegold {
+      --bg:        #1A0E10;
+      --surface:   rgba(38, 21, 24, 0.72);
+      --surface2:  rgba(52, 29, 32, 0.82);
+      --border:    #6A3A3E;
+      --accent:    #E8886A;   /* rose gold copper */
+      --warn:      #E8AA66;   /* champagne */
+      --danger:    #DD4444;
+      --text:      #F0D8D0;   /* warm blush */
+      --muted:     #8A6060;
+      --green:     #88AA77;
+      --aqua:      #88BBCC;
+      --orange:    #D47755;
+      --purple:    #BB88BB;   /* dusty mauve */
+      --font:      'Inter', system-ui, sans-serif;
+      --badge-text: #1A0E10;
+      --panel-radius: 12px;
+    }
+
+    /* ── Theme: Desert ──────────────────────────────── */
+    /* High desert — terracotta, bone, sage, mirage teal */
+    /* Contrast: #EED8B0 on #1C1008 = 13.0:1 (AAA)     */
+    .theme-desert {
+      --bg:        #1C1008;
+      --surface:   rgba(40, 24, 8, 0.72);
+      --surface2:  rgba(56, 34, 16, 0.82);
+      --border:    #6E4820;
+      --accent:    #D4784A;   /* terracotta */
+      --warn:      #DDB850;   /* sand gold */
+      --danger:    #CC3322;
+      --text:      #EED8B0;   /* sandstone */
+      --muted:     #8A6844;
+      --green:     #8AAA55;   /* desert sage */
+      --aqua:      #77AAAA;   /* mirage teal */
+      --orange:    #CC6633;
+      --purple:    #AA7799;   /* dry lavender */
+      --font:      'IBM Plex Sans', system-ui, sans-serif;
+      --badge-text: #1C1008;
+      --panel-radius: 4px;
+    }
+
+    /* ── Per-theme body gradients ── */
+    .theme-nord body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(136,192,208,0.14) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(136,192,208,0.08) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-dracula body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(139,233,253,0.12) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(189,147,249,0.08) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-solarized body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(38,139,210,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(42,161,152,0.09) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-catppuccin body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(137,180,250,0.14) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(203,166,247,0.09) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-high-contrast body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(92,184,255,0.13) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(92,184,255,0.07) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-terminal body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(57,255,20,0.10) 0%, transparent 38%),
+        radial-gradient(ellipse at 88% 82%, rgba(57,255,20,0.05) 0%, transparent 40%),
+        var(--bg);
+    }
+    .theme-amber body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(255,153,0,0.14) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(255,102,0,0.08) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-blueprint body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(74,158,255,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(34,204,221,0.09) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-industrial body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(255,215,0,0.11) 0%, transparent 38%),
+        radial-gradient(ellipse at 88% 82%, rgba(255,140,0,0.07) 0%, transparent 40%),
+        var(--bg);
+    }
+    .theme-military body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(139,172,68,0.13) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(95,158,160,0.08) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-synthwave body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(255,45,120,0.16) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(191,95,255,0.12) 0%, transparent 44%),
+        var(--bg);
+    }
+    .theme-deepsea body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(0,255,204,0.11) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(0,200,255,0.08) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-volcanic body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(255,85,0,0.16) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(255,34,34,0.09) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-vaporwave body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(255,128,191,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(204,136,255,0.10) 0%, transparent 44%),
+        var(--bg);
+    }
+    .theme-arctic body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(136,204,255,0.14) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(68,221,170,0.09) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-midnight body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(68,136,255,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(136,102,204,0.09) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-brutalist body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(255,0,0,0.12) 0%, transparent 38%),
+        radial-gradient(ellipse at 88% 82%, rgba(255,0,0,0.06) 0%, transparent 40%),
+        var(--bg);
+    }
+    .theme-espresso body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(212,136,106,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(232,184,112,0.09) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-cyberpunk body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(204,255,0,0.11) 0%, transparent 38%),
+        radial-gradient(ellipse at 88% 82%, rgba(255,0,204,0.08) 0%, transparent 40%),
+        var(--bg);
+    }
+    .theme-autumn body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(232,136,42,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(204,51,34,0.09) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-rosegold body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(232,136,106,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(187,136,187,0.09) 0%, transparent 42%),
+        var(--bg);
+    }
+    .theme-desert body {
+      background:
+        radial-gradient(ellipse at 8% 12%, rgba(212,120,74,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 88% 82%, rgba(119,170,170,0.08) 0%, transparent 42%),
+        var(--bg);
+    }
+
+    /* ══════════════════════════════════════════════════
+       GLASS THEME
+       Sora typeface · cool blue-indigo glass palette
+       Visual treatment is now baseline for all themes —
+       this class only provides the color palette.
+    ══════════════════════════════════════════════════ */
+    .theme-glass {
+      --bg:        #0B0D12;
+      --surface:   rgba(255,255,255,0.055);
+      --surface2:  rgba(255,255,255,0.088);
+      --border:    rgba(195,215,255,0.12);
+      --accent:    #82C4FF;
+      --warn:      #FFD47A;
+      --danger:    #FF6077;
+      --text:      #EEF2FF;
+      --muted:     rgba(178,200,255,0.42);
+      --green:     #68FFAA;
+      --aqua:      #68F0FF;
+      --orange:    #FFB080;
+      --purple:    #CC8EFF;
+      --font:      'Sora', system-ui, sans-serif;
+      --badge-text: #0B0D12;
+      --panel-radius: 14px;
+    }
+    .theme-glass body {
+      background:
+        radial-gradient(ellipse at 8%  8%,  rgba(70,110,210,0.18) 0%, transparent 38%),
+        radial-gradient(ellipse at 92% 12%, rgba(110,70,210,0.12) 0%, transparent 34%),
+        radial-gradient(ellipse at 50% 98%, rgba(35,75,170,0.14) 0%, transparent 42%),
+        #0B0D12;
+    }
+    /* Glass panel group headers — blue-tinted gradient */
+    .theme-glass .panel-group-header {
+      background: linear-gradient(90deg, rgba(130,196,255,0.10) 0%, rgba(130,196,255,0.02) 100%);
+      border: 1px solid rgba(195,215,255,0.10) !important;
+      color: rgba(178,210,255,0.75);
+      letter-spacing: 0.13em;
+      text-shadow: 0 0 10px rgba(130,196,255,0.32);
+    }
+    /* Glass alert region headers */
+    .theme-glass .alert-region-header {
+      background: rgba(130,196,255,0.07);
+      border-bottom: 1px solid rgba(195,215,255,0.09);
+    }
+    /* Glass alert item hover */
+    .theme-glass .alert-item:hover { background: rgba(130,196,255,0.06); }
+    /* Glass mls-content — dark recessed tray */
+    .theme-glass .mls-content {
+      background: rgba(0,0,15,0.36);
+      border-top: 1px solid rgba(195,215,255,0.07);
+    }
+    /* Glass section summary */
+    .theme-glass .mls-section > summary {
+      background: rgba(160,195,255,0.045);
+    }
+    .theme-glass .mls-section > summary:hover { background: rgba(160,195,255,0.085); }
+    .theme-glass .mls-section[open] > summary {
+      background: rgba(160,195,255,0.09);
+      border-bottom: 1px solid rgba(195,215,255,0.10);
+    }
+    /* Glass sticker labels */
+    .theme-glass .mls-section > summary > span:first-child {
+      color: #FFFFFF;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.9), 0 0 14px rgba(130,196,255,0.28);
+    }
+    /* Glass layer toggle hover */
+    .theme-glass .mls-content .layer-toggle:hover {
+      background: rgba(130,196,255,0.10);
+      box-shadow: 0 0 0 1px rgba(130,196,255,0.16);
+    }
+    /* Glass filter inputs */
+    .theme-glass .filter-bar select,
+    .theme-glass .filter-bar input[type="number"] {
+      background: rgba(0,0,15,0.40) !important;
+      border: 1px solid rgba(195,215,255,0.12) !important;
+    }
+    .theme-glass .filter-bar select:focus,
+    .theme-glass .filter-bar input[type="number"]:focus {
+      border-color: rgba(130,196,255,0.38) !important;
+      box-shadow: 0 0 0 2px rgba(130,196,255,0.12);
+      outline: none;
+    }
+    /* Glass btn-sm hover */
+    .theme-glass .btn-sm:hover {
+      background: rgba(130,196,255,0.14);
+      border-color: rgba(130,196,255,0.32) !important;
+      box-shadow: 0 0 10px rgba(130,196,255,0.20);
+    }
+
+    html { height: 100%; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────── */
+    header {
+      height: var(--header-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px 0 16px;
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 0;
+      flex-shrink: 0;
+      position: relative;   /* creates stacking context so z-index takes effect */
+      z-index: 1000;
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 11.5px;
+      color: var(--muted);
+      padding-left: 18px;
+      border-left: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* The dot is RED by default and only turns green once a data load has
+       actually succeeded. That means a visitor with JavaScript blocked sees
+       the red/Offline state for free — no script-detection needed, because
+       the code that would turn it green never runs. */
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 7px 1px rgba(230,126,128,0.45);
+    }
+    .live-indicator.live .dot {
+      background: var(--green);
+      box-shadow: 0 0 7px 1px rgba(0,255,120,0.45);
+      animation: pulse 2s infinite;
+    }
+    .live-indicator.stale span { color: var(--danger); font-weight: 600; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    .clock { font-variant-numeric: tabular-nums; color: var(--text); font-size: 12px; }
+
+    .btn-header {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 11px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 11.5px;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-header:hover { background: var(--border); border-color: var(--accent); }
+
+    /* ── Theme selector ────────────────────────────── */
+    .theme-selector { position: relative; z-index: 9999; }
+    .theme-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 0;
+      min-width: 175px;
+      max-height: 380px;
+      overflow-y: auto;
+      box-shadow: 0 6px 24px rgba(0,0,0,.45);
+      z-index: 9999;
+    }
+    .theme-menu.open { display: block; }
+    .theme-menu-section {
+      padding: 6px 14px 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2px;
+    }
+    .theme-menu-section:first-child { padding-top: 4px; }
+    .theme-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 11.5px;
+      color: var(--text);
+      transition: background .12s;
+    }
+    .theme-option:hover { background: var(--surface2); }
+    .theme-option.active { color: var(--accent); font-weight: 700; }
+    .theme-swatch {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Summary Counts (header left) ──────────────── */
+    .summary-counts {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 16px 0 0;
+      border-right: 1px solid var(--border);
+    }
+    .sc-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .sc-pill.sc-extreme  { background: rgba(230,126,128,0.14); color: #e67e80; }
+    .sc-pill.sc-severe   { background: rgba(230,152,117,0.14); color: #e69875; }
+    .sc-pill.sc-moderate { background: rgba(219,188,127,0.14); color: #dbbc7f; }
+    .sc-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+    .sc-count {
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .sc-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      opacity: 0.85;
+    }
+    .sc-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--border);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+    .sc-source {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .sc-source-count {
+      color: var(--text);
+      font-weight: 900;
+      font-size: 11px;
+    }
+
+    /* Clickable panel items */
+    .adb-panel.flyable          { cursor: pointer; }
+    .adb-panel.flyable:hover    { background: var(--surface2); }
+
+    /* ── Alert Detail Bar ───────────────────────  ───── */
+    #alert-detail-bar {
+      height: var(--alertbar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: row;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .adb-label {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 2px;
+      padding: 0 16px 0 14px;
+      background: var(--surface2);
+      border-right: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+    .adb-label-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      color: var(--text);
+      white-space: nowrap;
+      line-height: 1;
+    }
+    .adb-label-sub {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    #adb-panels {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+    }
+
+    .adb-panel {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;      /* tag / location / time stacked */
+      align-items: flex-start;
+      justify-content: center;
+      gap: 3px;
+      padding: 0 12px;
+      border-right: 1px solid var(--border);
+      transition: background .35s ease;
+    }
+    .adb-panel:last-child { border-right: none; }
+
+    /* Active panel */
+    .adb-panel.active {
+      background: var(--surface2);
+      border-top: 2px solid var(--danger);
+    }
+    .adb-panel.active .adb-tag  { filter: brightness(1.3); }
+
+    /* Row 1 — event type tag.
+       10px with tight tracking so long names like "Severe Thunderstorm
+       Warning" fit a panel's full width without wrapping or clipping. */
+    .adb-tag {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      line-height: 1.15;
+    }
+
+    /* Row 3 — issue time, muted metadata */
+    .adb-issue-time {
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      line-height: 1.15;
+    }
+
+    /* Row 2 — location, given the panel's full width */
+    .adb-short {
+      font-size: 11.5px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      line-height: 1.15;
+    }
+
+    .adb-empty {
+      font-size: 12px;
+      color: var(--muted);
+      width: 100%;
+      text-align: center;
+    }
+
+    /* ── Detail text bar (below panel row) ─────────── */
+    #adb-detail-bar {
+      height: var(--adb-detail-h);
+      background: #272e33;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      position: relative;
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 3%, #000 97%, transparent 100%);
+      mask-image:         linear-gradient(to right, transparent 0%, #000 3%, #000 97%, transparent 100%);
+    }
+
+    #adb-detail-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+
+    #adb-detail-text {
+      position: absolute;
+      white-space: nowrap;
+      font-size: 13px;
+      color: var(--text);
+      left: 0;
+      will-change: transform, opacity;
+    }
+
+    /* ── Map section — full viewport height ────────── */
+    .workspace {
+      height: calc(100vh - var(--header-h) - var(--alertbar-h) - var(--adb-detail-h));
+      padding: var(--pad);
+      box-sizing: border-box;
+    }
+
+    /* ── Panel grid — responsive, scrollable below map ── */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: var(--gap);
+      padding: var(--pad);
+    }
+    .panel-grid .panel {
+      height: 340px;
+      flex: none;
+    }
+    /* Full-width region/function dividers inside panel grid */
+    .panel-group-header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--panel-radius, 10px);
+      margin-top: 4px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .panel-group-header:first-child { margin-top: 0; }
+    .panel-group-header-icon { font-size: 13px; line-height: 1; }
+
+    /* Containers that make their children direct grid children */
+    .geo-panels-container,
+    .geo-section { display: contents; }
+
+    /* Hide all grid children when a section is collapsed */
+    .geo-section.collapsed > * { display: none !important; }
+
+    /* Sub-region collapsible row — spans full grid width */
+    .geo-subregion-label {
+      grid-column: 1 / -1;
+      cursor: pointer;
+      user-select: none;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 5px 12px 5px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: rgba(255,255,255,0.02);
+      margin: 4px 0 2px;
+      transition: background 0.14s;
+    }
+    .geo-subregion-label:hover { background: rgba(255,255,255,0.055); }
+    .geo-sr-chevron {
+      font-size: 10px;
+      opacity: 0.55;
+      transition: transform 0.18s ease;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    .geo-subregion-label.collapsed .geo-sr-chevron { transform: rotate(-90deg); }
+
+    /* Collapsible continent headers */
+    .geo-collapsible { cursor: pointer; user-select: none; }
+    .geo-collapsible:hover {
+      background: linear-gradient(90deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 100%);
+    }
+    .geo-chevron {
+      margin-left: auto;
+      font-size: 11px;
+      opacity: 0.6;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .geo-collapsible.collapsed .geo-chevron { transform: rotate(-90deg); }
+
+    /* ── Map panel — fills workspace ────────────────── */
+    .map-panel {
+      height: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: row;
+    }
+
+    /* Flex child that wraps the header + leaflet #map */
+    .map-area {
+      flex: 1;
+      min-width: 0;
+      position: relative;   /* contains absolutely-positioned #map */
+      overflow: hidden;
+    }
+
+    .map-panel-header {
+      height: 40px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+      background: var(--surface);
+      /* sit above Leaflet's z-index stack */
+      position: relative;
+      z-index: 500;
+    }
+
+    .map-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .layer-toggle input { cursor: pointer; accent-color: var(--accent); }
+    .layer-toggle:hover { color: var(--text); }
+
+    .layer-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    #map {
+      /* Absolute fill of .map-panel below the header — gives Leaflet
+         explicit pixel dimensions at init time regardless of flex/grid state */
+      position: absolute;
+      top: 40px;   /* .map-panel-header height */
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    /* Override Leaflet popup to match Everforest theme */
+    .leaflet-popup-content-wrapper {
+      background: #2d353b !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,.6) !important;
+      color: var(--text) !important;
+      padding: 0 !important;
+    }
+
+    .leaflet-popup-content {
+      margin: 0 !important;
+      min-width: 200px;
+    }
+
+    .leaflet-popup-tip { background: #2d353b !important; }
+
+    .leaflet-popup-close-button {
+      color: var(--muted) !important;
+      font-size: 16px !important;
+      padding: 6px 8px !important;
+    }
+
+    .popup-inner {
+      padding: 10px 14px 12px;
+    }
+
+    /* Emoji map markers (e.g. EONET wildfire 🔥) */
+    .leaflet-marker-emoji {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .popup-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: #fff;
+      margin-bottom: 3px;
+    }
+
+    .popup-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+
+    .popup-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      padding: 2px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .popup-row span:last-child { color: #fff; font-weight: 500; }
+
+    .popup-link {
+      display: block;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .popup-link:hover { text-decoration: underline; }
+
+    /* ── Map Legend Sidebar ─────────────────────────── */
+    .map-legend-sidebar {
+      width: 240px;
+      min-width: 240px;
+      display: flex;
+      flex-direction: row;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      transition: width .26s ease, min-width .26s ease;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .map-legend-sidebar.collapsed {
+      width: 28px;
+      min-width: 28px;
+    }
+
+    /* Vertical toggle strip on the left edge of the sidebar */
+    .mls-toggle {
+      width: 28px;
+      min-width: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 13px;
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      background: var(--surface2);
+      user-select: none;
+      flex-shrink: 0;
+      transition: background .12s;
+    }
+    .mls-toggle:hover { background: var(--border); }
+
+    .mls-arrow {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1;
+    }
+    /* Legend sidebar (RIGHT): ▶ collapsed → ◀ expanded */
+    .map-legend-sidebar.collapsed .mls-arrow::before     { content: '▶'; }
+    .map-legend-sidebar:not(.collapsed) .mls-arrow::before { content: '◀'; }
+    /* Layers sidebar (LEFT): ◀ collapsed → ▶ expanded */
+    .map-layers-sidebar.collapsed .mls-arrow::before     { content: '◀'; }
+    .map-layers-sidebar:not(.collapsed) .mls-arrow::before { content: '▶'; }
+
+    .mls-label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 8.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+      color: var(--muted);
+      margin-top: 10px;
+      white-space: nowrap;
+    }
+
+    /* Scrollable body (hidden when collapsed) */
+    .mls-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-width: 0;
+    }
+    .map-legend-sidebar.collapsed .mls-body { display: none; }
+    .map-layers-sidebar.collapsed .mls-body  { display: none; }
+
+    .mls-body::-webkit-scrollbar { width: 3px; }
+    .mls-body::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+    .mls-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 2px; }
+    .mls-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+
+    /* Accordion sections (<details> + <summary>) */
+    .mls-section { border-bottom: 1px solid var(--border); }
+
+    .mls-section > summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 9px 7px 10px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--muted);
+      user-select: none;
+      background: var(--surface2);
+      transition: background .12s, color .12s;
+      gap: 4px;
+    }
+    .mls-section > summary:hover { background: var(--border); color: var(--text); }
+    .mls-section > summary::-webkit-details-marker { display: none; }
+    .mls-section > summary::marker { display: none; }
+
+    .mls-chevron {
+      font-size: 9px;
+      color: var(--muted);
+      transition: transform .15s ease;
+      flex-shrink: 0;
+    }
+    .mls-section[open] > summary .mls-chevron { transform: rotate(180deg); }
+    .mls-section[open] > summary { color: var(--text); }
+
+    .mls-content {
+      padding: 8px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mls-desc {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 3px;
+    }
+
+    .mls-swatch-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      font-size: 10.5px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .mls-swatch {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .mls-swatch.sq { border-radius: 2px; }
+
+    .mls-sub {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      margin: 5px 0 1px;
+    }
+
+    .mls-gradient-bar {
+      height: 12px;
+      border-radius: 3px;
+      margin: 3px 0 1px;
+    }
+
+    .mls-scale-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: var(--muted);
+      margin-bottom: 1px;
+    }
+
+    .mls-note {
+      font-size: 9.5px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-style: italic;
+    }
+
+    /* ── Map Layers Sidebar (LEFT) ──────────────────── */
+    .map-layers-sidebar {
+      width: 190px;
+      min-width: 190px;
+      display: flex;
+      flex-direction: row;   /* body LEFT, toggle strip RIGHT */
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      transition: width .26s ease, min-width .26s ease;
+      overflow: hidden;
+      flex-shrink: 0;
+      backdrop-filter: blur(28px) saturate(165%);
+      -webkit-backdrop-filter: blur(28px) saturate(165%);
+    }
+    .map-layers-sidebar.collapsed {
+      width: 28px;
+      min-width: 28px;
+    }
+
+    /* Strip on the RIGHT edge (border on left, not right) */
+    .map-layers-sidebar .mls-toggle {
+      border-right: none;
+      border-left: 1px solid var(--border);
+    }
+
+    /* Layer toggle rows inside accordion groups */
+    .mls-content .layer-toggle {
+      width: 100%;
+      padding: 3px 0;
+      gap: 7px;
+      font-size: 11px;
+    }
+
+    /* ── Sidebar ────────────────────────────────────── */
+    /* .sidebar removed — panels moved to .panel-grid */
+
+    /* ── Generic panel ──────────────────────────────── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--panel-radius, 10px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+      backdrop-filter: blur(22px) saturate(170%);
+      -webkit-backdrop-filter: blur(22px) saturate(170%);
+      box-shadow:
+        0 12px 48px rgba(0,0,0,0.55),
+        0 2px 6px rgba(0,0,0,0.30),
+        inset 0 1px 0 rgba(255,255,255,0.11),
+        inset 0 -1px 0 rgba(0,0,0,0.18),
+        inset 1px 0 0 rgba(255,255,255,0.05),
+        inset -1px 0 0 rgba(255,255,255,0.03);
+      transition: box-shadow 0.28s ease, transform 0.22s ease;
+    }
+
+    .panel:hover {
+      box-shadow:
+        0 18px 56px rgba(0,0,0,0.62),
+        0 3px 8px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.16),
+        inset 0 -1px 0 rgba(0,0,0,0.18);
+      transform: translateY(-1px);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      height: 36px;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.75);
+    }
+
+
+    .badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0 7px;
+      font-size: 10.5px;
+      color: var(--muted);
+      min-width: 24px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Map event count */
+    #map-count {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .panel-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .updated {
+      font-size: 10px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .btn-sm {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10.5px;
+      transition: color .15s, border-color .15s;
+    }
+    .btn-sm:hover { color: var(--text); border-color: var(--accent); }
+    .btn-sm.active { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
+    /* ── Map search — addresses/places (Photon) + live events ── */
+    .map-search {
+      position: relative;
+      flex: 1 1 auto;
+      max-width: 330px;
+      min-width: 110px;
+      margin-left: auto;          /* sit next to the satellite button */
+    }
+    .map-search-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      padding: 3px 22px 3px 24px;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .map-search-input::placeholder { color: var(--muted); }
+    .map-search-input:focus { border-color: var(--accent); }
+    .map-search-icon {
+      position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--muted); pointer-events: none;
+    }
+    .map-search-clear {
+      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--muted);
+      font-size: 13px; line-height: 1; padding: 0 3px; cursor: pointer; display: none;
+    }
+    .map-search-clear:hover { color: var(--text); }
+    .map-search.has-text .map-search-clear { display: block; }
+
+    .map-search-results {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      max-height: 330px; overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,.55);
+      display: none; z-index: 1200;
+    }
+    .map-search-results.open { display: block; }
+    .map-search-group {
+      padding: 4px 9px; font-size: 8.5px; font-weight: 700;
+      letter-spacing: .5px; text-transform: uppercase;
+      color: var(--muted); background: var(--surface);
+      position: sticky; top: 0;
+    }
+    .map-search-item {
+      display: flex; gap: 7px; align-items: baseline;
+      padding: 6px 9px; cursor: pointer;
+      border-bottom: 1px solid rgba(71,82,88,.35);
+    }
+    .map-search-item:last-child { border-bottom: none; }
+    .map-search-item:hover,
+    .map-search-item.active { background: var(--surface2); }
+    .map-search-badge {
+      flex-shrink: 0; font-size: 8px; font-weight: 700;
+      padding: 1px 5px; border-radius: 3px;
+      letter-spacing: .3px; text-transform: uppercase;
+      color: var(--badge-text, #1a2227);
+    }
+    .map-search-text { flex: 1; min-width: 0; }
+    .map-search-name {
+      font-size: 11.5px; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .map-search-sub {
+      font-size: 9.5px; color: var(--muted); margin-top: 1px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .map-search-state { padding: 8px 10px; font-size: 10.5px; color: var(--muted); }
+
+    @media (max-width: 1100px) { .map-search { max-width: 200px; } }
+
+    /* ── Filter bar ─────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .filter-bar label { font-size: 10.5px; color: var(--muted); }
+
+    .filter-bar select,
+    .filter-bar input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 10.5px;
+    }
+
+    /* ── Panel body ─────────────────────────────────── */
+    .panel-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .panel-body::-webkit-scrollbar { width: 4px; height: 4px; }
+    .panel-body::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 2px; }
+    .panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 2px; }
+    .panel-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.30); }
+
+    /* ── State / loading ────────────────────────────── */
+    .state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 24px 16px;
+      color: var(--muted);
+      text-align: center;
+      height: 100%;
+    }
+
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Earthquake table ───────────────────────────── */
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 5px 8px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+      cursor: pointer;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+
+    td { padding: 5px 8px; font-size: 11px; vertical-align: middle; }
+
+    .mag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px; height: 20px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Everforest magnitude chips */
+    .mag-minor    { background: #293d2b; color: #a7c080; }
+    .mag-light    { background: #3b3a27; color: #dbbc7f; }
+    .mag-moderate { background: #3d3226; color: #e69875; }
+    .mag-strong   { background: #3d2b28; color: #e67e80; }
+    .mag-major    { background: #3d2020; color: #e67e80; }
+    .mag-great    { background: #4a1f1f; color: #e67e80; border: 1px solid #e67e80; }
+
+    /* ── EAS alerts ─────────────────────────────────── */
+    .alert-list { padding: 1px 0; }
+
+    .alert-item {
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--border);
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-item:hover { background: var(--surface2); }
+
+    /* ── Geo-alert accordion (AlertStore panels) ────────── */
+    .geo-region {
+      border-bottom: 1px solid var(--border);
+    }
+    .geo-region > summary {
+      list-style: none;
+      cursor: pointer;
+    }
+    .geo-region > summary::-webkit-details-marker { display: none; }
+    .geo-region[open] > summary.alert-region-header {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .geo-country {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .geo-country:last-child { border-bottom: none; }
+
+    .geo-country-header {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 10px 5px 16px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.025);
+      transition: background 0.14s ease;
+    }
+    .geo-country-header::-webkit-details-marker { display: none; }
+    .geo-country-header:hover { background: rgba(255,255,255,0.055); }
+    .geo-country[open] > .geo-country-header {
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.055);
+    }
+
+    .geo-country-name {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .geo-country-alerts {
+      padding: 0;
+    }
+    .geo-country-alerts .alert-item {
+      padding-left: 22px;   /* indent relative to country header */
+    }
+
+    .geo-source-tag {
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      padding: 2px 5px;
+      border-radius: 3px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .alert-region-header {
+      position: sticky; top: 0; z-index: 1;
+      padding: 4px 8px;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(0,0,0,0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .alert-region-count {
+      font-weight: 600;
+      font-size: 9px;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+
+    .alert-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 1px;
+      min-width: 0;
+    }
+    .alert-badge {
+      flex-shrink: 0;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      line-height: 1.4;
+    }
+    .alert-sub {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .alert-meta {
+      display: flex;
+      gap: 6px;
+      font-size: 9.5px;
+      color: var(--muted);
+      margin-top: 1px;
+      align-items: center;
+    }
+
+    .alert-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 2px;
+    }
+
+    .alert-event { font-weight: 600; font-size: 11px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+    .sev-tag {
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+
+    /* Everforest severity tags */
+    .sev-extreme  { background: #3d2020; color: #e67e80; }
+    .sev-severe   { background: #3d3020; color: #e69875; }
+    .sev-moderate { background: #3d3a20; color: #dbbc7f; }
+    .sev-unknown  { background: var(--surface2); color: var(--muted); }
+
+    .alert-area {
+      font-size: 10px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .alert-times {
+      display: flex;
+      gap: 10px;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+      flex-wrap: wrap;
+    }
+
+    .alert-times b { color: var(--text); }
+
+    .link-btn {
+      font-size: 10px;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .link-btn:hover { text-decoration: underline; }
+
+    /* ── Space weather ──────────────────────────────── */
+    .kp-bar-row {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .kp-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 10.5px;
+    }
+
+    .kp-value {
+      font-size: 20px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .kp-scale { display: flex; gap: 2px; }
+
+    .kp-seg {
+      height: 7px;
+      flex: 1;
+      border-radius: 2px;
+      opacity: .2;
+      transition: opacity .3s;
+    }
+    .kp-seg.active { opacity: 1; }
+
+    .sw-alert-list { padding: 3px 0; }
+
+    .sw-item {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+    .sw-item:last-child { border-bottom: none; }
+    .sw-item:hover { background: var(--surface2); }
+
+    .sw-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 2px;
+    }
+
+    .sw-type { font-weight: 600; font-size: 11.5px; color: #fff; }
+
+    .sw-cat {
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    /* Everforest space weather category tags */
+    .cat-geo   { background: #2e2538; color: #d699b6; }  /* purple */
+    .cat-solar { background: #333020; color: #dbbc7f; }  /* yellow */
+    .cat-radio { background: #1e2e2c; color: #83c092; }  /* aqua   */
+    .cat-other { background: var(--surface2); color: var(--muted); }
+
+    .sw-body {
+      font-size: 10.5px;
+      color: var(--muted);
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .sw-time {
+      font-size: 10px; color: var(--muted); margin-top: 4px;
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    }
+
+    /* ── All-clear ──────────────────────────────────── */
+    .all-clear {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 12px;
+      margin: 8px 10px;
+      background: #263229;
+      border: 1px solid #3a4f3e;
+      border-radius: 5px;
+      font-size: 11px;
+      color: var(--green);
+    }
+
+    /* ── Tooltip ────────────────────────────────────── */
+    [data-tip] { position: relative; cursor: default; }
+    [data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #000;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 3px 7px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── EONET / FEMA / Cyclone items ──────────────── */
+    .hazard-item {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: background .12s;
+      cursor: pointer;
+    }
+    .hazard-item:last-child { border-bottom: none; }
+    .hazard-item:hover { background: var(--surface2); }
+
+    .hazard-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .hazard-title { font-weight: 600; font-size: 11.5px; color: #fff; }
+
+    .hazard-cat {
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .hazard-meta {
+      display: flex;
+      gap: 10px;
+      font-size: 10px;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+
+    .hazard-meta b { color: var(--text); }
+
+    /* Storm card — larger emphasis for active cyclones */
+    .storm-card {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .storm-card:last-child { border-bottom: none; }
+
+    .storm-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .storm-class {
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      background: #2a3040;
+      color: #7fbbb3;
+    }
+
+    .storm-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px 12px;
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+    .storm-stats b { color: var(--text); }
+
+    /* ── 4:3 monitors ───────────────────────────────── */
+    @media (min-width: 641px) and (max-aspect-ratio: 4/3) {
+      :root { --sidebar-w: 320px; }
+    }
+
+    /* ── Narrow desktop / tablet ────────────────────── */
+    @media (min-width: 641px) and (max-width: 960px) {
+      :root { --sidebar-w: 300px; }
+    }
+
+    /* ── Narrow laptop ──────────────────────────────── */
+    @media (min-width: 641px) and (max-width: 1200px) {
+      /* Legend starts collapsed here too (see applyResponsiveSidebars) */
+      .adb-panel:nth-child(n+4) { display: none; }   /* 5 panels → 3 */
+      .map-search { max-width: 190px; }
+    }
+
+    /* ── Mobile ─────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .workspace { height: 58vh; }
+      .panel-grid { grid-template-columns: 1fr; }
+      .panel-grid .panel { height: 320px; }
+
+      /* The layers (190px) and legend (240px) sidebars together demand 430px —
+         wider than the viewport, which is why the map was reduced to a sliver.
+         They start collapsed to their 28px strips, and when opened they float
+         OVER the map instead of taking layout width from it. */
+      .map-panel { position: relative; }
+      .map-layers-sidebar:not(.collapsed),
+      .map-legend-sidebar:not(.collapsed) {
+        position: absolute; top: 0; bottom: 0;
+        width: 84vw; min-width: 0; z-index: 900;
+        box-shadow: 0 0 24px rgba(0,0,0,.55);
+      }
+      .map-layers-sidebar:not(.collapsed) { left: 0; }
+      .map-legend-sidebar:not(.collapsed) { right: 0; }
+
+      /* Five ticker panels across ~390px is ~78px each — unreadable stubs.
+         Show two; the rotation still cycles through all five over time.
+         The "Happening Now" label also claimed ~43% of the row, so it goes —
+         the alert content speaks for itself. */
+      .adb-panel:nth-child(n+3) { display: none; }
+      .adb-label { display: none; }
+
+      /* Header wraps instead of overflowing; the per-source badges go, since
+         the three severity pills carry the signal that matters on a phone. */
+      header { height: auto; min-height: var(--header-h); flex-wrap: wrap; padding: 6px 10px; }
+      .summary-counts { flex-shrink: 1; flex-wrap: wrap; border-right: none; padding-right: 0; }
+      .sc-source, .sc-divider { display: none; }
+      .header-right { padding-left: 0; gap: 10px; }
+
+      .map-panel-header { padding: 0 8px; gap: 6px; }
+      .map-search { max-width: 46vw; min-width: 0; }
+    }
