@@ -80,8 +80,8 @@ redistribution.
 |---|---|---|---|
 | [Open-Meteo](https://open-meteo.com/) | Surface wind barbs | Open-Meteo | [CC BY 4.0](https://open-meteo.com/en/terms), non-commercial free tier |
 | [RainViewer](https://www.rainviewer.com/) | Global radar composite tiles | RainViewer | Free tier with attribution; see [API terms](https://www.rainviewer.com/api.html) |
-| [Iowa State IEM](https://mesonet.agron.iastate.edu/) | NEXRAD composite reflectivity (CONUS) | Iowa Environmental Mesonet | Free service, attribution requested |
-| [DWD GeoServer](https://maps.dwd.de/) | German radar composite (WMS) | Deutscher Wetterdienst | [DWD open data](https://www.dwd.de/EN/service/copyright/copyright_node.html), attribution required |
+| [Iowa State IEM](https://mesonet.agron.iastate.edu/) | NEXRAD composite reflectivity (CONUS) | Iowa Environmental Mesonet | Free service, attribution requested, provided on map |
+| [DWD GeoServer](https://maps.dwd.de/) | German radar composite (WMS) | Deutscher Wetterdienst | [DWD open data](https://www.dwd.de/EN/service/copyright/copyright_node.html), attribution required, provided on map |
 | [FMI Open Data](https://en.ilmatieteenlaitos.fi/open-data) | Finnish radar composite (WMS) | Finnish Meteorological Institute | [CC BY 4.0](https://en.ilmatieteenlaitos.fi/open-data-licence) |
 | [EUMETView](https://view.eumetsat.int/) | Meteosat MTG-I FCI infrared, full disk (WMS) | EUMETSAT | [EUMETSAT data policy](https://www.eumetsat.int/eumetsat-data-licensing) |
 | [NASA GIBS](https://earthdata.nasa.gov/eosdis/science-system-description/eosdis-components/gibs) | IMERG precipitation (NASA GPM); GOES-East and GOES-West infrared (NOAA/NESDIS); Himawari infrared (JMA); GRACE-FO groundwater (NASA/JPL); SMAP root-zone and surface soil moisture (NASA); GHRSST MUR sea surface temperature and sea ice (NASA/JPL PO.DAAC); OMPS ozone and OMI sulfur dioxide (NASA GSFC) | NASA EOSDIS, with the originating agencies credited per layer | NASA open data; GIBS [usage guidelines](https://nasa-gibs.github.io/gibs-api-docs/) |
