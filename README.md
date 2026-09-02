@@ -71,7 +71,6 @@ redistribution.
 | [NWPS River Gauges](https://water.noaa.gov/) | River gauge flood status (ArcGIS) | NOAA National Water Prediction Service | US Government work, public domain |
 | [US Drought Monitor](https://droughtmonitor.unl.edu/) | Weekly drought intensity polygons | National Drought Mitigation Center, USDA, NOAA | Free to use with citation: "The U.S. Drought Monitor is jointly produced by the National Drought Mitigation Center at the University of Nebraska-Lincoln, the United States Department of Agriculture, and the National Oceanic and Atmospheric Administration. Map courtesy of NDMC." |
 | [MSC GeoMet](https://api.weather.gc.ca/) | Canadian weather alerts | Environment and Climate Change Canada | [Data Servers End-use Licence](https://eccc-msc.github.io/open-data/licence/readme_en/) |
-| [BOM Warnings API](https://api.weather.bom.gov.au/) and [BOM ArcGIS](https://hosting.wsapi.cloud.bom.gov.au/) | Australian warnings and flood catchment polygons | Bureau of Meteorology, © Commonwealth of Australia | BOM [terms of use](http://www.bom.gov.au/other/copyright.shtml) |
 | [GDACS](https://www.gdacs.org/) | Global disaster alerts (RSS) | European Commission Joint Research Centre | GDACS [terms](https://www.gdacs.org/About/termofuse.aspx) |
 | [Meteoalarm](https://meteoalarm.org/) | Severe weather warnings for 39 European countries (CAP feeds) | EUMETNET | Attribution required; see [Meteoalarm terms](https://meteoalarm.org/en/live/page/terms-and-conditions) |
 | [WMO SWIC](https://severeweather.wmo.int/) | Global severe weather alerts (WFS) | World Meteorological Organization, hosted by Hong Kong Observatory | WMO [terms](https://severeweather.wmo.int/) |
@@ -106,5 +105,4 @@ redistribution.
   and header counts.
 - Daily satellite composites from GIBS are pinned two days back so the layer
   is always fully assembled; see `GIBS_DAILY_OFFSET`.
-  
 - This project is not affiliated with or endorsed by any of the agencies above.
